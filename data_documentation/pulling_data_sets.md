@@ -1,6 +1,7 @@
 Pulling Data Sets
 ================
-Tucker Morgan (tlm2152)
+Jimmy Kelliher (jmk2303), Hun Lee (sl4836), Tanvir Khan (tk2886), Tucker
+Morgan (tlm2152), Zachary Katz (zak2132)
 11/17/2021
 
 ``` r
