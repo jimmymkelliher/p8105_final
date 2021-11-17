@@ -1,0 +1,11 @@
+---
+title: "Pulling Data Sets"
+author: "Tucker Morgan (tlm2152)"
+date: "11/17/2021"
+output: github_document
+---
+
+```{r setup, message = FALSE}
+library(tidyverse)
+```
+
