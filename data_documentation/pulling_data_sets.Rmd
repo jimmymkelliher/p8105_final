@@ -7,5 +7,35 @@ output: github_document
 
 ```{r setup, message = FALSE}
 library(tidyverse)
+library(httr)
 ```
+
+
+
+Below, we import vaccination data from [nyc.gov](https://www1.nyc.gov/site/doh/covid/covid-19-data-vaccines.page) containing information on the number and estimated percentage of NYC residents who are fully or partially vaccinated by Modified ZCTA (MODZCTA) as of 11/17/2021.
+```{r importing nyc.gov vaccination data, message = FALSE}
+vacc_url = "https://raw.githubusercontent.com/nychealth/covid-vaccine-data/main/people/coverage-by-modzcta-allages.csv"
+
+nyc_vacc_zcta <- read_csv(vacc_url)
+head(nyc_vacc_zcta)
+```
+
+```{r writing vaccination data to csv, eval = FALSE}
+write_csv(nyc_vacc_zcta, "./data/nyc_vacc_zcta.csv")
+```
+
+Below, we import broadband adoption and infrastructure data by zip code from [NYC Open Data](https://data.cityofnewyork.us/City-Government/Broadband-Adoption-and-Infrastructure-by-Zip-Code/qz5f-yx82/data). 
+```{r broadband data, message = FALSE}
+nyc_broadband <- 
+  GET("https://data.cityofnewyork.us/resource/qz5f-yx82.json") %>% 
+  content("text") %>% 
+  jsonlite::fromJSON() %>%
+  as_tibble()
+head(nyc_broadband)
+```
+
+```{r writing broadband data to csv, eval = FALSE}
+write_csv(nyc_broadband, "./data/nyc_broadband.csv")
+```
+
 
