@@ -8,12 +8,14 @@ output: github_document
 ```{r setup, message = FALSE}
 library(tidyverse)
 library(httr)
+library(gdata)
+library(RCurl)
 library(readxl)
 ```
 
 Below, we import United States Census data from the American Community Survey (ACS) 2019 five-year estimate via [IPUMS](https://usa.ipums.org/usa/). This data includes demographic and macroeconomic data by Public Use Microdata Area (PUMA) for New York City.
 ```{r IPUMS data import}
-# space for Jimmy to import updated IPUMS
+# space for import of IPUMS or sample
 
 ```
 
@@ -61,13 +63,19 @@ write_csv(nyc_broadband, "./data/nyc_broadband.csv")
 ```
 
 Finally, we will import crosswalk data sets from [Baruch College](https://www.baruch.cuny.edu/confluence/display/geoportal/NYC+Geographies) to be utilized in relating ZCTA's, zip codes, and PUMAs.
-```{r crosswalks for ZCTAs zipcodes and PUMAs, eval = FALSE}
+```{r crosswalks for ZCTAs zipcodes and PUMAs, message = FALSE}
 zcta_puma_url = "http://faculty.baruch.cuny.edu/geoportal/resources/nyc_geog/nyc_zcta10_to_puma10.xls"
 
-zcta_puma_cross <- read_excel(zcta_puma_url) # issue here, link on the website seems broken
+zcta_puma_cross <- read.xls(zcta_puma_url)
 
 zcta_zip_url = "http://faculty.baruch.cuny.edu/geoportal/resources/nyc_geog/zip_to_zcta10_nyc_revised.xls"
 
-zcta_zip_cross <- read_excel(zcta_zip_url) # issue here, link on the website seems broken
+zcta_zip_cross <- read.xls(zcta_zip_url, sheet = 2)
+zcta_zip_notes <- read.xls(zcta_zip_url, sheet = 1) # notes from the first sheet in the .xls file
+```
+
+```{r writing crosswalks, eval = FALSE}
+write_csv(zcta_puma_cross, "./data/zcta_puma_cross.csv")
+write_csv(zcta_zip_cross, "./data/zcta_zip_cross.csv")
 ```
 

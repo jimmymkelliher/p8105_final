@@ -7,6 +7,8 @@ Morgan (tlm2152), Zachary Katz (zak2132)
 ``` r
 library(tidyverse)
 library(httr)
+library(gdata)
+library(RCurl)
 library(readxl)
 ```
 
@@ -17,7 +19,7 @@ macroeconomic data by Public Use Microdata Area (PUMA) for New York
 City.
 
 ``` r
-# space for Jimmy to import updated IPUMS
+# space for import of IPUMS or sample
 ```
 
 Next, we bring in monthly health outcomes from [NYC Department of Health
@@ -111,9 +113,15 @@ to be utilized in relating ZCTA’s, zip codes, and PUMAs.
 ``` r
 zcta_puma_url = "http://faculty.baruch.cuny.edu/geoportal/resources/nyc_geog/nyc_zcta10_to_puma10.xls"
 
-zcta_puma_cross <- read_excel(zcta_puma_url) # issue here, link on the website seems broken
+zcta_puma_cross <- read.xls(zcta_puma_url)
 
 zcta_zip_url = "http://faculty.baruch.cuny.edu/geoportal/resources/nyc_geog/zip_to_zcta10_nyc_revised.xls"
 
-zcta_zip_cross <- read_excel(zcta_zip_url) # issue here, link on the website seems broken
+zcta_zip_cross <- read.xls(zcta_zip_url, sheet = 2)
+zcta_zip_notes <- read.xls(zcta_zip_url, sheet = 1) # notes from the first sheet in the .xls file
+```
+
+``` r
+write_csv(zcta_puma_cross, "./data/zcta_puma_cross.csv")
+write_csv(zcta_zip_cross, "./data/zcta_zip_cross.csv")
 ```
