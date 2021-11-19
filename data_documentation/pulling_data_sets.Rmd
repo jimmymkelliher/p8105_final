@@ -1,6 +1,6 @@
 ---
 title: "Pulling Data Sets"
-author: "Jimmy Kelliher (jmk2303), Hun Lee (sl4836), Tanvir Khan (tk2886), Tucker Morgan (tlm2152), Zachary Katz (zak2132)"
+author: "Hun Lee (sl4836), Jimmy Kelliher (jmk2303), Tanvir Khan (tk2886), Tucker Morgan (tlm2152), Zachary Katz (zak2132)"
 date: "11/17/2021"
 output: github_document
 ---
@@ -8,15 +8,19 @@ output: github_document
 ```{r setup, message = FALSE}
 library(tidyverse)
 library(httr)
+library(readxl)
 ```
 
 Below, we import United States Census data from the American Community Survey (ACS) 2019 five-year estimate via [IPUMS](https://usa.ipums.org/usa/). This data includes demographic and macroeconomic data by Public Use Microdata Area (PUMA) for New York City.
 ```{r IPUMS data import}
+# space for Jimmy to import updated IPUMS
 
 ```
 
 Next, we bring in monthly health outcomes from [NYC Department of Health and Mental Hygiene](https://github.com/nychealth/coronavirus-data) (DOHMH) as of 11/18/2021. We will primarily analyze data related to COVID-19 hospitalizations and deaths.
 ```{r health outcomes import}
+# Should we reproduce how we obtained the health outcomes data? I encountered issues trying to find the same data table.
+# We could just import what we have, but I think reproducible code would be nice.
 
 ```
 
@@ -48,6 +52,12 @@ write_csv(nyc_broadband, "./data/nyc_broadband.csv")
 
 Finally, we will import crosswalk data sets from [Baruch College](https://www.baruch.cuny.edu/confluence/display/geoportal/NYC+Geographies) to be utilized in relating ZCTA's, zip codes, and PUMAs.
 ```{r crosswalks for ZCTAs zipcodes and PUMAs}
+zcta_puma_url = "http://faculty.baruch.cuny.edu/geoportal/resources/nyc_geog/nyc_zcta10_to_puma10.xls"
 
+zcta_puma_cross <- read_excel(zcta_puma_url) # issue here, link on the website seems broken
+
+zcta_zip_url = "http://faculty.baruch.cuny.edu/geoportal/resources/nyc_geog/zip_to_zcta10_nyc_revised.xls"
+
+zcta_zip_cross <- read_excel(zcta_zip_url) # issue here, link on the website seems broken
 ```
 
