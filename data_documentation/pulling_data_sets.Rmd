@@ -10,7 +10,15 @@ library(tidyverse)
 library(httr)
 ```
 
+Below, we import United States Census data from the American Community Survey (ACS) 2019 five-year estimate via [IPUMS](https://usa.ipums.org/usa/). This data includes demographic and macroeconomic data by Public Use Microdata Area (PUMA) for New York City.
+```{r IPUMS data import}
 
+```
+
+Next, we bring in monthly health outcomes from [NYC Department of Health and Mental Hygiene](https://github.com/nychealth/coronavirus-data) (DOHMH) as of 11/18/2021. We will primarily analyze data related to COVID-19 hospitalizations and deaths.
+```{r health outcomes import}
+
+```
 
 Below, we import vaccination data from [nyc.gov](https://www1.nyc.gov/site/doh/covid/covid-19-data-vaccines.page) containing information on the number and estimated percentage of NYC residents who are fully or partially vaccinated by Modified ZCTA (MODZCTA) as of 11/17/2021.
 ```{r importing nyc.gov vaccination data, message = FALSE}
@@ -38,4 +46,8 @@ head(nyc_broadband)
 write_csv(nyc_broadband, "./data/nyc_broadband.csv")
 ```
 
+Finally, we will import crosswalk data sets from [Baruch College](https://www.baruch.cuny.edu/confluence/display/geoportal/NYC+Geographies) to be utilized in relating ZCTA's, zip codes, and PUMAs.
+```{r crosswalks for ZCTAs zipcodes and PUMAs}
+
+```
 
