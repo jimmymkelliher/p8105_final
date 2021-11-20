@@ -7,11 +7,8 @@ output: github_document
 ```{r}
 library(tidyverse)
 library(janitor)
+
 ```
-
-
-
-
 
 
 Below, we're reading in ZCTA death rate in NYC. The second file shows the ZCTA and puma and percentages that is used to approximate specific calculations such as ZCTA to PUMA (death rate)
@@ -68,4 +65,32 @@ result %>% pull(puma10) %>% unique
 result
 ```
 
+
+### Zip to Zcta
+```{r}
+zip_to_zcta <- read.csv("./data/zcta_zip_cross.csv")
+
+zip_to_zcta_3 <-
+  zip_to_zcta %>% select(zipcode, zcta5) %>% rename(zcta = zcta5) 
+
+zcta_puma_3 <- 
+  zcta_puma %>% select(zcta, puma10)
+```
+
+### try to see what zcta values are different
+```{r}
+#214 Zcta in an ascending order
+a <- zip_to_zcta_3 %>% pull(zcta) %>% sort() %>% unique()
+
+#211 Zcta in an ascending order
+b <- zcta_puma_3 %>% mutate(zcta = as.numeric(zcta)) %>%  pull(zcta) %>% sort() %>% unique()
+
+#3 Absent Zcta
+a[which((a %in% b) == FALSE)]
+```
+
+
+```{r}
+merge(zip_to_zcta_3, zcta_puma_3)
+```
 
