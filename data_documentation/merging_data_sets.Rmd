@@ -12,8 +12,9 @@ library(janitor)
 
 
 
-Below, we're reading in ZCTA death rate in NYC. 
-The second file shows the ZCTA and puma and percentages that can be used to approximate specific calculations such as ZCTA to PUMA (death rate)
+
+
+Below, we're reading in ZCTA death rate in NYC. The second file shows the ZCTA and puma and percentages that is used to approximate specific calculations such as ZCTA to PUMA (death rate)
 ```{r}
 death_data <- read.csv("./data/nyc_death_rate_zcta.csv")
 
@@ -25,15 +26,17 @@ zcta_to_puma <- read.csv("./data/zcta_puma_cross.csv")
 
 Below, we're calculating the death rate mean for each ZCTA. 
 ```{r}
-death_data_2<-
+death_data_2 <-
   death_data %>% 
   janitor::clean_names() %>%
   select(deathrate_10001:deathrate_11697) %>%
   pivot_longer(deathrate_10001:deathrate_11697, 
-               names_to = "zcta", values_to = "death_rate", 
+               names_to = "zcta", 
+               values_to = "death_rate", 
                names_prefix = "deathrate_") %>%
   group_by(zcta) %>%
-  summarise(death_rate_mean = mean(death_rate, na.rm = T))
+  summarise(death_rate_mean = 
+              mean(death_rate, na.rm = T))
   
 death_data_2
 ```
@@ -44,7 +47,8 @@ death_data_2
 ```{r}
 zcta_puma <-
   zcta_to_puma %>% 
-  mutate(zcta10 = as.character(zcta10)) %>%
+  mutate(zcta10 = 
+           as.character(zcta10)) %>%
   select(zcta10 , puma10, per_in_puma, per_of_puma) %>%
   rename(zcta = zcta10) 
 
@@ -57,7 +61,8 @@ zcta_puma %>% pull(puma10) %>% unique
 ```{r}
 result <-
   merge(zcta_puma, death_data_2) %>%
-  mutate(weighted_death_rate =  death_rate_mean * per_in_puma * per_of_puma) %>%
+  mutate(weighted_death_rate =  
+           death_rate_mean * per_in_puma * per_of_puma) %>%
   select(weighted_death_rate, puma10) %>%
   group_by(puma10) %>%
   summarise(puma_death_rate = sum(weighted_death_rate)) 
