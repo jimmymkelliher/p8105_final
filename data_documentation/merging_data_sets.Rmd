@@ -26,7 +26,7 @@ zcta_to_puma <- read.csv("./data/zcta_puma_cross.csv")
 
 Below, we're calculating the death rate mean for each ZCTA. 
 ```{r}
-death_data_2 <-
+death_data_clean <-
   death_data %>% 
   janitor::clean_names() %>%
   select(deathrate_10001:deathrate_11697) %>%
@@ -38,12 +38,11 @@ death_data_2 <-
   summarise(death_rate_mean = 
               mean(death_rate, na.rm = T))
   
-death_data_2
+death_data_clean
 ```
 
 
-
-
+Below, the code shows the ZCTA, PUMA, per_in_puma shows the percentage of ZCTA in that associated puma, per_of_puma shows the percentage of puma in that zcta. 
 ```{r}
 zcta_puma <-
   zcta_to_puma %>% 
@@ -51,16 +50,13 @@ zcta_puma <-
            as.character(zcta10)) %>%
   select(zcta10 , puma10, per_in_puma, per_of_puma) %>%
   rename(zcta = zcta10) 
-
-
-zcta_puma %>% pull(puma10) %>% unique
 ```
 
 
-
+Below, the code displays the death rate for each Puma. 
 ```{r}
 result <-
-  merge(zcta_puma, death_data_2) %>%
+  merge(zcta_puma, death_data_clean) %>%
   mutate(weighted_death_rate =  
            death_rate_mean * per_in_puma * per_of_puma) %>%
   select(weighted_death_rate, puma10) %>%
