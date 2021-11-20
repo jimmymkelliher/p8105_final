@@ -2,7 +2,7 @@
 title: "Merge Dataset"
 author: "Hun"
 date: "11/20/2021"
-output: html_document
+output: github_document
 ---
 ```{r}
 library(tidyverse)
@@ -10,6 +10,10 @@ library(janitor)
 ```
 
 
+
+
+Below, we're reading in ZCTA death rate in NYC. 
+The second file shows the ZCTA and puma and percentages that can be used to approximate specific calculations such as ZCTA to PUMA (death rate)
 ```{r}
 death_data <- read.csv("./data/nyc_death_rate_zcta.csv")
 
@@ -17,6 +21,9 @@ zcta_to_puma <- read.csv("./data/zcta_puma_cross.csv")
 ```
 
 
+
+
+Below, we're calculating the death rate mean for each ZCTA. 
 ```{r}
 death_data_2<-
   death_data %>% 
@@ -31,6 +38,9 @@ death_data_2<-
 death_data_2
 ```
 
+
+
+
 ```{r}
 zcta_puma <-
   zcta_to_puma %>% 
@@ -41,6 +51,7 @@ zcta_puma <-
 
 zcta_puma %>% pull(puma10) %>% unique
 ```
+
 
 
 ```{r}
