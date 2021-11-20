@@ -1,0 +1,59 @@
+---
+title: "Merge Dataset"
+author: "Hun"
+date: "11/20/2021"
+output: html_document
+---
+```{r}
+library(tidyverse)
+library(janitor)
+```
+
+
+```{r}
+death_data <- read.csv("./data/nyc_death_rate_zcta.csv")
+
+zcta_to_puma <- read.csv("./data/zcta_puma_cross.csv")
+```
+
+
+```{r}
+death_data_2<-
+  death_data %>% 
+  janitor::clean_names() %>%
+  select(deathrate_10001:deathrate_11697) %>%
+  pivot_longer(deathrate_10001:deathrate_11697, 
+               names_to = "zcta", values_to = "death_rate", 
+               names_prefix = "deathrate_") %>%
+  group_by(zcta) %>%
+  summarise(death_rate_mean = mean(death_rate, na.rm = T))
+  
+death_data_2
+```
+
+```{r}
+zcta_puma <-
+  zcta_to_puma %>% 
+  mutate(zcta10 = as.character(zcta10)) %>%
+  select(zcta10 , puma10, per_in_puma, per_of_puma) %>%
+  rename(zcta = zcta10) 
+
+
+zcta_puma %>% pull(puma10) %>% unique
+```
+
+
+```{r}
+result <-
+  merge(zcta_puma, death_data_2) %>%
+  mutate(weighted_death_rate =  death_rate_mean * per_in_puma * per_of_puma) %>%
+  select(weighted_death_rate, puma10) %>%
+  group_by(puma10) %>%
+  summarise(puma_death_rate = sum(weighted_death_rate)) 
+  
+result %>% pull(puma10) %>% unique
+
+result
+```
+
+
