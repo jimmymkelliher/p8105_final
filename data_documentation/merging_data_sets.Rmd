@@ -7,30 +7,22 @@ output: github_document
 
 ```{r}
 library(tidyverse)
-
 library(janitor)
 ```
 
-Below, we're reading in ZCTA death rate in NYC. The second file shows the ZCTA and puma and percentages that is used to approximate specific calculations such as ZCTA to PUMA (death rate)
-```{r}
-death_data <- read.csv("./data/nyc_death_rate_zcta.csv")
+Below, we read in monthly death rates and hospitalization rates due to COVID-19, as well as rates of vaccination against COVID-19, courtesy of DOHMH. Data are recorded for each Zip Code Tabulation Area (ZCTA) in NYC, and values denote rates per 100,000 residents of a given ZCTA. Next, we read in two crosswalks between geographies of NYC, courtesy of Baruch College. The `zcta_puma_cross.csv` crosswalk enables us to merge data between ZCTAs and PUMAs, neither of which is a strict sub-geography of the other. The `zcta_zip_cross.csv` file enables us to aggregate zip-code-level data to ZCTA-level data.
 
-zcta_to_puma <- read.csv("./data/zcta_puma_cross.csv")
-
-```
-
-Below, we're reading in ZCTA health outcome data in NYC including death rate, hospitalization rate, and vaccination rate by ZCTA. The `zcta_puma_cross` file shows ZCTA and PUMA ID values in NYC along with percentages of overlapping geographies, which we will use to approximate values, such as hospitalization rate, from the ZCTA level to the PUMA level. The `zcta_zip_cross` file shows how each zip code aggregates to a ZCTA.
 ```{r importing data sets, message = FALSE}
-death_data <- read_csv("./data/nyc_death_rate_zcta.csv")
-hosp_data <- read_csv("./data/nyc_hosp_rate_zcta.csv")
-vacc_data <- read_csv("./data/nyc_vacc_zcta.csv")
+death_data <- read_csv("../data/nyc_death_rate_zcta.csv")
+hosp_data <- read_csv("../data/nyc_hosp_rate_zcta.csv")
+vacc_data <- read_csv("../data/nyc_vacc_zcta.csv")
 
-zcta_puma_cross <- read_csv("./data/zcta_puma_cross.csv")
-zcta_zip_cross <- read.csv("./data/zcta_zip_cross.csv")
-
+zcta_puma_cross <- read_csv("../data/zcta_puma_cross.csv")
+zcta_zip_cross <- read_csv("../data/zcta_zip_cross.csv")
 ```
 
 Below, we are calculating the mean death rate and hospitalization rate for each ZCTA. These data are presented over the time interval from March 2020 to September 2021. We will take the mean rate across these months to use in our analysis.
+
 ```{r cleaning death data}
 death_data_clean <-
   death_data %>% 
@@ -132,6 +124,8 @@ outcome_puma <-
 outcome_puma %>% pull(puma10) %>% n_distinct() # merged result has the same number of puma as that of original number!
 
 head(outcome_puma)
+
+write_csv(outcome_puma, "../data/outcome_puma.csv")
 ```
 
 
