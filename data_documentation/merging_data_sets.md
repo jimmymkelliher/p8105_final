@@ -41,12 +41,12 @@ of the other. The `zcta_zip_cross.csv` file enables us to aggregate
 zip-code-level data to ZCTA-level data.
 
 ``` r
-death_data <- read_csv("../data/nyc_death_rate_zcta.csv")
-hosp_data <- read_csv("../data/nyc_hosp_rate_zcta.csv")
-vacc_data <- read_csv("../data/nyc_vacc_zcta.csv")
+death_data <- read_csv("./data/nyc_death_rate_zcta.csv")
+hosp_data <- read_csv("./data/nyc_hosp_rate_zcta.csv")
+vacc_data <- read_csv("./data/nyc_vacc_zcta.csv")
 
-zcta_puma_cross <- read_csv("../data/zcta_puma_cross.csv")
-zcta_zip_cross <- read_csv("../data/zcta_zip_cross.csv")
+zcta_puma_cross <- read_csv("./data/zcta_puma_cross.csv")
+zcta_zip_cross <- read_csv("./data/zcta_zip_cross.csv")
 ```
 
 Below, we are calculating the mean death rate and hospitalization rate
@@ -875,7 +875,7 @@ head(outcome_puma)
     ## 6   3706            15.3           38.6           33.0
 
 ``` r
-write_csv(outcome_puma, "../data/outcome_puma.csv")
+write_csv(outcome_puma, "./data/outcome_puma.csv")
 ```
 
 ### Zip to Zcta
