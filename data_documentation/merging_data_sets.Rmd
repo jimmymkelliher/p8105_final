@@ -9,7 +9,6 @@ output: github_document
 library(tidyverse)
 
 library(janitor)
-
 ```
 
 Below, we're reading in ZCTA death rate in NYC. The second file shows the ZCTA and puma and percentages that is used to approximate specific calculations such as ZCTA to PUMA (death rate)
@@ -78,9 +77,11 @@ rm(vacc_data) # Fine to remove this line of code
 
 The cleaned and merged data sets:
 ```{r showing cleaned data sets}
+#hospitalization data 
 merged_outcomes <- 
   merge(death_data_clean, hosp_data_clean, by = "zcta")
 
+#vaccination data 
 merged_outcomes <- 
   merge(merged_outcomes, vacc_data_clean, by = "zcta")
 
@@ -134,7 +135,7 @@ head(outcome_puma)
 ```
 
 
-### Zip to Zcta
+### Zip to Zcta 
 ```{r}
 #tidying zcta_zip_cross data
 zip_to_zcta <-
