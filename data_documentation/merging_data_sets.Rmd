@@ -10,7 +10,7 @@ library(tidyverse)
 library(janitor)
 ```
 
-Below, we read in monthly death rates and hospitalization rates due to COVID-19, as well as rates of vaccination against COVID-19, courtesy of DOHMH. Data are recorded for each Zip Code Tabulation Area (ZCTA) in NYC, and values denote rates per 100,000 residents of a given ZCTA. Next, we read in two crosswalks between geographies of NYC, courtesy of Baruch College. The `zcta_puma_cross.csv` crosswalk enables us to merge data between ZCTAs and PUMAs, neither of which is a strict sub-geography of the other. The `zcta_zip_cross.csv` file enables us to aggregate zip-code-level data to ZCTA-level data.
+Below, we read in monthly death rates and hospitalization rates due to COVID-19, as well as rates of vaccination against COVID-19, courtesy of DOHMH. Data are recorded for each Zip Code Tabulation Area (ZCTA) in NYC, and values denote rates per 100,000 residents of a given ZCTA. Next, we read in two crosswalks between geographies of NYC, courtesy of Baruch College. The `zcta_puma_cross.csv` crosswalk enables us to merge data between ZCTAs and PUMAs, neither of which is a strict sub-geography of the other.
 
 ```{r importing data sets, message = FALSE}
 death_data <- read_csv("./data/nyc_death_rate_zcta.csv")
@@ -18,10 +18,9 @@ hosp_data <- read_csv("./data/nyc_hosp_rate_zcta.csv")
 vacc_data <- read_csv("./data/nyc_vacc_zcta.csv")
 
 zcta_puma_cross <- read_csv("./data/zcta_puma_cross.csv")
-zcta_zip_cross <- read_csv("./data/zcta_zip_cross.csv")
 ```
 
-Below, we are calculating the mean death rate and hospitalization rate for each ZCTA. These data are presented over the time interval from March 2020 to September 2021. We will take the mean rate across these months to use in our analysis.
+Below, we are calculating the sum of death rate and hospitalization rate for each ZCTA over the time interval from March 2020 to September 2021.
 
 ```{r cleaning death data}
 death_data_clean <-
@@ -33,10 +32,11 @@ death_data_clean <-
                values_to = "death_rate", 
                names_prefix = "deathrate_") %>%
   group_by(zcta) %>%
-  summarise(death_rate_mean = 
-              mean(death_rate, na.rm = T)) # Mean removes NA values here, may want to replace above
+  mutate(death_rate = replace_na(death_rate, 0)) %>% 
+  summarise(death_rate_sum = 
+              sum(death_rate))
 
-rm(death_data) # This removes the raw data, but fine to take out this line of code
+rm(death_data)
 ```
 
 ```{r cleaning hospitalization data}
@@ -49,10 +49,11 @@ hosp_data_clean <-
                values_to = "hosp_rate", 
                names_prefix = "hosprate_") %>%
   group_by(zcta) %>%
-  summarise(hosp_rate_mean = 
-              mean(hosp_rate, na.rm = T)) # Mean removes NA values here, may want to replace above
+  mutate(hosp_rate = replace_na(hosp_rate, 0)) %>% 
+  summarise(hosp_rate_sum = 
+              sum(hosp_rate))
 
-rm(hosp_data) # Fine to remove this line of code
+rm(hosp_data)
 ```
 
 Below, we clean `vacc_data` and extract only the percentage of partially or fully vaccinated individuals in each ZCTA as of November 16, 2021.
@@ -64,7 +65,7 @@ vacc_data_clean <-
   rename(zcta = modzcta) %>% 
   mutate(zcta = as.character(zcta))
 
-rm(vacc_data) # Fine to remove this line of code
+rm(vacc_data)
 ```
 
 The cleaned and merged data sets:
@@ -90,26 +91,21 @@ zcta_puma_clean <-
   rename(zcta = zcta10) 
 
 head(zcta_puma_clean)
-rm(zcta_puma_cross) # Fine to remove this line of code
+rm(zcta_puma_cross)
 ```
 
-Below, we calculate `weighted_death_rate` and `weighted_hosp_rate` for each PUMA by the following steps. 
-  1. The `death_rate` or `hosp_rate` from each ZCTA is multiplied by the percentage of the ZCTA that is in the corresponding PUMA (`per_in_puma`).
+Below, we calculate `weighted_death_rate`, `weighted_hosp_rate`, and `weighted_vacc_rate` for each PUMA by the following steps. 
+  1. The outcome rate from each ZCTA is multiplied by the percentage of the ZCTA that is in the corresponding PUMA (`per_in_puma`).
   2. The resulting product is then multiplied by `per_in_puma` which represents the percentage of the total PUMA that the specified ZCTA occupies.
-  3. The resulting weighted products are summed for each PUMA to obtain the total `weighted_death_rate` and `weighted_hosp_rate` for each PUMA.
-
-```{r}
-merge(zcta_puma_clean, merged_outcomes, by = "zcta")
-```
-
+  3. The resulting weighted products are summed for each PUMA to obtain the total `weighted_death_rate`, `weighted_hosp_rate`, and `weighted_vacc_rate` for each PUMA.
 
 ```{r calculating PUMA rates}
 outcome_puma <- 
   merge(zcta_puma_clean, merged_outcomes, by = "zcta") %>%
   mutate(weighted_death_rate =  
-           death_rate_mean * per_in_puma * per_of_puma,
+           death_rate_sum * per_in_puma * per_of_puma,
          weighted_hosp_rate =
-           hosp_rate_mean * per_in_puma * per_of_puma,
+           hosp_rate_sum * per_in_puma * per_of_puma,
          weighted_vacc_rate = 
            perc_1plus * per_in_puma * per_of_puma) %>% 
   select(weighted_death_rate,
@@ -119,7 +115,7 @@ outcome_puma <-
   group_by(puma10) %>%
   summarise(puma_death_rate = sum(weighted_death_rate),
             puma_hosp_rate = sum(weighted_hosp_rate),
-            puma_vacc_rate = sum(weighted_vacc_rate)) 
+            puma_vacc_per = sum(weighted_vacc_rate)) 
   
 outcome_puma %>% pull(puma10) %>% n_distinct() # merged result has the same number of puma as that of original number!
 
@@ -128,46 +124,4 @@ head(outcome_puma)
 write_csv(outcome_puma, "./data/outcome_puma.csv")
 ```
 
-
-### Zip to Zcta 
-```{r}
-#tidying zcta_zip_cross data
-zip_to_zcta <-
-  zcta_zip_cross %>%
-  select(zipcode, zcta5) %>%
-  rename(zcta = zcta5) %>% 
-  mutate(zcta = as.character(zcta))
-
-#selecting needed variables from zcta_puma_clean data
-zcta_puma_3 <- 
-  zcta_puma_clean %>%
-  select(zcta, puma10)
-```
-
-### try to see what zcta values are different
-```{r}
-a <- zip_to_zcta %>% mutate(zcta = as.numeric(zcta)) %>% pull(zcta) %>% sort() %>% unique()
-
-b <- zcta_puma_3 %>% mutate(zcta = as.numeric(zcta)) %>% pull(zcta) %>% sort() %>% unique()
-
-
-# The issue here is that we have 214 unique ZCTAs in the zip to ZCTA crosswalk file (a), but
-# only 211 in the ZCTA to PUMA crosswalk file (b).
-# The missing ZCTAs are: 11001, 11003, 11040. We should find out which zip codes correspond to these
-# missing ZCTAs in the nyc_broadband data set, and see what the data is.
-
-a[which((a %in% b) == FALSE)] # showing missing 3 ZCTAs
-
-result_zip_to_zcta <- 
-  merge(zip_to_zcta, zcta_puma_3, by = "zcta") %>% relocate(zipcode) #turning zip into zcta 
-
-result_zip_to_zcta %>% pull(zcta) %>% n_distinct() #count the number of unique ZCTAs
-
-result_zip_to_zcta #showing the result
-
-```
-
-
-
-
-
+This gives us the `hosp_rate` and `death_rate` per 100,000 people in each PUMA and the percentage of individuals who are partially or fully vaccinated in each PUMA.
