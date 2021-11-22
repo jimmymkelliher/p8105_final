@@ -102,7 +102,8 @@ Below, we calculate `weighted_death_rate`, `weighted_hosp_rate`, and `weighted_v
   
   3. The resulting weighted products are summed for each PUMA to obtain the total `weighted_death_rate`, `weighted_hosp_rate`, and `weighted_vacc_rate` for each PUMA.
 
-[Zcta Puma Map](http://faculty.baruch.cuny.edu/geoportal/resources/nyc_geog/nyc_zcta10_puma10_areas.pdf)
+![Zcta Puma Map](zcta_puma_map.jpg)
+
 
 
 ```{r calculating PUMA rates}
