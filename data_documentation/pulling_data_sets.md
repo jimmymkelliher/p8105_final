@@ -2,7 +2,7 @@ Pulling Data Sets
 ================
 Hun Lee (sl4836), Jimmy Kelliher (jmk2303), Tanvir Khan (tk2886), Tucker
 Morgan (tlm2152), Zachary Katz (zak2132)
-11/17/2021
+11/22/2021
 
 ``` r
 library(tidyverse)
@@ -12,20 +12,32 @@ library(RCurl)
 library(readxl)
 ```
 
-Below, we import United States Census data from the American Community
-Survey (ACS) 2019 five-year estimate via
-[IPUMS](https://usa.ipums.org/usa/). This data includes demographic and
-macroeconomic data by Public Use Microdata Area (PUMA) for New York
-City.
+The predictor variables in our analysis will come from United States
+Census data and the American Community Survey (ACS) 2019 five-year
+estimate via [IPUMS](https://usa.ipums.org/usa/). This data includes
+demographic and macroeconomic data by Public Use Microdata Area (PUMA)
+for New York City. Predictor variables include:
 
-``` r
-# space for import of IPUMS or sample
-```
+-   Rent
+-   Household income
+-   Food stamps
+-   High-speed internet
+-   Family size
+-   Sex
+-   Age
+-   Race / Ethnicity
+-   Citizenship
+-   Health coverage
+-   Education
+-   Employment Status
+-   Personal income
+-   Poverty status
 
-Next, we bring in monthly health outcomes from [NYC Department of Health
-and Mental Hygiene](https://github.com/nychealth/coronavirus-data)
-(DOHMH) as of 11/18/2021. We will primarily analyze data related to
-COVID-19 hospitalizations and deaths.
+Below, we bring in monthly health outcomes from [NYC Department of
+Health and Mental
+Hygiene](https://github.com/nychealth/coronavirus-data) (DOHMH) as of
+11/18/2021. We will primarily analyze data related to COVID-19
+hospitalizations and deaths.
 
 ``` r
 hosp_rate_url = "https://raw.githubusercontent.com/nychealth/coronavirus-data/master/trends/hosprate-by-modzcta.csv"
@@ -58,12 +70,12 @@ head(nyc_vacc_zcta)
     ## # A tibble: 6 × 13
     ##   DATE       NEIGHBORHOOD_NAME   BOROUGH MODZCTA Label AGE_GROUP POP_DENOMINATOR
     ##   <date>     <chr>               <chr>     <dbl> <chr> <chr>               <dbl>
-    ## 1 2021-11-18 Chelsea/NoMad/West… Manhat…   10001 1000… All ages           27613.
-    ## 2 2021-11-18 Chinatown/Lower Ea… Manhat…   10002 10002 All ages           75323.
-    ## 3 2021-11-18 East Village/Grame… Manhat…   10003 10003 All ages           53978.
-    ## 4 2021-11-18 Financial District  Manhat…   10004 10004 All ages            2972.
-    ## 5 2021-11-18 Financial District  Manhat…   10005 10005 All ages            8757.
-    ## 6 2021-11-18 Financial District  Manhat…   10006 10006 All ages            3382.
+    ## 1 2021-11-21 Chelsea/NoMad/West… Manhat…   10001 1000… All ages           27613.
+    ## 2 2021-11-21 Chinatown/Lower Ea… Manhat…   10002 10002 All ages           75323.
+    ## 3 2021-11-21 East Village/Grame… Manhat…   10003 10003 All ages           53978.
+    ## 4 2021-11-21 Financial District  Manhat…   10004 10004 All ages            2972.
+    ## 5 2021-11-21 Financial District  Manhat…   10005 10005 All ages            8757.
+    ## 6 2021-11-21 Financial District  Manhat…   10006 10006 All ages            3382.
     ## # … with 6 more variables: COUNT_PARTIALLY_CUMULATIVE <dbl>,
     ## #   COUNT_FULLY_CUMULATIVE <dbl>, COUNT_1PLUS_CUMULATIVE <dbl>,
     ## #   PERC_PARTIALLY <dbl>, PERC_FULLY <dbl>, PERC_1PLUS <dbl>
@@ -72,56 +84,16 @@ head(nyc_vacc_zcta)
 write_csv(nyc_vacc_zcta, "./data/nyc_vacc_zcta.csv")
 ```
 
-Below, we import broadband adoption and infrastructure data by zip code
-from [NYC Open
-Data](https://data.cityofnewyork.us/City-Government/Broadband-Adoption-and-Infrastructure-by-Zip-Code/qz5f-yx82/data).
-
-``` r
-nyc_broadband <- 
-  GET("https://data.cityofnewyork.us/resource/qz5f-yx82.json") %>% 
-  content("text") %>% 
-  jsonlite::fromJSON() %>%
-  as_tibble()
-head(nyc_broadband)
-```
-
-    ## # A tibble: 6 × 17
-    ##   oid   zip_code home_broadband_adoption mobile_broadband_a… no_internet_access…
-    ##   <chr> <chr>    <chr>                   <chr>               <chr>              
-    ## 1 0     83       0.8343                  0.8442              0.0747             
-    ## 2 1     10001    0.8258                  0.8359              0.091              
-    ## 3 2     10002    0.541                   0.6496              0.3092             
-    ## 4 3     10003    0.8002                  0.8579              0.0803             
-    ## 5 4     10004    0.9255                  0.9625              0.008              
-    ## 6 5     10005    0.9225                  0.9575              0.0122             
-    ## # … with 12 more variables: no_home_broadband_adoption <chr>,
-    ## #   no_mobile_broadband_adoption <chr>, no_home_broadband_adoption_1 <chr>,
-    ## #   no_mobile_broadband_adoption_1 <chr>, commercial_fiber_max_isp <chr>,
-    ## #   public_computer_center_count <chr>, workstations_in_pccs <chr>,
-    ## #   avg_training_hrs_per_week <chr>, public_wi_fi_count <chr>,
-    ## #   poles_reserved_by_mobile <chr>, pole_with_equipment_installed <chr>,
-    ## #   density_of_poles_reserved <chr>
-
-``` r
-write_csv(nyc_broadband, "./data/nyc_broadband.csv")
-```
-
-Finally, we will import crosswalk data sets from [Baruch
+Finally, we will import a crosswalk data set from [Baruch
 College](https://www.baruch.cuny.edu/confluence/display/geoportal/NYC+Geographies)
-to be utilized in relating ZCTA’s, zip codes, and PUMAs.
+to be utilized in relating ZCTAs and PUMAs.
 
 ``` r
 zcta_puma_url = "http://faculty.baruch.cuny.edu/geoportal/resources/nyc_geog/nyc_zcta10_to_puma10.xls"
 
 zcta_puma_cross <- read.xls(zcta_puma_url)
-
-zcta_zip_url = "http://faculty.baruch.cuny.edu/geoportal/resources/nyc_geog/zip_to_zcta10_nyc_revised.xls"
-
-zcta_zip_cross <- read.xls(zcta_zip_url, sheet = 2)
-zcta_zip_notes <- read.xls(zcta_zip_url, sheet = 1) # notes from the first sheet in the .xls file
 ```
 
 ``` r
 write_csv(zcta_puma_cross, "./data/zcta_puma_cross.csv")
-write_csv(zcta_zip_cross, "./data/zcta_zip_cross.csv")
 ```
