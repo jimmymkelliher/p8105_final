@@ -98,7 +98,7 @@ cleaned_data =
     borough = countyfip,
     has_broadband = cihispeed,
     birthplace = bpl,
-    years_in_USA = yearsusa1
+    years_in_usa = yrsusa1
   ) %>% 
   mutate(
     borough = recode(
@@ -145,13 +145,28 @@ cleaned_data =
       citizen %in% c(1,2) ~ "Yes",
       citizen %in% 3:8 ~"No",
       citizen %in% c(0,9) ~ "Unknown"
+    ),
+    language = case_when(
+      language == "1" ~ "English",
+      language == "12" ~ "Spanish",
+      language == "43" ~ "Chinese",
+      language == "0" ~ "Unknown",
+      language == "31" ~ "Hindi",
+      !language %in% c(1,12,43,0,31) ~ "Other"
     )
   ) %>% 
   mutate(
     annual_rent = rent * 12
   ) %>% 
+  mutate(
+    health_insurance = case_when(
+      hcovany == 1 ~ "None",
+      hcovany == 2 && hcovpriv == 2 ~ "Private",
+      hcovany == 2 && hcovpriv == 1 ~ "Public"
+    )
+  ) %>% 
   # Eliminate redundant variables
-  select(-rent, -hispan, -ancestr1, -ancestr2) %>% 
+  select(-rent, -hispan, -ancestr1, -ancestr2, -hcovany, -hcovpriv, -hcovpub) %>% 
   head(10) %>% 
   View()
 
@@ -174,5 +189,7 @@ cleaned_data =
   ) 
 
 str(merged_data)
+
+merged_data %>% group_by(language) %>% summarize(n = n()) %>% arrange(desc(n))
 ```
 
