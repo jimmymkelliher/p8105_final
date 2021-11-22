@@ -1,6 +1,6 @@
 ---
 title: "P8105: Data Science I"
-author: "Analysis Playground<br>Zachary Katz (UNI: zak2132)"
+author: "Cleaning Playground<br>Zachary Katz (UNI: zak2132)"
 output:
   github_document:
     toc: TRUE
