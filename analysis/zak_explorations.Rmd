@@ -1,0 +1,178 @@
+---
+title: "P8105: Data Science I"
+author: "Analysis Playground<br>Zachary Katz (UNI: zak2132)"
+output:
+  github_document:
+    toc: TRUE
+---
+
+<!------------------------------------------------------------------------------
+Preamble
+------------------------------------------------------------------------------->
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+# load necessary packages
+library(tidyverse)
+
+# set knitr defaults
+knitr::opts_chunk$set(
+    echo      = TRUE
+  , message   = FALSE
+  , fig.width = 6
+  , fig.asp   = .6
+  , out.width = "90%"
+)
+
+# set theme defaults
+theme_set(
+  theme_bw() +
+  theme(
+    legend.position = "bottom"
+    , plot.title    = element_text(hjust = 0.5)
+    , plot.subtitle = element_text(hjust = 0.5)    
+    , plot.caption  = element_text(hjust = 0.0)
+  )
+)
+
+# set color scale defaults
+options(
+    ggplot2.continuous.colour = "viridis"
+  , ggplot2.continuous.fill   = "viridis"
+)
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete   = scale_fill_viridis_d
+```
+
+<!------------------------------------------------------------------------------
+Overview
+------------------------------------------------------------------------------->
+
+This file provides a template by which we create our final dataset. Essentially, because of the size of our census data, we cannot store the final dataset locally. Instead, we create a dataset of health outcomes at the PUMA level (see `data_documentation/merging_data_sets.Rmd`), and we merge this with our unzipped census data, which exists at the individual level and indicates the PUMA in which each individual resides.
+
+# Unzipping the Census Data
+
+```{r}
+jimzip <- function(csv_file, path) {
+  # create full path to csv file
+  full_csv <- paste0(path, "/", csv_file)
+  # append ".zip" to csv file
+  zip_file <- paste0(full_csv, ".zip")
+  # unzip file
+  unzip(zip_file)
+  # read csv
+  data_extract <- read_csv(csv_file)
+  # be sure to remove file once unzipped (it will live in working directory)
+  on.exit(file.remove(csv_file))
+  # output data
+  data_extract
+}
+
+census_data <- jimzip("census_filtered.csv", "./data")
+head(census_data) %>%  knitr::kable()
+```
+
+# Merging the Outcome Data
+
+```{r}
+health_data <-
+  read_csv("./data/outcome_puma.csv") %>%
+  rename(puma = puma10)
+
+merged_data <- merge(census_data, health_data, by = "puma")
+rm(census_data)
+
+head(merged_data) %>% knitr::kable()
+```
+
+# Cleaning the Outcome Data
+
+```{r}
+merged_data %>% head(10) %>% View()
+
+cleaned_data = 
+  merged_data %>% 
+  # Eliminate duplicate rows
+  distinct() %>% 
+  # Rename variables
+  rename(
+    borough = countyfip,
+    has_broadband = cihispeed,
+    birthplace = bpl,
+    years_in_USA = yearsusa1
+  ) %>% 
+  mutate(
+    borough = recode(
+      borough,
+      "5" = "Bronx",
+      "47" = "Brooklyn",
+      "61" = "Manhattan",
+      "81" = "Queens",
+      "85" = "Staten Island"
+    ),
+    foodstmp = recode(
+      foodstmp,
+      "1" = "No",
+      "2" = "Yes"
+    ),
+    has_broadband = case_when(
+      has_broadband == "20" ~ "No",
+      has_broadband != "20" ~ "Yes"
+    ),
+    sex = recode(
+      sex,
+      "1" = "Male",
+      "2" = "Female"
+    ),
+    race = case_when(
+      race == "1" ~ "White",
+      race == "2" ~ "Black",
+      race == "3" ~ "American Indian",
+      race %in% c(4,5,6) ~ "Asian",
+      race == "7" ~ "Other",
+      race %in% c(8,9) ~ "2+ races"
+    ),
+    hispan = case_when(
+      hispan == "0" ~ "No",
+      hispan %in% c(1,2,3,4) ~ "Yes",
+      hispan == "9" ~ "Not Reported"
+    ),
+    birthplace = case_when(
+      birthplace %in% 1:120 ~"US",
+      birthplace %in% 121:950 ~ "Non-US",
+      birthplace == 999 ~"Unknown"
+    ),
+    citizen = case_when(
+      citizen %in% c(1,2) ~ "Yes",
+      citizen %in% 3:8 ~"No",
+      citizen %in% c(0,9) ~ "Unknown"
+    )
+  ) %>% 
+  mutate(
+    annual_rent = rent * 12
+  ) %>% 
+  # Eliminate redundant variables
+  select(-rent, -hispan, -ancestr1, -ancestr2) %>% 
+  head(10) %>% 
+  View()
+
+
+  # Optimize data types across variables
+  mutate(
+    puma = as.factor(puma),
+    multyear = as.factor(multyear),
+    foodstmp = as.factor(foodstmp),
+    sex = as.factor(sex),
+    race = as.factor(race)
+
+
+%>% 
+  mutate(
+    borough = as.factor(borough),
+    hispanic = as.factor(hispan),
+    birthplace = as.factor(birthplace),
+    citizen = 
+  ) 
+
+str(merged_data)
+```
+
