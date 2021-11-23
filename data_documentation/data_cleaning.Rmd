@@ -153,8 +153,8 @@ cleaned_data =
       race == "2" ~ "Black",
       race == "3" ~ "American Indian",
       race %in% c(4,5,6) ~ "Asian and Pacific Islander",
-      race == 7 && hispan %in% c(1,2,3,4) ~ "Hispanic",
-      race == 7 && hispan %in% c(0,9) ~ "Other",
+      race == 7 & hispan %in% c(1,2,3,4) ~ "Hispanic",
+      race == 7 & hispan %in% c(0,9) ~ "Other",
       race %in% c(8,9) ~ "2+ races"
     ),
     birthplace = case_when(
