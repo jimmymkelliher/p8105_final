@@ -9,20 +9,36 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# NOTES:
+1. Broadband is now binary variable with either the individual having internet or not having internet 
 
-# Before Recoding
+
+# Before Recoding remove variables/columns that I feel is not needed for our project, 
+
+# After removing the variables, now it's time to rename specific columns, I realized that some of these names for these variables are not user friendly:
 ```{r}
 merged_data_clean <- 
   merged_data %>%
-  select(-multyear, -ancestr1, -ancestr2, -occ, -ind, -incwage, -incwelfr, -poverty, -occscore, -pwpuma00)
+  select(-multyear, -ancestr1, -ancestr2, -occ, -ind, -incwage, -incwelfr, -poverty, -occscore, -pwpuma00) %>%
+  rename(broadband_status = cihispeed, 
+         foodstamp_status = foodstmp,
+         education_status = educ,
+         employment_status = empstat,
+         household_income = hhincome, 
+         laborforce_status = labforce)
 ```
 
 
 # Recoding Race and changing it to a factor variable 
 ```{r}
 merged_data_clean <-
-  merged_data %>%
+  merged_data_clean %>%
   janitor::clean_names() %>%
+  mutate(broadband_status = 
+           case_when(
+             broadband_status %in% c("10", "11", "12", "13", "14", "15", "16", "17") ~ "Yes",
+             broadband_status %in% c("20") ~ "No"
+           )) %>% 
   mutate(race = recode(race, 
                     "1" = "White",
                     "2" = "Black/African America",
@@ -46,11 +62,11 @@ merged_data_clean <-
                         "4" = "Other",
                         "9" = "Not Reported")) %>%
   mutate(hispan = as.factor(hispan)) %>% 
-  mutate(foodstmp = recode(foodstmp,
+  mutate(foodstamp_status  = recode(foodstamp_status ,
                           "0" = "N/A",
                           "1" = "No",
                           "2" = "Yes")) %>%
-  mutate(foodstmp = as.factor(foodstmp)) %>% 
+  mutate(foodstamp_status  = as.factor(foodstamp_status)) %>% 
   mutate(citizen = recode(citizen,
                           "0" = "N/A",
                           "1" = "Born abroad of American parents",
@@ -73,7 +89,7 @@ merged_data_clean <-
                           "1" = "Without public health insurance coverage",
                           "2" = "With public health insurance coverage")) %>% 
   mutate(hcovpub = as.factor(hcovpub)) %>% 
-  mutate(educ = recode(educ,
+  mutate(education_status = recode(education_status,
                        "00" =	"N/A or no schooling",
                        "01" =	"Nursery school to grade 4",
                        "02" = "Grade 5, 6, 7, or 8",
@@ -86,17 +102,18 @@ merged_data_clean <-
                        "09" =	"3 years of college",
                        "10"	= "4 years of college", 
                        "11" =	"5+ years of college")) %>% 
-  mutate(empstat = recode(empstat,
+  mutate(education_status = as.factor(education_status)) %>% 
+  mutate(employment_status = recode(employment_status,
                           "0" = "N/A",
                           "1" = "Employed",
                           "2" = "Unemployed",
                           "3" = "Not in labor force")) %>%
-  mutate(empstat = as.factor(empstat)) %>% 
-  mutate(labforce = recode(labforce,
+  mutate(employment_status = as.factor(employment_status)) %>% 
+  mutate(laborforce_status = recode(laborforce_status,
                            "0" = "N/A",
                            "1" = "No, not in the labor force",
                            "2" = "Yes, in the labor force")) %>%
-  mutate(labforce = as.factor(labforce))
+  mutate(laborforce_status = as.factor(laborforce_status))
 ```
 
 
