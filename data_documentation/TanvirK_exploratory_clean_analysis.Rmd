@@ -9,10 +9,17 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
+# Before Recoding
+```{r}
+merged_data_clean <- 
+  merged_data %>%
+  select(-multyear, -ancestr1, -ancestr2, -occ, -ind, -incwage, -incwelfr, -poverty, -occscore, -pwpuma00)
+```
+
 
 # Recoding Race and changing it to a factor variable 
 ```{r}
-merged_data <-
+merged_data_clean <-
   merged_data %>%
   janitor::clean_names() %>%
   mutate(race = recode(race, 
@@ -25,27 +32,11 @@ merged_data <-
                     "7" = "Other race, nec",
                     "8" = "Two major races", 
                     "9" = "Three or more major races")) %>%
-  mutate(race = as.factor(race))
-```
-
-
-
-# Recoding Sex and changing it to a factor variable 
-```{r}
-merged_data <-
-  merged_data %>%
+  mutate(race = as.factor(race)) %>% 
   mutate(sex = recode(sex,
                        "1" = "Male",
                        "2" = "Female")) %>%
-  mutate(sex = as.factor(sex))
-```
-
-
-
-# Recoding "hispan" and changing it to a factor variable 
-```{r}
-merged_data <-
-  merged_data %>%
+  mutate(sex = as.factor(sex)) %>%
   mutate(hispan = recode(hispan,
                         "0" = "Not Hispanic", 
                         "1" = "Mexican",
@@ -53,28 +44,12 @@ merged_data <-
                         "3" = "Cuban",
                         "4" = "Other",
                         "9" = "Not Reported")) %>%
-  mutate(hispan = as.factor(hispan))
-```
-
-
-
-# Recoding "foodstmp" and changing it to a factor variable
-```{r}
-merged_data <-
-  merged_data %>%
+  mutate(hispan = as.factor(hispan)) %>% 
   mutate(foodstmp = recode(foodstmp,
                           "0" = "N/A",
                           "1" = "No",
                           "2" = "Yes")) %>%
-  mutate(foodstmp = as.factor(foodstmp))
-```
-
-
-
-# Recoding "citizen" and changing it to a factor type. 
-```{r}
-merged_data <-
-  merged_data %>%
+  mutate(foodstmp = as.factor(foodstmp)) %>% 
   mutate(citizen = recode(citizen,
                           "0" = "N/A",
                           "1" = "Born abroad of American parents",
@@ -84,51 +59,19 @@ merged_data <-
                           "5" = "Foreign born, citizenship status not reported",
                           "8" = "Illegible",
                           "9" = "Missing/blank")) %>%
-  mutate(citizen = as.factor(citizen))
-```
-
-
-
-# Recoding "hcovany" and changing it to a factor type. 
-```{r}
-merged_data <-
-  merged_data %>%
+  mutate(citizen = as.factor(citizen)) %>% 
   mutate(hcovany = recode(hcovany,
                                "1" = "No health insurance coverage",
                                "2" = "With health insurance coverage")) %>%
-  mutate(hcovany = as.factor(hcovany))
-```
-
-
-
-# Recoding "HCOVPRIV" and changing it to a factor type. 
-```{r}
-merged_data <-
-  merged_data %>%
+  mutate(hcovany = as.factor(hcovany)) %>% 
   mutate(hcovpriv = recode(hcovpriv,
                           "1" = "Without private health insurance coverage",
                           "2" = "With private health insurance coverage")) %>% 
-  mutate(hcovpriv = as.factor(hcovpriv))
-```
-
-
-
-#Recoding "HCOVPUB" and changing it to a factor type. 
-```{r}
-merged_data <-
-  merged_data %>%
+  mutate(hcovpriv = as.factor(hcovpriv)) %>% 
   mutate(hcovpub = recode(hcovpub,
                           "1" = "Without public health insurance coverage",
                           "2" = "With public health insurance coverage")) %>% 
-  mutate(hcovpub = as.factor(hcovpub))
-```
-
-
-
-# Recoding "educ" and changing it to a factor type. 
-```{r}
-merged_data <-
-  merged_data %>%
+  mutate(hcovpub = as.factor(hcovpub)) %>% 
   mutate(educ = recode(educ,
                        "00" =	"N/A or no schooling",
                        "01" =	"Nursery school to grade 4",
@@ -142,29 +85,12 @@ merged_data <-
                        "09" =	"3 years of college",
                        "10"	= "4 years of college", 
                        "11" =	"5+ years of college")) %>% 
-  mutate(educ = as.factor(educ))
-```
-
-
-
-# Recoding "empstat" and changing it to a factor type.
-```{r}
-merged_data <-
-  merged_data %>%
   mutate(empstat = recode(empstat,
                           "0" = "N/A",
                           "1" = "Employed",
                           "2" = "Unemployed",
                           "3" = "Not in labor force")) %>%
-  mutate(empstat = as.factor(empstat))
-```
-
-
-
-# Recoding "labforce" and changing it to a factor type. 
-```{r}
-merged_data <-
-  merged_data %>%
+  mutate(empstat = as.factor(empstat)) %>% 
   mutate(labforce = recode(labforce,
                            "0" = "N/A",
                            "1" = "No, not in the labor force",
@@ -172,14 +98,4 @@ merged_data <-
   mutate(labforce = as.factor(labforce))
 ```
 
-
-
-# Creating new column bachelor degree 
-```{r}
-merged_data <-
-  merged_data %>%
-  mutate(college_status = case_when(
-    educ %in% c("07", "08", "09", "10", "11") ~ "Attend College"
-  ))
-```
 
