@@ -1,0 +1,88 @@
+---
+title: "exploratory_analysis_cleanin_TanvirK"
+author: "Tanvir Khan" 
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+# Recoding Race and changing it to a factor variable 
+```{r}
+merged_data <-
+  merged_data %>%
+  janitor::clean_names() %>%
+  mutate(race = recode(race, 
+                    "1" = "White",
+                    "2" = "Black/African America",
+                    "3" = "American Indian or Alaska Native",
+                    "4" = "Chinese",
+                    "5" = "Japanese",
+                    "6" = "Other Asian or Pacific Islander",
+                    "7" = "Other race, nec",
+                    "8" = "Two major races", 
+                    "9" = "Three or more major races")) %>%
+  mutate(race = as.factor(race))
+```
+
+
+
+# Recoding Sex and changing it to a factor variable 
+```{r}
+merged_data <-
+  merged_data %>%
+  mutate(sex = recode(sex,
+                       "1" = "Male",
+                       "2" = "Female")) %>%
+  mutate(sex = as.factor(sex))
+```
+
+
+
+# Recoding "hispan" and changing it to a factor variable 
+```{r}
+merged_data <-
+  merged_data %>%
+  mutate(hispan = recode(hispan,
+                        "0" = "Not Hispanic", 
+                        "1" = "Mexican",
+                        "2" = "Puerto Rican",
+                        "3" = "Cuban",
+                        "4" = "Other",
+                        "9" = "Not Reported")) %>%
+  mutate(hispan = as.factor(hispan))
+```
+
+
+
+# Recoding "foodstmp" and changing it to a factor variable
+```{r}
+merged_data <-
+  merged_data %>%
+  mutate(foodstmp = recode(foodstmp,
+                          "0" = "N/A",
+                          "1" = "No",
+                          "2" = "Yes")) %>%
+  mutate(foodstmp = as.factor(foodstmp))
+```
+
+
+
+# Recoding "citizen" and changing it to a factor variable
+```{r}
+merged_data <-
+  merged_data %>%
+  mutate(citizen = recode(citizen,
+                          "0" = "N/A",
+                          "1" = "Born abroad of American parents",
+                          "2" = "Naturalized citizen",
+                          "3" = "Not a citizen",
+                          "4" = "Not a citizen, but has received first papers",
+                          "5" = "Foreign born, citizenship status not reported",
+                          "8" = "Illegible",
+                          "9" = "Missing/blank")) %>%
+  mutate(citizen = as.factor(citizen))
+```
