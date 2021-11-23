@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 3. HISPAN is now a binary variable
 
-2. Created a new column called yearly rent, did not delete monthly rent, need **GROUP INPUT** if we should have yearly_rent or monthly rent or both. 
+4. Created a new column called yearly rent, did not delete monthly rent, need **GROUP INPUT** if we should have yearly_rent or monthly rent or both. 
 
 # Before Recoding remove variables/columns that I feel is not needed for our project, 
 
@@ -25,10 +25,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 merged_data_clean <- 
   merged_data %>%
-  select(-perwt, -multyear, -ancestr1, -ancestr2, -occ, -ind, -incwage, -incwelfr, -poverty, -occscore, -pwpuma00, -tranwork, -inctot) %>%
+  select(-perwt, -multyear, -ancestr1, -ancestr2, -occ, -ind, -incwage, -incwelfr, -occscore, -pwpuma00, -tranwork, -inctot) %>%
   
   rename(birthplace = bpl, 
          broadband_status = cihispeed, 
+         nyc_location = countyfip, 
          foodstamp_status = foodstmp,
          education_status = educ,
          employment_status = empstat,
@@ -153,8 +154,7 @@ vaccination_rate <-
 
 # Mean Hospitalization Rate for each Puma
 ```{r}
-hospitalization_rate <-
-  merged_data_clean %>%
+hospitalization_rate <- merged_data_clean %>%
   group_by(puma) %>%
   summarise(mean_hospitalzation_rate = mean(puma_hosp_rate))
 ```
