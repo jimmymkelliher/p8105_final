@@ -83,8 +83,6 @@ merged_data <- merge(census_data, health_data, by = "puma")
 rm(census_data)
 
 head(merged_data) %>% knitr::kable()
-
-head(merged_data) %>% View()
 ```
 
 ## Cleaning the Data
@@ -103,7 +101,7 @@ cleaned_data =
     has_broadband = cihispeed,
     birthplace = bpl,
     years_in_usa = yrsusa1,
-    education = educ,
+    education = educd,
     employment = empstat,
     personal_income = inctot,
     work_transport = tranwork,
@@ -184,11 +182,14 @@ cleaned_data =
       hcovany == 2 && hcovpriv == 2 ~ "Private",
       hcovany == 2 && hcovpriv == 1 ~ "Public"
     ),
-    # FIX LATER WITH NEW VARIABLE
     education = case_when(
-      education %in% 1:6 ~ "No College",
-      education %in% 7:11 ~ "College",
-      education == 0 ~ "Unknown"
+      education %in% 2:61 ~ "Less Than HS Graduate",
+      education %in% 62:64 ~ "HS Graduate",
+      education %in% 65:100 ~ "Some College",
+      education %in% 110:113 ~ "Some College",
+      education == 101 ~ "Bachelor's Degree",
+      education %in% 114:116 ~ "Post-Graduate Degree",
+      education %in% c(0,1,999) ~ "Unknown"
     ),
     employment = case_when(
       employment %in% c(0,3) ~ "Not in labor force",
