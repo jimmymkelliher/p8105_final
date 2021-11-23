@@ -193,18 +193,30 @@ cleaned_data =
       work_transport == 60 ~ "Walking",
       work_transport == 80 ~ "Worked From Home",
       work_transport %in% c(0, 70) ~ "Other"
+    ),
+    rent = ifelse(
+      rent == 9999, 0,
+      rent
+    ),
+    household_income = ifelse(
+      household_income %in% c(9999998,9999999), NA,
+      household_income
+    ),
+    personal_income = ifelse(
+      personal_income %in% c(9999998,9999999), NA,
+      personal_income
+    ),
+    family_income = ifelse(
+      family_income %in% c(9999998,9999999), NA,
+      family_income
     )
   ) %>% 
-  mutate(
-    annual_rent = rent * 12
-  ) %>% 
   # Eliminate unnecessary variables
-  select(-multyear, -rent, -hispan, -ancestr1, -ancestr2, -hcovany, -hcovpriv, -hcovpub, -labforce, -occ, -ind, -incwage, -incwelfr, -poverty, -occscore, -pwpuma00) %>% 
+  select(-multyear, -hispan, -ancestr1, -ancestr2, -hcovany, -hcovpriv, -hcovpub, -labforce, -occ, -ind, -incwage, -incwelfr, -poverty, -occscore, -pwpuma00) %>% 
   # Reorder columns
   relocate(health_insurance, .before = personal_income) %>% 
   relocate(on_welfare, .before = work_transport) %>% 
   relocate(poverty_threshold, .before = work_transport) %>% 
-  relocate(annual_rent, .before = personal_income) %>% 
   relocate(perwt, .before = cluster) %>% 
   # Factorize a number of variables for ease of future analysis
   mutate(
@@ -225,6 +237,24 @@ cleaned_data =
     work_transport = as.factor(work_transport)
   )
 
-head(cleaned_data)
 cleaned_data %>% View()
 ```
+
+```{r}
+### CHECK THIS OUT LATER
+# Load survey package
+library(survey)
+
+# Use stratified cluster sampling design
+survey_design = svydesign(
+  ids = ~puma,
+  weights = ~hhwt,
+  strata = ~strata,
+  data = cleaned_data
+  )
+```
+
+```{r}
+
+```
+
