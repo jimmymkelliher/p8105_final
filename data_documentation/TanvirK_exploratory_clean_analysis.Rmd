@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 # NOTES:
 1. Broadband is now binary variable with either the individual having internet or not having internet 
 
+2. Created a new column called yearly rent, did not delete monthly rent, need **GROUP INPUT** if we should have yearly_rent or monthly rent or both. 
+
 
 # Before Recoding remove variables/columns that I feel is not needed for our project, 
 
@@ -113,7 +115,9 @@ merged_data_clean <-
                            "0" = "N/A",
                            "1" = "No, not in the labor force",
                            "2" = "Yes, in the labor force")) %>%
-  mutate(laborforce_status = as.factor(laborforce_status))
+  mutate(laborforce_status = as.factor(laborforce_status)) %>%
+  mutate(yearly_rent = 
+           rent * 12)
 ```
 
 
