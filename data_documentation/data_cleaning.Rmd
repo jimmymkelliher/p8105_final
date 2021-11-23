@@ -113,7 +113,6 @@ cleaned_data =
     num_children = nchild,
     US_citizen = citizen,
     puma_vacc_rate = puma_vacc_per,
-    hispanic = hispan,
     on_welfare = incwelfr,
     poverty_threshold = poverty
   ) %>% 
@@ -156,8 +155,8 @@ cleaned_data =
       race == "2" ~ "Black",
       race == "3" ~ "American Indian",
       race %in% c(4,5,6) ~ "Asian and Pacific Islander",
-      race == "7" && !hispanic == "0" ~ "Hispanic",
-      race == "7" && hispanic == "0" ~ "Other",
+      race == 7 && hispan %in% c(1,2,3,4) ~ "Hispanic",
+      race == 7 && hispan %in% c(0,9) ~ "Other",
       race %in% c(8,9) ~ "2+ races"
     ),
     birthplace = case_when(
@@ -209,7 +208,7 @@ cleaned_data =
       on_welfare == 0 ~ "No"
     ), 
     poverty_threshold = case_when(
-      poverty_threshold > 100 ~ "Above",
+      poverty_threshold >= 100 ~ "Above",
       poverty_threshold < 100 ~ "Below"
     ),
     work_transport = case_when(
@@ -222,7 +221,7 @@ cleaned_data =
     )
   ) %>% 
   # Eliminate columns no longer needed after transformation
-  select(-hispanic, -hcovany, -hcovpriv) %>% 
+  select(-hispan, -hcovany, -hcovpriv) %>% 
   # Relocate new columns
   relocate(health_insurance, .before = personal_income) %>% 
   relocate(poverty_threshold, .before = work_transport) %>% 
@@ -231,5 +230,44 @@ cleaned_data =
   # Create factor variables where applicable
   mutate(across(.cols = c(puma, borough, on_foodstamps, has_broadband, sex, race, birthplace, US_citizen, language, health_insurance, education, employment, on_welfare, poverty_threshold, work_transport), as.factor))
 
+```
+
+The Census also ...
+
+```{r}
+# Check total people in NYC by summing over person-weight column
+sum(cleaned_data$perwt)
+
+# Load spatstat library
+library(spatstat)
+
+# Example data frame with weightings for summary stats over each PUMA
+nyc_hh_summary = cleaned_data %>% 
+  # Note: do we need to filter to one individual per household for household weightings?
+  group_by(puma) %>%
+  summarize(
+    median_household_income = weighted.median(household_income, hhwt, na.rm = TRUE),
+    perc_foodstamps = sum(hhwt[on_foodstamps == "Yes"]) * 100 / sum(hhwt),
+    perc_broadband = sum(hhwt[has_broadband == "Yes"]) * 100 / sum(hhwt),
+    perc_male = sum(perwt[sex == "Male"]) * 100 / sum(perwt),
+    median_age = weighted.median(age, perwt, na.rm = TRUE),
+    # NEED TO FIX THIS
+    perc_white = sum(perwt[race == "White"]) * 100 / sum(perwt),
+    perc_foreign_born = sum(perwt[birthplace == "Non-US"]) * 100 / sum(perwt),
+    perc_citizen = sum(perwt[US_citizen == "Yes"]) * 100 / sum(perwt),
+    median_years_in_usa = weighted.median(years_in_usa, perwt, na.rm = TRUE),
+    perc_english = sum(perwt[language == "English"]) * 100 / sum(perwt),
+    perc_college = sum(perwt[education == "College"]) * 100 / sum(perwt),
+    perc_unemployed = sum(perwt[employment == "Unemployed"]) * 100 / sum(perwt),
+    perc_insured = sum(perwt[health_insurance %in% c("Private", "Public")]) * 100 / sum(perwt),
+    median_personal_income = weighted.median(personal_income, perwt, na.rm = TRUE),
+    perc_welfare = sum(perwt[on_welfare == "Yes"]) * 100 / sum(perwt),
+    perc_poverty = sum(perwt[poverty_threshold == "Below"]) * 100 / sum(perwt),
+    perc_public_transit = sum(perwt[work_transport == "Public Transit"]) * 100 / sum(perwt),
+    covid_hosp_rate = median(puma_hosp_rate),
+    covid_vax_rate = median(puma_vacc_rate),
+    covid_death_rate = median(puma_death_rate)
+  ) %>% 
+  View()
 ```
 
