@@ -12,7 +12,9 @@ knitr::opts_chunk$set(echo = TRUE)
 # NOTES:
 1. Broadband is now a binary variable with either the individual having internet or not having internet 
 
-3. Birthplace is now a binary variable with either born in USA or not born in USA 
+2. Birthplace is now a binary variable with either born in USA or not born in USA 
+
+3. HISPAN is now a binary variable
 
 2. Created a new column called yearly rent, did not delete monthly rent, need **GROUP INPUT** if we should have yearly_rent or monthly rent or both. 
 
@@ -23,13 +25,16 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 merged_data_clean <- 
   merged_data %>%
-  select(-multyear, -ancestr1, -ancestr2, -occ, -ind, -incwage, -incwelfr, -poverty, -occscore, -pwpuma00, -tranwork, -inctot) %>%
+  select(-perwt, -multyear, -ancestr1, -ancestr2, -occ, -ind, -incwage, -incwelfr, -poverty, -occscore, -pwpuma00, -tranwork, -inctot) %>%
+  
   rename(birthplace = bpl, 
          broadband_status = cihispeed, 
          foodstamp_status = foodstmp,
          education_status = educ,
          employment_status = empstat,
+         family_size = famsize, 
          household_income = hhincome, 
+         number_of_child = nchild, 
          laborforce_status = labforce,
          total_family_income = ftotinc, 
          years_in_USA = yrsusa1) %>%
@@ -59,14 +64,10 @@ merged_data_clean <-
                        "1" = "Male",
                        "2" = "Female")) %>%
   mutate(sex = as.factor(sex)) %>%
-  mutate(hispan = recode(hispan,
-                        "0" = "Not Hispanic", 
-                        "1" = "Mexican",
-                        "2" = "Puerto Rican",
-                        "3" = "Cuban",
-                        "4" = "Other",
-                        "9" = "Not Reported")) %>%
-  mutate(hispan = as.factor(hispan)) %>% 
+  mutate(hispan = case_when(
+    hispan %in% c(1:4) ~ "YES",
+    hispan %in% c(0) ~ "No",
+    hispan %in% c(9) ~ "Not Reported")) %>%
   mutate(foodstamp_status  = recode(foodstamp_status ,
                           "0" = "N/A",
                           "1" = "No",
