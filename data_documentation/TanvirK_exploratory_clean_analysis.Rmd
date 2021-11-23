@@ -10,7 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # NOTES:
-1. Broadband is now binary variable with either the individual having internet or not having internet 
+1. Broadband is now a binary variable with either the individual having internet or not having internet 
+
+3. Birthplace is now a binary variable with either born in USA or not born in USA 
 
 2. Created a new column called yearly rent, did not delete monthly rent, need **GROUP INPUT** if we should have yearly_rent or monthly rent or both. 
 
@@ -22,7 +24,8 @@ knitr::opts_chunk$set(echo = TRUE)
 merged_data_clean <- 
   merged_data %>%
   select(-multyear, -ancestr1, -ancestr2, -occ, -ind, -incwage, -incwelfr, -poverty, -occscore, -pwpuma00, -tranwork, -inctot) %>%
-  rename(broadband_status = cihispeed, 
+  rename(birthplace = bpl, 
+         broadband_status = cihispeed, 
          foodstamp_status = foodstmp,
          education_status = educ,
          employment_status = empstat,
@@ -31,6 +34,11 @@ merged_data_clean <-
          total_family_income = ftotinc, 
          years_in_USA = yrsusa1) %>%
   
+  mutate(birthplace  = as.integer(birthplace)) %>%
+  mutate(birthplace = case_when(
+    birthplace %in% c(0:120) ~ "Born in USA",
+    birthplace %in% c(150:950) ~ "Not Born in USA"
+  )) %>% 
   mutate(broadband_status = 
            case_when(
              broadband_status %in% c("10", "11", "12", "13", "14", "15", "16", "17") ~ "Yes",
