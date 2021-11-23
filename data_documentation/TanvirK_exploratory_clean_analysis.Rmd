@@ -25,7 +25,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 merged_data_clean <- 
   merged_data %>%
-  select(-perwt, -multyear, -ancestr1, -ancestr2, -occ, -ind, -incwage, -incwelfr, -occscore, -pwpuma00, -tranwork, -inctot) %>%
+  select(-multyear, -ancestr1, -ancestr2, -occ, -ind, -incwage, -incwelfr, -occscore, -pwpuma00, -tranwork, -inctot) %>%
   
   rename(birthplace = bpl, 
          broadband_status = cihispeed, 
