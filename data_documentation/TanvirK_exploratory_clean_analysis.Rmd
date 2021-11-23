@@ -89,6 +89,18 @@ merged_data <-
 
 
 
+# Recoding "hcovany" and changing it to a factor type. 
+```{r}
+merged_data <-
+  merged_data %>%
+  mutate(hcovany = recode(hcovany,
+                               "1" = "No health insurance coverage",
+                               "2" = "With health insurance coverage")) %>%
+  mutate(hcovany = as.factor(hcovany))
+```
+
+
+
 # Recoding "HCOVPRIV" and changing it to a factor type. 
 ```{r}
 merged_data <-
@@ -121,11 +133,11 @@ merged_data <-
                        "00" =	"N/A or no schooling",
                        "01" =	"Nursery school to grade 4",
                        "02" = "Grade 5, 6, 7, or 8",
-                       "03" = 	"Grade 9",
+                       "03" = "Grade 9",
                        "04" = "Grade 10",
                        "05" =	"Grade 11",
                        "06"	= "Grade 12",
-                       "07" = 	"1 year of college",
+                       "07" = "1 year of college",
                        "08" =	"2 years of college", 
                        "09" =	"3 years of college",
                        "10"	= "4 years of college", 
@@ -144,7 +156,7 @@ merged_data <-
                           "1" = "Employed",
                           "2" = "Unemployed",
                           "3" = "Not in labor force")) %>%
-  mutate(epstat = as.factor(empstat))
+  mutate(empstat = as.factor(empstat))
 ```
 
 
@@ -158,5 +170,16 @@ merged_data <-
                            "1" = "No, not in the labor force",
                            "2" = "Yes, in the labor force")) %>%
   mutate(labforce = as.factor(labforce))
+```
+
+
+
+# Creating new column bachelor degree 
+```{r}
+merged_data <-
+  merged_data %>%
+  mutate(college_status = case_when(
+    educ %in% c("07", "08", "09", "10", "11") ~ "Attend College"
+  ))
 ```
 
