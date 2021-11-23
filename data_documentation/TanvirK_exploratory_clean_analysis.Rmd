@@ -33,13 +33,15 @@ merged_data_clean <-
          education_status = educ,
          employment_status = empstat,
          family_size = famsize, 
+         health_insurance = hcovany,
+         public_health_insurance = hcovpub, 
+         private_health_insurance = hcovpriv, 
          household_income = hhincome, 
          number_of_child = nchild, 
          laborforce_status = labforce,
          total_family_income = ftotinc, 
          years_in_USA = yrsusa1) %>%
   
-  mutate(birthplace  = as.integer(birthplace)) %>%
   mutate(birthplace = case_when(
     birthplace %in% c(0:120) ~ "Born in USA",
     birthplace %in% c(150:950) ~ "Not Born in USA"
@@ -83,18 +85,18 @@ merged_data_clean <-
                           "8" = "Illegible",
                           "9" = "Missing/blank")) %>%
   mutate(citizen = as.factor(citizen)) %>% 
-  mutate(hcovany = recode(hcovany,
-                               "1" = "No health insurance coverage",
-                               "2" = "With health insurance coverage")) %>%
-  mutate(hcovany = as.factor(hcovany)) %>% 
-  mutate(hcovpriv = recode(hcovpriv,
-                          "1" = "Without private health insurance coverage",
-                          "2" = "With private health insurance coverage")) %>% 
-  mutate(hcovpriv = as.factor(hcovpriv)) %>% 
-  mutate(hcovpub = recode(hcovpub,
-                          "1" = "Without public health insurance coverage",
-                          "2" = "With public health insurance coverage")) %>% 
-  mutate(hcovpub = as.factor(hcovpub)) %>% 
+  mutate(health_insurance = recode(health_insurance,
+                               "1" = "No",
+                               "2" = "Yes")) %>%
+  mutate(health_insurance = as.factor(health_insurance)) %>% 
+  mutate( private_health_insurance = recode( private_health_insurance,
+                          "1" = "No",
+                          "2" = "Yes")) %>% 
+  mutate( private_health_insurance = as.factor( private_health_insurance)) %>% 
+  mutate(public_health_insurance = recode(public_health_insurance,
+                          "1" = "No",
+                          "2" = "Yes")) %>% 
+  mutate(public_health_insurance = as.factor(public_health_insurance)) %>% 
   mutate(education_status = recode(education_status,
                        "00" =	"N/A or no schooling",
                        "01" =	"Nursery school to grade 4",
