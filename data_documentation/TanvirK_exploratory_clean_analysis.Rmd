@@ -71,7 +71,7 @@ merged_data <-
 
 
 
-# Recoding "citizen" and changing it to a factor variable
+# Recoding "citizen" and changing it to a factor type. 
 ```{r}
 merged_data <-
   merged_data %>%
@@ -86,3 +86,77 @@ merged_data <-
                           "9" = "Missing/blank")) %>%
   mutate(citizen = as.factor(citizen))
 ```
+
+
+
+# Recoding "HCOVPRIV" and changing it to a factor type. 
+```{r}
+merged_data <-
+  merged_data %>%
+  mutate(hcovpriv = recode(hcovpriv,
+                          "1" = "Without private health insurance coverage",
+                          "2" = "With private health insurance coverage")) %>% 
+  mutate(hcovpriv = as.factor(hcovpriv))
+```
+
+
+
+#Recoding "HCOVPUB" and changing it to a factor type. 
+```{r}
+merged_data <-
+  merged_data %>%
+  mutate(hcovpub = recode(hcovpub,
+                          "1" = "Without public health insurance coverage",
+                          "2" = "With public health insurance coverage")) %>% 
+  mutate(hcovpub = as.factor(hcovpub))
+```
+
+
+
+# Recoding "educ" and changing it to a factor type. 
+```{r}
+merged_data <-
+  merged_data %>%
+  mutate(educ = recode(educ,
+                       "00" =	"N/A or no schooling",
+                       "01" =	"Nursery school to grade 4",
+                       "02" = "Grade 5, 6, 7, or 8",
+                       "03" = 	"Grade 9",
+                       "04" = "Grade 10",
+                       "05" =	"Grade 11",
+                       "06"	= "Grade 12",
+                       "07" = 	"1 year of college",
+                       "08" =	"2 years of college", 
+                       "09" =	"3 years of college",
+                       "10"	= "4 years of college", 
+                       "11" =	"5+ years of college")) %>% 
+  mutate(educ = as.factor(educ))
+```
+
+
+
+# Recoding "empstat" and changing it to a factor type.
+```{r}
+merged_data <-
+  merged_data %>%
+  mutate(empstat = recode(empstat,
+                          "0" = "N/A",
+                          "1" = "Employed",
+                          "2" = "Unemployed",
+                          "3" = "Not in labor force")) %>%
+  mutate(epstat = as.factor(empstat))
+```
+
+
+
+# Recoding "labforce" and changing it to a factor type. 
+```{r}
+merged_data <-
+  merged_data %>%
+  mutate(labforce = recode(labforce,
+                           "0" = "N/A",
+                           "1" = "No, not in the labor force",
+                           "2" = "Yes, in the labor force")) %>%
+  mutate(labforce = as.factor(labforce))
+```
+
