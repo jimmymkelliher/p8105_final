@@ -1,0 +1,183 @@
+---
+title: "exploratory_analysis_cleanin_TanvirK"
+author: "Tanvir Khan" 
+output: github_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# NOTES:
+1. Broadband is now a binary variable with either the individual having internet or not having internet 
+
+2. Birthplace is now a binary variable with either born in USA or not born in USA 
+
+3. HISPAN is now a binary variable
+
+4. Created a new column called yearly rent, did not delete monthly rent, need **GROUP INPUT** if we should have yearly_rent or monthly rent or both. 
+
+# Before Recoding remove variables/columns that I feel is not needed for our project, 
+
+# After removing the variables, now it's time to rename specific columns, I realized that some of these names for these variables are not user friendly:
+
+```{r}
+merged_data_clean <- 
+  merged_data %>%
+  select(-multyear, -ancestr1, -ancestr2, -occ, -ind, -incwage, -incwelfr, -occscore, -pwpuma00) %>%
+  
+  rename(birthplace = bpl, 
+         broadband_status = cihispeed, 
+         nyc_location = countyfip, 
+         foodstamp_status = foodstmp,
+         education_status = educ,
+         employment_status = empstat,
+         family_size = famsize, 
+         health_insurance = hcovany,
+         public_health_insurance = hcovpub, 
+         private_health_insurance = hcovpriv, 
+         household_income = hhincome, 
+         total_personaLincome = inctot, 
+         number_of_child = nchild, 
+         laborforce_status = labforce,
+         total_family_income = ftotinc, 
+         method_of_transportation = tranwork, 
+         years_in_USA = yrsusa1) %>%
+  
+  mutate(birthplace = case_when(
+    birthplace %in% c(0:120) ~ "Born in USA",
+    birthplace %in% c(150:950) ~ "Not Born in USA", 
+    birthplace %in% c(999) ~ "Missing"
+  )) %>% 
+  mutate(birthplace = as.factor(birthplace)) %>% 
+  
+  
+  mutate(broadband_status = 
+           case_when(
+             broadband_status %in% c("10", "11", "12", "13", "14", "15", "16", "17") ~ "Yes",
+             broadband_status %in% c("20") ~ "No"
+           )) %>% 
+  mutate(broadband_status = as.factor(broadband_status)) %>% 
+  
+  mutate(race = recode(race, 
+                    "1" = "White",
+                    "2" = "Black/African America",
+                    "3" = "American Indian or Alaska Native",
+                    "4" = "Chinese",
+                    "5" = "Japanese",
+                    "6" = "Other Asian or Pacific Islander",
+                    "7" = "Other race, nec",
+                    "8" = "Two major races", 
+                    "9" = "Three or more major races")) %>%
+  mutate(race = as.factor(race)) %>% 
+  
+  mutate(sex = recode(sex,
+                       "1" = "Male",
+                       "2" = "Female")) %>%
+  mutate(sex = as.factor(sex)) %>%
+  
+  mutate(hispan = case_when(
+    hispan %in% c(1:4) ~ "YES",
+    hispan %in% c(0) ~ "No",
+    hispan %in% c(9) ~ "Not Reported")) %>%
+  mutate(hispan = as.factor(hispan)) %>%
+  
+  mutate(foodstamp_status  = recode(foodstamp_status ,
+                          "0" = "N/A",
+                          "1" = "No",
+                          "2" = "Yes")) %>%
+  mutate(foodstamp_status  = as.factor(foodstamp_status)) %>% 
+  
+  mutate(citizen = recode(citizen,
+                          "0" = "N/A",
+                          "1" = "Born abroad of American parents",
+                          "2" = "Naturalized citizen",
+                          "3" = "Not a citizen",
+                          "4" = "Not a citizen, but has received first papers",
+                          "5" = "Foreign born, citizenship status not reported",
+                          "8" = "Illegible",
+                          "9" = "Missing/blank")) %>%
+  mutate(citizen = as.factor(citizen)) %>% 
+  
+  
+  mutate(health_insurance = recode(health_insurance,
+                               "1" = "No",
+                               "2" = "Yes")) %>%
+  mutate(health_insurance = as.factor(health_insurance)) %>% 
+  
+  mutate( private_health_insurance = recode( private_health_insurance,
+                          "1" = "No",
+                          "2" = "Yes")) %>% 
+  mutate(private_health_insurance = as.factor( private_health_insurance)) %>% 
+  
+  mutate(public_health_insurance = recode(public_health_insurance,
+                          "1" = "No",
+                          "2" = "Yes")) %>% 
+  mutate(public_health_insurance = as.factor(public_health_insurance)) %>% 
+  
+  mutate(language = case_when(
+    language %in% c(0) ~ "N/A", 
+    language %in% c(1) ~ "English Spoken at Home",
+    language %in% c(2:94) ~ "English not Spoken at Home",
+    language %in% c(95) ~ "No Language",
+    language %in% c(96) ~ "Other or not reported", 
+    language %in% c(99) ~ "Not Repoted"
+  )) %>% 
+  mutate(language = as.factor(language)) %>% 
+  
+  mutate(education_status = recode(education_status,
+                       "00" =	"N/A or no schooling",
+                       "01" =	"Nursery school to grade 4",
+                       "02" = "Grade 5, 6, 7, or 8",
+                       "03" = "Grade 9",
+                       "04" = "Grade 10",
+                       "05" =	"Grade 11",
+                       "06"	= "Grade 12",
+                       "07" = "1 year of college",
+                       "08" =	"2 years of college", 
+                       "09" =	"3 years of college",
+                       "10"	= "4 years of college", 
+                       "11" =	"5+ years of college")) %>% 
+  mutate(education_status = as.factor(education_status)) %>% 
+  
+  mutate(employment_status = recode(employment_status,
+                          "0" = "N/A",
+                          "1" = "Employed",
+                          "2" = "Unemployed",
+                          "3" = "Not in labor force")) %>%
+  mutate(employment_status = as.factor(employment_status)) %>% 
+  
+  
+  mutate(laborforce_status = recode(laborforce_status,
+                           "0" = "N/A",
+                           "1" = "No, not in the labor force",
+                           "2" = "Yes, in the labor force")) %>%
+  mutate(laborforce_status = as.factor(laborforce_status)) %>%
+  mutate(yearly_rent = rent * 12)
+```
+
+
+# Mean Death Rate for each Puma. 
+```{r}
+death_rate <-
+  merged_data_clean %>%
+  group_by(puma) %>%
+  summarise(mean_death_rate = mean(puma_death_rate))
+```
+
+# Mean Vaccination Rate for each Puma
+```{r}
+vaccination_rate <-
+  merged_data_clean %>%
+  group_by(puma) %>%
+  summarise(mean_vaccination_rate = mean(puma_vacc_per))
+```
+
+# Mean Hospitalization Rate for each Puma
+```{r}
+hospitalization_rate <- merged_data_clean %>%
+  group_by(puma) %>%
+  summarise(mean_hospitalzation_rate = mean(puma_hosp_rate))
+```
+
