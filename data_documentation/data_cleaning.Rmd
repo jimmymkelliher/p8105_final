@@ -232,7 +232,7 @@ cleaned_data =
 
 ```
 
-The Census also ...
+The Census also doesn't reach everyone; it samples the population. As a result, we need to weight our statistics by how many households look like a particular household observed, or how many persons look like a particular person observed. We also want to group by PUMA.
 
 ```{r}
 # Check total people in NYC by summing over person-weight column
