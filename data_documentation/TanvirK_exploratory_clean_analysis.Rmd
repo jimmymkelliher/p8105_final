@@ -44,7 +44,8 @@ merged_data_clean <-
   
   mutate(birthplace = case_when(
     birthplace %in% c(0:120) ~ "Born in USA",
-    birthplace %in% c(150:950) ~ "Not Born in USA"
+    birthplace %in% c(150:950) ~ "Not Born in USA", 
+    birthplace %in% c(999) ~ "Missing"
   )) %>% 
   mutate(broadband_status = 
            case_when(
@@ -92,11 +93,19 @@ merged_data_clean <-
   mutate( private_health_insurance = recode( private_health_insurance,
                           "1" = "No",
                           "2" = "Yes")) %>% 
-  mutate( private_health_insurance = as.factor( private_health_insurance)) %>% 
+  mutate(private_health_insurance = as.factor( private_health_insurance)) %>% 
   mutate(public_health_insurance = recode(public_health_insurance,
                           "1" = "No",
                           "2" = "Yes")) %>% 
   mutate(public_health_insurance = as.factor(public_health_insurance)) %>% 
+  mutate(language = case_when(
+    language %in% c(0) ~ "N/A", 
+    language %in% c(1) ~ "English Spoken at Home",
+    language %in% c(2:94) ~ "English not Spoken at Home",
+    language %in% c(95) ~ "No Language",
+    language %in% c(96) ~ "Other or not reported", 
+    language %in% c(99) ~ "Not Repoted"
+  )) %>% 
   mutate(education_status = recode(education_status,
                        "00" =	"N/A or no schooling",
                        "01" =	"Nursery school to grade 4",
@@ -125,4 +134,28 @@ merged_data_clean <-
   mutate(yearly_rent = rent * 12)
 ```
 
+
+# Mean Death Rate for each Puma. 
+```{r}
+death_rate <-
+  merged_data_clean %>%
+  group_by(puma) %>%
+  summarise(mean_death_rate = mean(puma_death_rate))
+```
+
+# Mean Vaccination Rate for each Puma
+```{r}
+vaccination_rate <-
+  merged_data_clean %>%
+  group_by(puma) %>%
+  summarise(mean_vaccination_rate = mean(puma_vacc_per))
+```
+
+# Mean Hospitalization Rate for each Puma
+```{r}
+hospitalization_rate <-
+  merged_data_clean %>%
+  group_by(puma) %>%
+  summarise(mean_hospitalzation_rate = mean(puma_hosp_rate))
+```
 
