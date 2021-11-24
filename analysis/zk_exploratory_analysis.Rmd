@@ -538,5 +538,149 @@ ggscatter(nyc_puma_summary_counties, x = "perc_college", y = "covid_vax_rate", c
   geom_point(aes(color = borough))
 ```
 
-#### Potential Questions
+#### Other Explorations
+
+Income vs outcomes, colored by college education
+
+```{r}
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = median_household_income, y = covid_hosp_rate)) + 
+  geom_point(aes(color = perc_college))
+
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = median_household_income, y = covid_vax_rate)) + 
+  geom_point(aes(color = perc_college))
+
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = median_household_income, y = covid_death_rate)) + 
+  geom_point(aes(color = perc_college))
+
+# Try size?
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = median_household_income, y = covid_death_rate)) + 
+  geom_point(aes(size = perc_college))
+```
+
+Signifiers of low SES vs vaccination, colored by % white
+
+```{r}
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = perc_foodstamps, y = covid_vax_rate)) +
+  geom_point(aes(color = perc_white))
+
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = perc_welfare, y = covid_vax_rate)) +
+  geom_point(aes(color = perc_white))
+
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = perc_poverty, y = covid_vax_rate)) +
+  geom_point(aes(color = perc_white))
+
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = perc_unemployed, y = covid_vax_rate)) +
+  geom_point(aes(color = perc_white))
+
+# Try size?
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = perc_foodstamps, y = covid_vax_rate)) +
+  geom_point(aes(size = perc_white))
+```
+
+```{r}
+# Outcomes distribution by borough
+hosps = nyc_puma_summary_counties %>% 
+  ggplot(aes(x = borough, y = covid_hosp_rate)) + 
+  geom_boxplot(aes(fill = borough))
+
+deaths = nyc_puma_summary_counties %>% 
+  ggplot(aes(x = borough, y = covid_death_rate)) + 
+  geom_boxplot(aes(fill = borough))
+
+vax = nyc_puma_summary_counties %>% 
+  ggplot(aes(x = borough, y = covid_vax_rate)) + 
+  geom_boxplot(aes(fill = borough))
+
+library(patchwork)
+
+hosps + deaths + vax
+  
+```
+
+```{r}
+nyc_puma_summary_counties %>% 
+  pivot_longer(
+    cols = starts_with("covid"),
+    values_to = 'outcome_rate'
+  ) %>% 
+  filter(!name == "covid_vax_rate") %>% 
+  ggplot(
+    aes(
+      x = puma,
+      y = outcome_rate
+    )
+  ) + 
+  geom_point() + 
+  facet_grid(name ~ borough)
+
+# Vax on different scale (%)
+nyc_puma_summary_counties %>% 
+  pivot_longer(
+    cols = starts_with("covid"),
+    values_to = 'outcome_rate'
+  ) %>% 
+  filter(name == "covid_vax_rate") %>% 
+  ggplot(
+    aes(
+      x = puma,
+      y = outcome_rate
+    )
+  ) + 
+  geom_point() + 
+  facet_grid(name ~ borough)
+```
+
+COVID death rates are much more consistent across PUMAs within a given county, whereas hospitalization and vax rates have more dispersion (variance).
+
+```{r}
+# Ratio of hosp rate to death rate
+nyc_puma_summary_counties %>% 
+  mutate(
+    ratio = covid_hosp_rate / covid_death_rate
+  ) %>% 
+  ggplot(aes(x = fct_reorder(puma, ratio), y = ratio)) + 
+  geom_point(aes(color = borough))
+
+# Ratio of hosp rate to vax rate
+nyc_puma_summary_counties %>% 
+  mutate(
+    ratio = covid_hosp_rate / covid_vax_rate
+  ) %>% 
+  ggplot(aes(x = fct_reorder(puma, ratio), y = ratio)) +
+  geom_point(aes(color = borough))
+
+# Ratio of death rate to vax rate
+nyc_puma_summary_counties %>% 
+  mutate(
+    ratio = covid_death_rate / covid_vax_rate
+  ) %>% 
+  ggplot(aes(x = fct_reorder(puma, ratio), y = ratio)) +
+  geom_point(aes(color = borough))
+
+# Compare both hosp to vax and death to vax
+nyc_puma_summary_counties %>% 
+  mutate(
+    ratio1 = covid_hosp_rate / covid_vax_rate,
+    ratio2 = covid_death_rate / covid_vax_rate
+  ) %>% 
+  ggplot(aes(x = ratio1, y = ratio2)) + 
+  geom_point(aes(color = borough)) + 
+  geom_smooth()
+```
+
+Note, do we want to put hosp rate, death rate, and vax rate in standard units? (eg vax is %, the others are not)
+
+```{r}
+
+```
+
 
