@@ -679,8 +679,249 @@ nyc_puma_summary_counties %>%
 
 Note, do we want to put hosp rate, death rate, and vax rate in standard units? (eg vax is %, the others are not)
 
-```{r}
+Yes -- hosp and death rates are per 100K, so should convert to percent
 
+```{r}
+nyc_puma_summary_counties %>% 
+  pivot_longer(
+    cols = starts_with("covid"),
+    values_to = 'outcome_rate'
+  ) %>%
+  filter(!name == "covid_vax_rate") %>% 
+  ggplot(
+    aes(
+      x = outcome_rate
+    )
+  ) + 
+  geom_density(aes(fill = name), alpha = 0.3) + 
+  facet_grid(.~borough)
 ```
 
+```{r}
+nyc_puma_summary_counties %>% 
+  View()
+
+library(ggridges)
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = covid_hosp_rate, y = borough, fill = borough)) + 
+  geom_density_ridges(scale = 0.6, alpha = 0.2)
+
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = covid_death_rate, y = borough, fill = borough)) + 
+  geom_density_ridges(scale = 0.6, alpha = 0.2)
+
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = covid_vax_rate, y = borough, fill = borough)) + 
+  geom_density_ridges(scale = 0.6, alpha = 0.2)
+```
+
+Do PUMAs with more public transit riders have higher COVID hosp rates? Death rates? (Not really)
+
+```{r}
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = perc_public_transit, y = covid_hosp_rate)) + 
+  geom_point() + 
+  geom_smooth()
+
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = perc_public_transit, y = covid_death_rate)) + 
+  geom_point() + 
+  geom_smooth()
+```
+
+What about health insurance coverage? Strange curves.
+
+```{r}
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = perc_insured, y = covid_hosp_rate)) + 
+  geom_point() + 
+  geom_smooth()
+
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = perc_insured, y = covid_death_rate)) + 
+  geom_point() + 
+  geom_smooth()
+```
+
+We will want to do analysis on the cleaned_data, I think.
+
+```{r}
+cleaned_data %>% 
+  View()
+
+above_below = cleaned_data %>% 
+  mutate(
+    above_hosp_median = as.factor(ifelse(puma_hosp_rate > median(puma_hosp_rate), 1, 0)),
+    above_death_median = as.factor(ifelse(puma_death_rate > median(puma_death_rate), 1, 0)),
+    above_vax_median = as.factor(ifelse(puma_vacc_rate > median(puma_vacc_rate), 1, 0))
+  )
+
+above_below %>% 
+  ggplot(aes(x = household_income)) + 
+  geom_density(aes(fill = above_hosp_median), alpha = 0.5)
+
+above_below %>% 
+  ggplot(aes(x = household_income)) + 
+  geom_density(aes(fill = above_death_median), alpha = 0.5)
+
+above_below %>% 
+  ggplot(aes(x = household_income)) + 
+  geom_density(aes(fill = above_vax_median), alpha = 0.5)
+
+above_below %>% 
+  ggplot(aes(x = household_income)) + 
+  geom_density(aes(fill = above_death_median), alpha = 0.5) + 
+  facet_wrap(.~borough)
+```
+
+Can we do something similar at PUMA level, recognizing small sample sizes? Maybe using bar charts?
+
+```{r}
+above_below_puma = nyc_puma_summary_counties %>% 
+  mutate(
+    above_hosp_median = as.factor(ifelse(covid_hosp_rate > median(covid_hosp_rate), 1, 0)),
+    above_death_median = as.factor(ifelse(covid_death_rate > median(covid_death_rate), 1, 0)),
+    above_vax_median = as.factor(ifelse(covid_vax_rate > median(covid_vax_rate), 1, 0))
+  )
+
+above_below_puma %>% 
+  ggplot(aes(x = median_household_income)) + 
+  geom_density(aes(fill = above_hosp_median), alpha = 0.5)
+
+above_below_puma %>% 
+  ggplot(aes(x = median_household_income)) + 
+  geom_density(aes(fill = above_death_median), alpha = 0.5)
+
+above_below_puma %>% 
+  ggplot(aes(x = median_household_income)) + 
+  geom_density(aes(fill = above_vax_median), alpha = 0.5)
+
+above_below_puma_hh = above_below_puma %>% 
+  mutate(
+    above_median_hh_income = as.factor(ifelse(median_household_income > median(median_household_income), 1, 0))
+  )
+
+above_below_puma_hh %>% 
+  ggplot(aes(x = above_median_hh_income, fill = above_hosp_median)) + 
+  geom_bar(stat = "count")
+
+above_below_puma_hh %>% 
+  ggplot(aes(x = above_median_hh_income, fill = above_hosp_median)) + 
+  geom_bar(position = "fill")
+
+above_below_puma_hh %>% 
+  ggplot(aes(x = above_median_hh_income, fill = above_death_median)) + 
+  geom_bar(position = "fill")
+
+above_below_puma_hh %>% 
+  ggplot(aes(x = above_median_hh_income, fill = above_vax_median)) + 
+  geom_bar(position = "fill")
+
+above_below_puma_hh %>% 
+  ggplot(aes(x = above_median_hh_income, fill = above_vax_median)) + 
+  geom_bar(position = "fill") + 
+  facet_wrap(.~borough)
+
+above_below_puma_hh %>% 
+  ggplot(aes(x = borough, y = sum(above_vax_median == 1), fill = above_median_hh_income)) + 
+  geom_bar(position = "fill", stat = "identity")
+```
+
+Number of PUMAs per county
+
+```{r}
+nyc_puma_summary_counties %>% 
+  group_by(borough) %>% 
+  summarize(
+    n_obs = n()
+  ) %>% 
+  ggplot(aes(x = borough, y = n_obs)) + 
+  geom_bar(stat = "identity")
+```
+
+Number of PUMAs with above or below median outcomes by county
+
+```{r}
+above_below_puma %>% 
+  group_by(borough) %>% 
+  ggplot(
+    aes(x = borough, fill = above_hosp_median)
+  ) + 
+  geom_bar(position = "fill")
+
+above_below_puma %>% 
+  group_by(borough) %>% 
+  ggplot(
+    aes(x = borough, fill = above_death_median)
+  ) + 
+  geom_bar(position = "fill")
+
+above_below_puma %>% 
+  group_by(borough) %>% 
+  ggplot(
+    aes(x = borough, fill = above_vax_median)
+  ) + 
+  geom_bar(position = "fill")
+  
+```
+
+Outcomes by PUMA population size
+
+```{r}
+puma_group = cleaned_data %>% 
+  group_by(puma) %>% 
+  summarize(
+    people = sum(perwt),
+    median_hosp_rate = median(puma_hosp_rate),
+    median_death_rate = median(puma_death_rate),
+    median_vax_rate = median(puma_vacc_rate)
+  )
+
+puma_group %>% 
+  ggplot(aes(x = people, y = median_hosp_rate)) + 
+  geom_point() + 
+  geom_smooth()
+
+puma_group %>% 
+  ggplot(aes(x = people, y = median_death_rate)) + 
+  geom_point() + 
+  geom_smooth()
+
+puma_group %>% 
+  ggplot(aes(x = people, y = median_vax_rate)) + 
+  geom_point() + 
+  geom_smooth()
+  
+```
+
+Top 10 best and worst PUMAs for each outcome (here, using hospitalization as an example)
+
+```{r}
+nyc_puma_summary_counties %>% 
+  arrange(desc(covid_hosp_rate)) %>% 
+  mutate(
+    rank = rank(desc(covid_hosp_rate))
+  ) %>% 
+  filter(rank < 11) %>% 
+  ggplot(aes(x = fct_reorder(puma, desc(covid_hosp_rate)), y = covid_hosp_rate)) + 
+  geom_bar(stat = "identity", aes(fill = borough))
+
+nyc_puma_summary_counties %>% 
+  arrange(desc(covid_death_rate)) %>% 
+  mutate(
+    rank = rank(desc(covid_death_rate))
+  ) %>% 
+  filter(rank < 11) %>% 
+  ggplot(aes(x = fct_reorder(puma, desc(covid_death_rate)), y = covid_death_rate)) + 
+  geom_bar(stat = "identity", aes(fill = borough))
+
+nyc_puma_summary_counties %>% 
+  arrange(desc(covid_vax_rate)) %>% 
+  mutate(
+    rank = rank(desc(covid_vax_rate))
+  ) %>% 
+  filter(rank < 11) %>% 
+  ggplot(aes(x = fct_reorder(puma, desc(covid_vax_rate)), y = covid_vax_rate)) + 
+  geom_bar(stat = "identity", aes(fill = borough))
+```
 
