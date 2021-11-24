@@ -1,0 +1,542 @@
+---
+title: "Initial Exploratory Analysis"
+author: 'Zachary Katz'
+date: "11/24/2021"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<!------------------------------------------------------------------------------
+Preamble
+------------------------------------------------------------------------------->
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+# load necessary packages
+library(tidyverse)
+
+# set knitr defaults
+knitr::opts_chunk$set(
+    echo      = TRUE
+  , message   = FALSE
+  , fig.width = 6
+  , fig.asp   = .6
+  , out.width = "90%"
+)
+
+# set theme defaults
+theme_set(
+  theme_bw() +
+  theme(
+    legend.position = "bottom"
+    , plot.title    = element_text(hjust = 0.5)
+    , plot.subtitle = element_text(hjust = 0.5)    
+    , plot.caption  = element_text(hjust = 0.0)
+  )
+)
+
+# set color scale defaults
+options(
+    ggplot2.continuous.colour = "viridis"
+  , ggplot2.continuous.fill   = "viridis"
+)
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete   = scale_fill_viridis_d
+```
+
+<!------------------------------------------------------------------------------
+Overview
+------------------------------------------------------------------------------->
+
+# Unzipping the Census Data
+
+```{r}
+jimzip <- function(csv_file, path) {
+  # create full path to csv file
+  full_csv <- paste0(path, "/", csv_file)
+  # append ".zip" to csv file
+  zip_file <- paste0(full_csv, ".zip")
+  # unzip file
+  unzip(zip_file)
+  # read csv
+  data_extract <- read_csv(csv_file)
+  # be sure to remove file once unzipped (it will live in working directory)
+  on.exit(file.remove(csv_file))
+  # output data
+  data_extract
+}
+
+census_data <- jimzip("census_filtered.csv", "./data")
+head(census_data) %>%  knitr::kable()
+```
+
+# Merging the Outcome Data
+
+```{r}
+health_data <-
+  read_csv("./data/outcome_puma.csv") %>%
+  rename(puma = puma10)
+
+merged_data <- merge(census_data, health_data, by = "puma")
+rm(census_data)
+
+head(merged_data) %>% knitr::kable()
+```
+
+## Cleaning the Data
+
+```{r}
+# Clean the merged census and outcomes data
+cleaned_data = 
+  merged_data %>% 
+  # Remove variables less useful for analysis, including ones with high correlation with remaining variables
+  select(-multyear, -ancestr1, -ancestr2, -labforce, -occ, -ind, -incwage, -occscore, -pwpuma00, -ftotinc, -hcovpub) %>% 
+  # Remove duplicate rows
+  distinct() %>% 
+  # Rename variables
+  rename(
+    borough = countyfip,
+    has_broadband = cihispeed,
+    birthplace = bpl,
+    years_in_usa = yrsusa1,
+    education = educd,
+    employment = empstat,
+    personal_income = inctot,
+    work_transport = tranwork,
+    household_income = hhincome,
+    on_foodstamps = foodstmp,
+    family_size = famsize,
+    num_children = nchild,
+    US_citizen = citizen,
+    puma_vacc_rate = puma_vacc_per,
+    on_welfare = incwelfr,
+    poverty_threshold = poverty
+  ) %>% 
+  # Recode variables according to data dictionary
+  mutate(
+    # Researched mapping for county
+    borough = recode(
+      borough,
+      "5" = "Bronx",
+      "47" = "Brooklyn",
+      "61" = "Manhattan",
+      "81" = "Queens",
+      "85" = "Staten Island"
+    ),
+    rent = ifelse(
+      rent == 9999, 0,
+      rent
+    ),
+    household_income = ifelse(
+      household_income %in% c(9999998,9999999), NA,
+      household_income
+    ),
+    on_foodstamps = recode(
+      on_foodstamps,
+      "1" = "No",
+      "2" = "Yes"
+    ),
+    has_broadband = case_when(
+      has_broadband == "20" ~ "No",
+      has_broadband != "20" ~ "Yes"
+    ),
+    sex = recode(
+      sex,
+      "1" = "Male",
+      "2" = "Female"
+    ),
+    # Collapse Hispanic observation into race observation
+    race = case_when(
+      race == "1" ~ "White",
+      race == "2" ~ "Black",
+      race == "3" ~ "American Indian",
+      race %in% c(4,5,6) ~ "Asian and Pacific Islander",
+      race == 7 & hispan %in% c(1,2,3,4) ~ "Hispanic",
+      race == 7 & hispan %in% c(0,9) ~ "Other",
+      race %in% c(8,9) ~ "2+ races"
+    ),
+    birthplace = case_when(
+      birthplace %in% 1:120 ~"US",
+      birthplace %in% 121:950 ~ "Non-US",
+      birthplace == 999 ~"Unknown"
+    ),
+    US_citizen = case_when(
+      US_citizen %in% c(1,2) ~ "Yes",
+      US_citizen %in% 3:8 ~"No",
+      US_citizen %in% c(0,9) ~ "Unknown"
+    ),
+    # Chose languages based on highest frequency observed
+    language = case_when(
+      language == "1" ~ "English",
+      language == "12" ~ "Spanish",
+      language == "43" ~ "Chinese",
+      language == "0" ~ "Unknown",
+      language == "31" ~ "Hindi",
+      !language %in% c(1,12,43,0,31) ~ "Other"
+    ),
+    # Collapse multiple health insurance variables into single variable
+    health_insurance = case_when(
+      hcovany == 1 ~ "None",
+      hcovany == 2 && hcovpriv == 2 ~ "Private",
+      hcovany == 2 && hcovpriv == 1 ~ "Public"
+    ),
+    education = case_when(
+      education %in% 2:61 ~ "Less Than HS Graduate",
+      education %in% 62:64 ~ "HS Graduate",
+      education %in% 65:100 ~ "Some College",
+      education %in% 110:113 ~ "Some College",
+      education == 101 ~ "Bachelor's Degree",
+      education %in% 114:116 ~ "Post-Graduate Degree",
+      education %in% c(0,1,999) ~ "Unknown"
+    ),
+    employment = case_when(
+      employment %in% c(0,3) ~ "Not in labor force",
+      employment == 1 ~ "Employed",
+      employment == 2 ~ "Unemployed"
+    ),
+    personal_income = ifelse(
+      personal_income %in% c(9999998,9999999), NA,
+      personal_income
+    ),
+    household_income = ifelse(
+      household_income %in% c(9999998,9999999), NA,
+      household_income
+    ),
+    on_welfare = case_when(
+      on_welfare > 0 ~ "Yes",
+      on_welfare == 0 ~ "No"
+    ), 
+    poverty_threshold = case_when(
+      poverty_threshold >= 100 ~ "Above",
+      poverty_threshold < 100 ~ "Below"
+    ),
+    work_transport = case_when(
+      work_transport %in% c(31:37, 39) ~ "Public Transit",
+      work_transport %in% c(10:20, 38) ~ "Private Vehicle",
+      work_transport == 50 ~ "Bicycle",
+      work_transport == 60 ~ "Walking",
+      work_transport == 80 ~ "Worked From Home",
+      work_transport %in% c(0, 70) ~ "Other"
+    )
+  ) %>% 
+  # Eliminate columns no longer needed after transformation
+  select(-hispan, -hcovany, -hcovpriv) %>% 
+  # Relocate new columns
+  relocate(health_insurance, .before = personal_income) %>% 
+  relocate(poverty_threshold, .before = work_transport) %>% 
+  relocate(on_welfare, .before = poverty_threshold) %>% 
+  relocate(perwt, .before = cluster) %>% 
+  # Create factor variables where applicable
+  mutate(across(.cols = c(puma, borough, on_foodstamps, has_broadband, sex, race, birthplace, US_citizen, language, health_insurance, education, employment, on_welfare, poverty_threshold, work_transport), as.factor))
+
+```
+
+The Census also doesn't reach everyone; it samples the population. As a result, we need to weight our statistics by how many households look like a particular household observed, or how many persons look like a particular person observed. We also want to group by PUMA.
+
+```{r}
+# Check total people in NYC by summing over person-weight column
+sum(cleaned_data$perwt)
+
+# Load spatstat library
+library(spatstat)
+
+# Example data frame with weightings for summary stats over each PUMA
+nyc_puma_summary = cleaned_data %>% 
+  # Note: do we need to filter to one individual per household for household weightings?
+  group_by(puma) %>%
+  summarize(
+    median_household_income = weighted.median(household_income, hhwt, na.rm = TRUE),
+    perc_foodstamps = sum(hhwt[on_foodstamps == "Yes"]) * 100 / sum(hhwt),
+    perc_broadband = sum(hhwt[has_broadband == "Yes"]) * 100 / sum(hhwt),
+    perc_male = sum(perwt[sex == "Male"]) * 100 / sum(perwt),
+    median_age = weighted.median(age, perwt, na.rm = TRUE),
+    perc_white = sum(perwt[race == "White"]) * 100 / sum(perwt),
+    perc_foreign_born = sum(perwt[birthplace == "Non-US"]) * 100 / sum(perwt),
+    perc_citizen = sum(perwt[US_citizen == "Yes"]) * 100 / sum(perwt),
+    median_years_in_usa = weighted.median(years_in_usa, perwt, na.rm = TRUE),
+    perc_english = sum(perwt[language == "English"]) * 100 / sum(perwt),
+    perc_college = sum(perwt[education %in% c("Some College", "Bachelor's Degree", "Post-Graduate Degree")]) * 100 / sum(perwt),
+    perc_unemployed = sum(perwt[employment == "Unemployed"]) * 100 / sum(perwt),
+    perc_insured = sum(perwt[health_insurance %in% c("Private", "Public")]) * 100 / sum(perwt),
+    median_personal_income = weighted.median(personal_income, perwt, na.rm = TRUE),
+    perc_welfare = sum(perwt[on_welfare == "Yes"]) * 100 / sum(perwt),
+    perc_poverty = sum(perwt[poverty_threshold == "Below"]) * 100 / sum(perwt),
+    perc_public_transit = sum(perwt[work_transport == "Public Transit"]) * 100 / sum(perwt),
+    covid_hosp_rate = median(puma_hosp_rate),
+    covid_vax_rate = median(puma_vacc_rate),
+    covid_death_rate = median(puma_death_rate)
+  )
+
+# View summary data across PUMAs
+nyc_puma_summary %>% 
+  View()
+```
+
+## Exploratory Analysis
+
+#### Correlation / heatmap of variables across observed PUMAs
+
+```{r}
+
+library(reshape2)
+
+# Reorder function
+reorder_cormat <- function(cormat){
+  # Use correlation between variables as distance
+  dd <- as.dist((1-cormat)/2)
+  hc <- hclust(dd)
+  cormat <-cormat[hc$order, hc$order]
+}
+
+# Create correlation matrix
+nyc_puma_summary %>% 
+  select(-puma) %>% 
+  cor() %>% 
+  round(2) %>% 
+  reorder_cormat() %>% 
+  melt() %>% 
+  filter(Var2 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  filter(!Var1 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  ggplot(aes(x = Var2, y = Var1, fill = value)) + 
+  geom_tile(color = "white") +  
+  scale_x_discrete(
+    labels = c("Vax Rate", "Hosp Rate", "Death Rate")
+  ) + 
+  geom_text(
+    aes(Var2, Var1, label = value),
+    color = "white",
+    size = 4
+  )
+
+library(rstatix)
+
+nyc_puma_summary %>% 
+  select(-puma) %>% 
+  cor_mat() %>% 
+  cor_gather() %>% 
+  filter(Var2 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  filter(!Var1 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  ggplot(aes(x = Var2, y = Var1, fill = value)) + 
+  geom_tile(color = "white") +  
+  scale_x_discrete(
+    labels = c("Vax Rate", "Hosp Rate", "Death Rate")
+  ) + 
+  geom_text(
+    aes(Var2, Var1, label = value),
+    color = "white",
+    size = 4
+  )
+
+nyc_puma_summary %>% 
+  select(-puma) %>% 
+  cor_mat() %>% 
+  cor_gather() %>% 
+  filter(var1 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  filter(!var2 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  ggplot(aes(x = var1, y = var2, fill = cor)) + 
+  geom_tile(color = "white") + 
+  scale_x_discrete(
+    labels = c("Vax Rate", "Hosp Rate", "Death Rate")
+  ) + 
+  geom_text(
+    aes(var1, var2, label = cor),
+    color = "white",
+    size = 4
+  )
+```
+
+Strict cutoff: absolute value of correlation greater than or equal to 0.4
+
+* Vax rate positive: age, personal income, household income, college education
+* Vax rate negative: poverty, foodstamps, unemployment, welfare
+* Hosp rate positive: foreign born, US citizenship
+* Hosp rate negative: personal income, household income, college education, health insurance status, English speaking
+* Death rate positive: US citizenship, foreign born, years in USA
+* Death rate negative: Personal income, household income, college education
+
+```{r}
+puma_less = nyc_puma_summary %>% 
+  select(-puma)
+
+cor_matrix = Hmisc::rcorr(as.matrix(puma_less))
+
+cors <- function(df) { 
+   # turn all three matrices (r, n, and P into a data frame)
+   M <- Hmisc::rcorr(as.matrix(df))
+   # return the three data frames in a list return(Mdf)
+   Mdf <- map(M, ~data.frame(.x))
+}
+
+cors(puma_less) %>% 
+  map(~rownames_to_column(.x, var = "measure1")) %>% 
+  map(~pivot_longer(.x, -measure1, "measure2")) %>% 
+  bind_rows(.id = "id") %>% 
+  pivot_wider(
+    names_from = id,
+    values_from = value
+  ) %>% 
+  mutate(sig_p = ifelse(P < 0.01, T, F), p_if_sig = ifelse(P < 0.01, P, NA), r_if_sig = ifelse(P < 0.01, r, NA)) %>% 
+  filter(measure1 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  filter(!measure2 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  ggplot(
+    aes(
+      x = measure1, 
+      y = measure2, 
+      fill = r,
+      label = round(r_if_sig, 2)
+  )) + 
+  geom_tile() + 
+  geom_text(color = "white") +
+  scale_x_discrete(
+    labels = c("Vax Rate", "Hosp Rate", "Death Rate")
+  )
+
+cors(puma_less) %>% 
+  map(~rownames_to_column(.x, var = "measure1")) %>% 
+  map(~pivot_longer(.x, -measure1, "measure2")) %>% 
+  bind_rows(.id = "id") %>% 
+  pivot_wider(
+    names_from = id,
+    values_from = value
+  ) %>% 
+  mutate(sig_p = ifelse(P < 0.01, T, F), p_if_sig = ifelse(P < 0.01, P, NA), r_if_sig = ifelse(P < 0.01, r, NA)) %>% 
+  filter(measure1 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  filter(!measure2 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  ggplot(
+    aes(
+      x = measure1, 
+      y = measure2, 
+      color = r,
+      label = round(r_if_sig, 2)
+  )) + 
+  geom_tile(col = "black", fill = "white") + 
+  geom_point(aes(size = abs(r)), shape = 15) + 
+  geom_text(color = "white", size = 2) +
+  scale_x_discrete(
+    labels = c("Vax Rate", "Hosp Rate", "Death Rate")
+  )
+```
+
+#### Exploring Outcomes
+
+How do outcomes vary across PUMAs? Color by borough.
+
+```{r}
+nyc_puma_summary_counties = 
+  nyc_puma_summary %>% 
+  mutate(
+    borough = as.factor(case_when(
+      str_detect(puma, "37") ~ "Bronx",
+      str_detect(puma, "38") ~ "Manhattan",
+      str_detect(puma, "39") ~ "Staten Island",
+      str_detect(puma, "40") ~ "Brooklyn",
+      str_detect(puma, "41") ~ "Queens"
+    )
+    )
+  )
+
+# Hospitalizations
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = fct_reorder(puma, covid_hosp_rate), y = covid_hosp_rate)) + 
+  geom_point(aes(color = borough)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+# Deaths
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = fct_reorder(puma, covid_death_rate), y = covid_death_rate)) + 
+  geom_point(aes(color = borough)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+# Vaccinations
+nyc_puma_summary_counties %>% 
+  ggplot(aes(x = fct_reorder(puma, covid_vax_rate), y = covid_vax_rate)) + 
+  geom_point(aes(color = borough)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+#### Demographics vs Outcome (examples)
+
+```{r}
+# Sex vs Hospitalization
+nyc_puma_summary_counties %>% 
+  ggplot(aes(
+    x = perc_male,
+    y = covid_hosp_rate
+  )) + 
+  geom_point() + 
+  geom_smooth()
+
+# Race vs Hospitalization
+nyc_puma_summary_counties %>% 
+  ggplot(aes(
+    x = perc_white,
+    y = covid_hosp_rate
+  )) + 
+  geom_point() + 
+  geom_smooth()
+
+# Age vs Hospitalization
+nyc_puma_summary_counties %>% 
+  ggplot(aes(
+    x = median_age,
+    y = covid_hosp_rate
+  )) + 
+  geom_point() + 
+  geom_smooth()
+```
+
+Gender seems pretty irrelevant. Hospitalization and % white seem negatively associated, whereas hospitalization and median age seem positively associated.
+
+#### SES vs Outcome (examples)
+
+```{r}
+# Household income vs Vaccination
+nyc_puma_summary_counties %>% 
+  ggplot(aes(
+    x = median_household_income,
+    y = covid_vax_rate
+  )) + 
+  geom_point() + 
+  geom_smooth()
+
+# Health insurance vs Vaccination
+nyc_puma_summary_counties %>% 
+  ggplot(aes(
+    x = perc_insured,
+    y = covid_vax_rate
+  )) + 
+  geom_point() + 
+  geom_smooth()
+
+# Foodstamps vs Vaccination
+nyc_puma_summary_counties %>% 
+  ggplot(aes(
+    x = perc_foodstamps,
+    y = covid_vax_rate
+  )) + 
+  geom_point() + 
+  geom_smooth()
+
+# Welfare vs Vaccination
+nyc_puma_summary_counties %>% 
+  ggplot(aes(
+    x = perc_welfare,
+    y = covid_vax_rate
+  )) + 
+  geom_point() + 
+  geom_smooth()
+```
+
+Foodstamps, welfare, poverty quite negatively associated with COVID vax rate, whereas household income positively associated with vax rate.
+
+```{r}
+# Another example of scatter plot with R, p values
+library(ggpubr)
+ggscatter(nyc_puma_summary_counties, x = "perc_college", y = "covid_vax_rate", cor.coef = TRUE, cor.method = "pearson", add = "reg.line") + 
+  geom_point(aes(color = borough))
+```
+
+#### Potential Questions
+
