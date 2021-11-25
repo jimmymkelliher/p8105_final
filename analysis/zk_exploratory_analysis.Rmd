@@ -281,11 +281,12 @@ nyc_puma_summary %>%
 
 ## Exploratory Analysis
 
-#### Correlation / heatmap of variables across observed PUMAs
+#### Correlations between covariates and outcomes
 
 ```{r}
 library(reshape2)
 library(rstatix)
+library(patchwork)
 
 # Reorder function
 reorder_cormat <- function(cormat){
@@ -341,7 +342,7 @@ nyc_puma_summary %>%
     size = 4
   )
 
-# Another alternative using size to represent cor
+# Another alternative using size to represent correlation
 nyc_puma_summary %>% 
   select(-puma) %>% 
   cor_mat() %>% 
@@ -378,12 +379,10 @@ reorder_cormat <- function(cormat){
 }
 ```
 
-
-#### Exploring Outcomes
-
-How do outcomes vary across PUMAs? Color by borough.
+#### Outcome distributions across PUMAs
 
 ```{r}
+# Add county to each PUMA observation
 nyc_puma_summary_counties = 
   nyc_puma_summary %>% 
   mutate(
@@ -392,28 +391,228 @@ nyc_puma_summary_counties =
       str_detect(puma, "38") ~ "Manhattan",
       str_detect(puma, "39") ~ "Staten Island",
       str_detect(puma, "40") ~ "Brooklyn",
-      str_detect(puma, "41") ~ "Queens"
-    )
+      str_detect(puma, "41") ~ "Queens")
     )
   )
 
-# Hospitalizations
-nyc_puma_summary_counties %>% 
+# Hospitalization rates across PUMAs, colored by borough
+PUMA_hosp = nyc_puma_summary_counties %>% 
   ggplot(aes(x = fct_reorder(puma, covid_hosp_rate), y = covid_hosp_rate)) + 
   geom_point(aes(color = borough)) + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  labs(
+    x = "PUMA",
+    y = "COVID hospitalization rate"
+  )
 
-# Deaths
-nyc_puma_summary_counties %>% 
+# Death rates across PUMAs, colored by borough
+PUMA_death = nyc_puma_summary_counties %>% 
   ggplot(aes(x = fct_reorder(puma, covid_death_rate), y = covid_death_rate)) + 
   geom_point(aes(color = borough)) + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  labs(
+    x = "PUMA",
+    y = "COVID death rate"
+  )
 
-# Vaccinations
-nyc_puma_summary_counties %>% 
+# Vax rates across PUMAs, colored by borough
+PUMA_vax = nyc_puma_summary_counties %>% 
   ggplot(aes(x = fct_reorder(puma, covid_vax_rate), y = covid_vax_rate)) + 
   geom_point(aes(color = borough)) + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  labs(
+    x = "PUMA",
+    y = "COVID vax rate"
+  )
+
+(PUMA_hosp + PUMA_death) / PUMA_vax
+```
+
+``` {r}
+# Alternatively, can rank 10 "worst" and "best" for each to see how they compare
+
+# PUMAs with highest hosp rates
+PUMA_hosp_highest10 = nyc_puma_summary_counties %>% 
+  arrange(desc(covid_hosp_rate)) %>% 
+  mutate(
+    rank = rank(desc(covid_hosp_rate))
+  ) %>% 
+  filter(rank < 11) %>% 
+  ggplot(aes(x = fct_reorder(puma, desc(covid_hosp_rate)), y = covid_hosp_rate)) + 
+  geom_bar(stat = "identity", aes(fill = borough)) + 
+  labs(
+    x = "PUMA",
+    y = "COVID hospitalization rate"
+  )
+
+# PUMAs with highest death rates
+PUMA_death_highest10 = nyc_puma_summary_counties %>% 
+  arrange(desc(covid_death_rate)) %>% 
+  mutate(
+    rank = rank(desc(covid_death_rate))
+  ) %>% 
+  filter(rank < 11) %>% 
+  ggplot(aes(x = fct_reorder(puma, desc(covid_death_rate)), y = covid_death_rate)) + 
+  geom_bar(stat = "identity", aes(fill = borough)) + 
+  labs(
+    x = "PUMA",
+    y = "COVID death rate"
+  )
+
+# PUMAs with lowest vax rates
+PUMA_vax_lowest10 = nyc_puma_summary_counties %>% 
+  arrange(covid_vax_rate) %>% 
+  mutate(
+    rank = rank(covid_vax_rate)
+  ) %>% 
+  filter(rank < 11) %>% 
+  ggplot(aes(x = fct_reorder(puma, covid_vax_rate), y = covid_vax_rate)) + 
+  geom_bar(stat = "identity", aes(fill = borough)) + 
+  labs(
+    x = "PUMA",
+    y = "COVID vax rate"
+  )
+
+(PUMA_hosp_highest10 + PUMA_death_highest10) / PUMA_vax_lowest10
+
+# PUMAs with lowest hosp rates
+PUMA_hosp_lowest10 = nyc_puma_summary_counties %>% 
+  arrange(covid_hosp_rate) %>% 
+  mutate(
+    rank = rank(desc(covid_hosp_rate))
+  ) %>% 
+  filter(rank < 11) %>% 
+  ggplot(aes(x = fct_reorder(puma, covid_hosp_rate), y = covid_hosp_rate)) + 
+  geom_bar(stat = "identity", aes(fill = borough)) +
+  labs(
+    x = "PUMA",
+    y = "COVID hospitalization rate"
+  )
+
+# PUMAs with lowest death rates
+PUMA_death_lowest10 = nyc_puma_summary_counties %>% 
+  arrange(covid_death_rate) %>% 
+  mutate(
+    rank = rank(desc(covid_death_rate))
+  ) %>% 
+  filter(rank < 11) %>% 
+  ggplot(aes(x = fct_reorder(puma, covid_death_rate), y = covid_death_rate)) + 
+  geom_bar(stat = "identity", aes(fill = borough)) + 
+  labs(
+    x = "PUMA",
+    y = "COVID death rate"
+  )
+
+# PUMAs with highest vax rates
+PUMA_vax_highest10 = nyc_puma_summary_counties %>% 
+  arrange(desc(covid_vax_rate)) %>% 
+  mutate(
+    rank = rank(desc(covid_vax_rate))
+  ) %>% 
+  filter(rank < 11) %>% 
+  ggplot(aes(x = fct_reorder(puma, desc(covid_vax_rate)), y = covid_vax_rate)) + 
+  geom_bar(stat = "identity", aes(fill = borough)) + 
+  labs(
+    x = "PUMA",
+    y = "COVID vax rate"
+  )
+
+(PUMA_hosp_lowest10 + PUMA_death_lowest10) / PUMA_vax_highest10
+```
+
+```{r}
+# Can also determine "conversion rates", i.e. ratios of deaths to hospitalizations
+# Here's an example
+PUMA_ratio = nyc_puma_summary_counties %>% 
+  mutate(
+    ratio_death_to_hosp = covid_death_rate / covid_hosp_rate
+  ) %>% 
+  arrange(desc(ratio_death_to_hosp)) %>% 
+  ggplot(aes(x = fct_reorder(puma, ratio_death_to_hosp), y = ratio_death_to_hosp)) + 
+  geom_point(aes(color = borough)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  labs(
+    x = "PUMA",
+    y = "Ratio of Death Rate to Hospitalization Rate"
+  )
+  
+# First with the "worst" 10
+PUMA_ratio_worst = nyc_puma_summary_counties %>% 
+  mutate(
+    ratio_death_to_hosp = covid_death_rate / covid_hosp_rate,
+    rank = rank(desc(ratio_death_to_hosp))
+  ) %>% 
+  filter(rank < 11) %>% 
+  ggplot(aes(x = fct_reorder(puma, desc(ratio_death_to_hosp)), y = ratio_death_to_hosp)) + 
+  geom_bar(stat = "identity", aes(fill = borough)) + 
+  labs(
+    x = "Worst 10 PUMAs",
+    y = "Ratio of Death Rate to Hospitalization Rate"
+  )
+
+# Then wtih the "best" 10
+PUMA_ratio_best = nyc_puma_summary_counties %>% 
+  mutate(
+    ratio_death_to_hosp = covid_death_rate / covid_hosp_rate,
+    rank = rank(ratio_death_to_hosp)
+  ) %>% 
+  filter(rank < 11) %>% 
+  ggplot(aes(x = fct_reorder(puma, ratio_death_to_hosp), y = ratio_death_to_hosp)) + 
+  geom_bar(stat = "identity", aes(fill = borough)) + 
+  labs(
+    x = "Best 10 PUMAs",
+    y = "Ratio of Death Rate to Hospitalization Rate"
+  )
+
+PUMA_ratio_worst + PUMA_ratio_best
+```
+
+#### Outcome distributions across boroughs
+
+```{r}
+# Outcomes distribution by borough
+
+# Hospitalizations across PUMAs in each borough
+hosps = nyc_puma_summary_counties %>% 
+  ggplot(aes(x = reorder(borough, covid_hosp_rate, FUN = "median"), y = covid_hosp_rate)) + 
+  geom_boxplot(aes(fill = borough)) + 
+  labs(
+    x = "Borough",
+    y = "COVID hospitalization rate"
+  )
+
+# Deaths across PUMAs in each borough
+deaths = nyc_puma_summary_counties %>% 
+  ggplot(aes(x = reorder(borough, covid_death_rate, FUN = "median"), y = covid_death_rate)) + 
+  geom_boxplot(aes(fill = borough)) + 
+  labs(
+    x = "Borough",
+    y = "COVID death rate"
+  )
+
+# Vax across PUMAs in each borough
+vax = nyc_puma_summary_counties %>% 
+  ggplot(aes(x = reorder(borough, covid_vax_rate, FUN = "median"), y = covid_vax_rate)) + 
+  geom_boxplot(aes(fill = borough)) + 
+  labs(
+    x = "Borough",
+    y = "COVID vax rate"
+  )
+
+hosps + deaths + vax
+
+# Ratio of death rate to hosp rate in each borough
+nyc_puma_summary_counties %>% 
+  mutate(
+    ratio = covid_death_rate / covid_hosp_rate
+  ) %>% 
+  ggplot(aes(x = reorder(borough, ratio, FUN = "median"), y = ratio)) + 
+  geom_boxplot(aes(fill = borough)) + 
+  labs(
+    x = "Borough",
+    y = "COVID death to hosp ratio"
+  )
+  
 ```
 
 #### Demographics vs Outcome (examples)
@@ -546,25 +745,7 @@ nyc_puma_summary_counties %>%
   geom_point(aes(size = perc_white))
 ```
 
-```{r}
-# Outcomes distribution by borough
-hosps = nyc_puma_summary_counties %>% 
-  ggplot(aes(x = borough, y = covid_hosp_rate)) + 
-  geom_boxplot(aes(fill = borough))
 
-deaths = nyc_puma_summary_counties %>% 
-  ggplot(aes(x = borough, y = covid_death_rate)) + 
-  geom_boxplot(aes(fill = borough))
-
-vax = nyc_puma_summary_counties %>% 
-  ggplot(aes(x = borough, y = covid_vax_rate)) + 
-  geom_boxplot(aes(fill = borough))
-
-library(patchwork)
-
-hosps + deaths + vax
-  
-```
 
 ```{r}
 nyc_puma_summary_counties %>% 
