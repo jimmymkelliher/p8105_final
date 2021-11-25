@@ -287,6 +287,7 @@ nyc_puma_summary %>%
 library(reshape2)
 library(rstatix)
 library(patchwork)
+library(ggridges)
 
 # Reorder function
 reorder_cormat <- function(cormat){
@@ -379,7 +380,7 @@ reorder_cormat <- function(cormat){
 }
 ```
 
-#### Outcome distributions across PUMAs
+#### PUMA-level outcome distributions
 
 ```{r}
 # Add county to each PUMA observation
@@ -550,7 +551,7 @@ PUMA_ratio_worst = nyc_puma_summary_counties %>%
     y = "Ratio of Death Rate to Hospitalization Rate"
   )
 
-# Then wtih the "best" 10
+# Then with the "best" 10
 PUMA_ratio_best = nyc_puma_summary_counties %>% 
   mutate(
     ratio_death_to_hosp = covid_death_rate / covid_hosp_rate,
@@ -567,7 +568,108 @@ PUMA_ratio_best = nyc_puma_summary_counties %>%
 PUMA_ratio_worst + PUMA_ratio_best
 ```
 
-#### Outcome distributions across boroughs
+```{r}
+# Hospitalizations and deaths across PUMAs, colored by borough
+hosps_and_deaths_PUMA = nyc_puma_summary_counties %>% 
+  pivot_longer(
+    cols = starts_with("covid"),
+    values_to = 'outcome_rate'
+  ) %>% 
+  filter(!name == "covid_vax_rate") %>%
+  group_by(borough) %>% 
+  ggplot(
+    aes(
+      x = reorder(puma, outcome_rate, FUN = "median"),
+      y = outcome_rate
+    )
+  ) + 
+  geom_point(aes(color = borough)) + 
+  facet_grid(name ~ .) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  labs(
+    x = "PUMA",
+    y = "Outcome Rate"
+  )
+
+# Vaccinations across PUMAs, colored by borough
+# Separate from prior graph because different scale
+vax_PUMA = nyc_puma_summary_counties %>% 
+  pivot_longer(
+    cols = starts_with("covid"),
+    values_to = 'outcome_rate'
+  ) %>% 
+  filter(name == "covid_vax_rate") %>% 
+  group_by(borough) %>% 
+  ggplot(
+    aes(
+      x = reorder(puma, outcome_rate, FUN = "median"),
+      y = outcome_rate
+    )
+  ) + 
+  geom_point(aes(color = borough)) + 
+  facet_grid(name ~ .) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  labs(
+    x = "PUMA",
+    y = "Vax Rate"
+  )
+
+hosps_and_deaths_PUMA / vax_PUMA
+```
+
+```{r}
+# Correlations between key outcome variables across PUMAs
+
+# Hospitalizations and deaths
+nyc_puma_summary_counties %>% 
+  mutate(
+    ratio = covid_death_rate / covid_hosp_rate
+  ) %>% 
+  ggplot(aes(x = covid_hosp_rate, y = covid_death_rate)) + 
+  geom_point(aes(color = borough, size = ratio)) + 
+  geom_smooth()
+
+# Hospitalizations and vaccinations
+nyc_puma_summary_counties %>% 
+  mutate(
+    ratio = covid_death_rate / covid_hosp_rate
+  ) %>% 
+  ggplot(aes(x = covid_hosp_rate, y = covid_vax_rate)) + 
+  geom_point(aes(color = borough, size = ratio)) + 
+  geom_smooth()
+
+# Deaths and vaccinations
+nyc_puma_summary_counties %>% 
+  mutate(
+    ratio = covid_death_rate / covid_hosp_rate
+  ) %>% 
+  ggplot(aes(x = covid_death_rate, y = covid_vax_rate)) + 
+  geom_point(aes(color = borough, size = ratio)) + 
+  geom_smooth()
+
+# Ratio of deaths:hosps and vaccinations
+nyc_puma_summary_counties %>% 
+  mutate(
+    ratio = covid_death_rate / covid_hosp_rate
+  ) %>% 
+  ggplot(aes(x = ratio, y = covid_vax_rate)) + 
+  geom_point(aes(color = borough, size = ratio)) + 
+  geom_smooth()
+```
+
+
+#### Borough-level outcome distributions
+
+```{r}
+# Check number of PUMAs per borough
+nyc_puma_summary_counties %>% 
+  group_by(borough) %>% 
+  summarize(
+    n_obs = n()
+  ) %>% 
+  ggplot(aes(x = borough, y = n_obs)) + 
+  geom_bar(stat = "identity")
+```
 
 ```{r}
 # Outcomes distribution by borough
@@ -614,6 +716,168 @@ nyc_puma_summary_counties %>%
   )
   
 ```
+
+```{r}
+# Density plot of key outcome distributions across PUMAs, faceted by county
+nyc_puma_summary_counties %>% 
+  pivot_longer(
+    cols = starts_with("covid"),
+    values_to = 'outcome_rate'
+  ) %>%
+  filter(!name == "covid_vax_rate") %>% 
+  ggplot(
+    aes(
+      x = outcome_rate
+    )
+  ) + 
+  geom_density(aes(fill = name), alpha = 0.3) + 
+  facet_grid(.~borough) + 
+  labs(
+    x = "Outcome Rate",
+    y = "Density"
+  )
+
+nyc_puma_summary_counties %>% 
+  pivot_longer(
+    cols = starts_with("covid"),
+    values_to = 'outcome_rate'
+  ) %>%
+  filter(name == "covid_vax_rate") %>% 
+  ggplot(
+    aes(
+      x = outcome_rate
+    )
+  ) + 
+  geom_density(aes(fill = name), alpha = 0.3) + 
+  facet_grid(.~borough) + 
+  labs(
+    x = "Vax Rate",
+    y = "Density"
+  )
+
+# Try vax without borough faceting, but color/fill by borough
+nyc_puma_summary_counties %>% 
+  pivot_longer(
+    cols = starts_with("covid"),
+    values_to = 'outcome_rate'
+  ) %>%
+  filter(name == "covid_vax_rate") %>% 
+  ggplot(
+    aes(
+      x = outcome_rate
+    )
+  ) + 
+  geom_density(aes(fill = reorder(borough, outcome_rate, FUN = "median"), alpha = 0.2)) + 
+  labs(
+    x = "Vax rate",
+    y = "Density"
+  )
+```
+
+```{r}
+hosp_rate_by_borough = nyc_puma_summary_counties %>% 
+  ggplot(aes(x = covid_hosp_rate, y = borough, fill = borough)) + 
+  geom_density_ridges(scale = 0.6, alpha = 0.2, quantile_lines = TRUE, quantile_fun = function(x, ...)median(x)) + 
+  labs(
+    x = "Hospitalization rate",
+    y = "Borough"
+  )
+
+death_rate_by_borough = nyc_puma_summary_counties %>% 
+  ggplot(aes(x = covid_death_rate, y = borough, fill = borough)) + 
+  geom_density_ridges(scale = 0.6, alpha = 0.2, quantile_lines = TRUE, quantile_fun = function(x, ...)median(x)) + 
+  labs(
+    x = "Death rate",
+    y = "Borough"
+  )
+
+vax_rate_by_borough = nyc_puma_summary_counties %>% 
+  ggplot(aes(x = covid_vax_rate, y = borough, fill = borough)) + 
+  geom_density_ridges(scale = 0.6, alpha = 0.2, quantile_lines = TRUE, quantile_fun = function(x, ...)median(x)) + 
+  labs(
+    x = "Vax rate",
+    y = "Borough"
+  )
+
+hosp_rate_by_borough + death_rate_by_borough + vax_rate_by_borough
+```
+
+```{r}
+# Add columns that say whether a PUMA is above or below the median PUMA on a given outcome
+above_below_outcome = nyc_puma_summary_counties %>% 
+  mutate(
+    above_hosp_median = as.factor(ifelse(covid_hosp_rate > median(covid_hosp_rate), 1, 0)),
+    above_death_median = as.factor(ifelse(covid_death_rate > median(covid_death_rate), 1, 0)),
+    above_vax_median = as.factor(ifelse(covid_vax_rate > median(covid_vax_rate), 1, 0))
+  )
+
+# Stacked bar charts: frequency
+
+# PUMA hospitalization outcomes by borough
+puma_prop_hosp = above_below_outcome %>% 
+  group_by(borough) %>% 
+  ggplot(aes(x = reorder(borough, above_hosp_median == 0), fill = above_hosp_median)) + 
+  geom_bar(position = "fill") + 
+  labs(
+    x = "Borough",
+    y = "Proportion of PUMAs Above/Below NYC PUMA Hosp Med"
+  )
+
+# PUMA death outcomes by borough
+puma_prop_death = above_below_outcome %>% 
+  group_by(borough) %>% 
+  ggplot(aes(x = reorder(borough, above_death_median == 0), fill = above_death_median)) + 
+  geom_bar(position = "fill") + 
+  labs(
+    x = "Borough",
+    y = "Proportion of PUMAs Above/Below NYC PUMA Death Med"
+  )
+
+puma_prop_vax = above_below_outcome %>% 
+  group_by(borough) %>% 
+  ggplot(aes(x = reorder(borough, above_vax_median == 0), fill = above_vax_median)) + 
+  geom_bar(position = "fill") + 
+  labs(
+    x = "Borough",
+    y = "Proportion of PUMAs Above/Below NYC PUMA Vax Med"
+  )
+
+puma_prop_vax / (puma_prop_hosp | puma_prop_death)
+
+# Stacked bar charts: counts
+
+# PUMA outcomes by borough
+above_below_outcome %>%
+  pivot_longer(
+    cols = c(above_hosp_median, above_death_median, above_vax_median),
+    names_to = "outcome",
+    values_to = "outcome_rate"
+  ) %>% 
+  mutate(
+    outcome_count = case_when(
+      outcome_rate == 1 ~ "Above NYC PUMA Median",
+      outcome_rate == 0 ~ "Below NYC PUMA Median"
+    ),
+    outcome = recode(outcome,
+           "above_vax_median" = "Vax",
+           "above_hosp_median"  =  "Hosp",
+           "above_death_median" = "Death")
+  ) %>% 
+  group_by(outcome) %>% 
+  ggplot(aes(x = outcome, fill = outcome_count)) + 
+  geom_bar(stat = "count") + 
+  facet_grid(. ~ borough) +
+  labs(
+    x = "Outcome",
+    y = "Count of PUMAs Above/Below NYC PUMA Median"
+  )
+```
+
+
+# IGNORE EVERYTHING BELOW HERE FOR NOW
+
+
+
 
 #### Demographics vs Outcome (examples)
 
@@ -747,114 +1011,13 @@ nyc_puma_summary_counties %>%
 
 
 
-```{r}
-nyc_puma_summary_counties %>% 
-  pivot_longer(
-    cols = starts_with("covid"),
-    values_to = 'outcome_rate'
-  ) %>% 
-  filter(!name == "covid_vax_rate") %>% 
-  ggplot(
-    aes(
-      x = puma,
-      y = outcome_rate
-    )
-  ) + 
-  geom_point() + 
-  facet_grid(name ~ borough)
 
-# Vax on different scale (%)
-nyc_puma_summary_counties %>% 
-  pivot_longer(
-    cols = starts_with("covid"),
-    values_to = 'outcome_rate'
-  ) %>% 
-  filter(name == "covid_vax_rate") %>% 
-  ggplot(
-    aes(
-      x = puma,
-      y = outcome_rate
-    )
-  ) + 
-  geom_point() + 
-  facet_grid(name ~ borough)
-```
 
-COVID death rates are much more consistent across PUMAs within a given county, whereas hospitalization and vax rates have more dispersion (variance).
 
-```{r}
-# Ratio of hosp rate to death rate
-nyc_puma_summary_counties %>% 
-  mutate(
-    ratio = covid_hosp_rate / covid_death_rate
-  ) %>% 
-  ggplot(aes(x = fct_reorder(puma, ratio), y = ratio)) + 
-  geom_point(aes(color = borough))
 
-# Ratio of hosp rate to vax rate
-nyc_puma_summary_counties %>% 
-  mutate(
-    ratio = covid_hosp_rate / covid_vax_rate
-  ) %>% 
-  ggplot(aes(x = fct_reorder(puma, ratio), y = ratio)) +
-  geom_point(aes(color = borough))
 
-# Ratio of death rate to vax rate
-nyc_puma_summary_counties %>% 
-  mutate(
-    ratio = covid_death_rate / covid_vax_rate
-  ) %>% 
-  ggplot(aes(x = fct_reorder(puma, ratio), y = ratio)) +
-  geom_point(aes(color = borough))
 
-# Compare both hosp to vax and death to vax
-nyc_puma_summary_counties %>% 
-  mutate(
-    ratio1 = covid_hosp_rate / covid_vax_rate,
-    ratio2 = covid_death_rate / covid_vax_rate
-  ) %>% 
-  ggplot(aes(x = ratio1, y = ratio2)) + 
-  geom_point(aes(color = borough)) + 
-  geom_smooth()
-```
 
-Note, do we want to put hosp rate, death rate, and vax rate in standard units? (eg vax is %, the others are not)
-
-Yes -- hosp and death rates are per 100K, so should convert to percent
-
-```{r}
-nyc_puma_summary_counties %>% 
-  pivot_longer(
-    cols = starts_with("covid"),
-    values_to = 'outcome_rate'
-  ) %>%
-  filter(!name == "covid_vax_rate") %>% 
-  ggplot(
-    aes(
-      x = outcome_rate
-    )
-  ) + 
-  geom_density(aes(fill = name), alpha = 0.3) + 
-  facet_grid(.~borough)
-```
-
-```{r}
-nyc_puma_summary_counties %>% 
-  View()
-
-library(ggridges)
-nyc_puma_summary_counties %>% 
-  ggplot(aes(x = covid_hosp_rate, y = borough, fill = borough)) + 
-  geom_density_ridges(scale = 0.6, alpha = 0.2)
-
-nyc_puma_summary_counties %>% 
-  ggplot(aes(x = covid_death_rate, y = borough, fill = borough)) + 
-  geom_density_ridges(scale = 0.6, alpha = 0.2)
-
-nyc_puma_summary_counties %>% 
-  ggplot(aes(x = covid_vax_rate, y = borough, fill = borough)) + 
-  geom_density_ridges(scale = 0.6, alpha = 0.2)
-```
 
 Do PUMAs with more public transit riders have higher COVID hosp rates? Death rates? (Not really)
 
@@ -883,6 +1046,10 @@ nyc_puma_summary_counties %>%
   geom_point() + 
   geom_smooth()
 ```
+
+
+
+
 
 We will want to do analysis on the cleaned_data, I think.
 
@@ -918,13 +1085,6 @@ above_below %>%
 Can we do something similar at PUMA level, recognizing small sample sizes? Maybe using bar charts?
 
 ```{r}
-above_below_puma = nyc_puma_summary_counties %>% 
-  mutate(
-    above_hosp_median = as.factor(ifelse(covid_hosp_rate > median(covid_hosp_rate), 1, 0)),
-    above_death_median = as.factor(ifelse(covid_death_rate > median(covid_death_rate), 1, 0)),
-    above_vax_median = as.factor(ifelse(covid_vax_rate > median(covid_vax_rate), 1, 0))
-  )
-
 above_below_puma %>% 
   ggplot(aes(x = median_household_income)) + 
   geom_density(aes(fill = above_hosp_median), alpha = 0.5)
@@ -966,103 +1126,5 @@ above_below_puma_hh %>%
 above_below_puma_hh %>% 
   ggplot(aes(x = borough, y = sum(above_vax_median == 1), fill = above_median_hh_income)) + 
   geom_bar(position = "fill", stat = "identity")
-```
-
-Number of PUMAs per county
-
-```{r}
-nyc_puma_summary_counties %>% 
-  group_by(borough) %>% 
-  summarize(
-    n_obs = n()
-  ) %>% 
-  ggplot(aes(x = borough, y = n_obs)) + 
-  geom_bar(stat = "identity")
-```
-
-Number of PUMAs with above or below median outcomes by county
-
-```{r}
-above_below_puma %>% 
-  group_by(borough) %>% 
-  ggplot(
-    aes(x = borough, fill = above_hosp_median)
-  ) + 
-  geom_bar(position = "fill")
-
-above_below_puma %>% 
-  group_by(borough) %>% 
-  ggplot(
-    aes(x = borough, fill = above_death_median)
-  ) + 
-  geom_bar(position = "fill")
-
-above_below_puma %>% 
-  group_by(borough) %>% 
-  ggplot(
-    aes(x = borough, fill = above_vax_median)
-  ) + 
-  geom_bar(position = "fill")
-  
-```
-
-Outcomes by PUMA population size
-
-```{r}
-puma_group = cleaned_data %>% 
-  group_by(puma) %>% 
-  summarize(
-    people = sum(perwt),
-    median_hosp_rate = median(puma_hosp_rate),
-    median_death_rate = median(puma_death_rate),
-    median_vax_rate = median(puma_vacc_rate)
-  )
-
-puma_group %>% 
-  ggplot(aes(x = people, y = median_hosp_rate)) + 
-  geom_point() + 
-  geom_smooth()
-
-puma_group %>% 
-  ggplot(aes(x = people, y = median_death_rate)) + 
-  geom_point() + 
-  geom_smooth()
-
-puma_group %>% 
-  ggplot(aes(x = people, y = median_vax_rate)) + 
-  geom_point() + 
-  geom_smooth()
-  
-```
-
-Top 10 best and worst PUMAs for each outcome (here, using hospitalization as an example)
-
-```{r}
-nyc_puma_summary_counties %>% 
-  arrange(desc(covid_hosp_rate)) %>% 
-  mutate(
-    rank = rank(desc(covid_hosp_rate))
-  ) %>% 
-  filter(rank < 11) %>% 
-  ggplot(aes(x = fct_reorder(puma, desc(covid_hosp_rate)), y = covid_hosp_rate)) + 
-  geom_bar(stat = "identity", aes(fill = borough))
-
-nyc_puma_summary_counties %>% 
-  arrange(desc(covid_death_rate)) %>% 
-  mutate(
-    rank = rank(desc(covid_death_rate))
-  ) %>% 
-  filter(rank < 11) %>% 
-  ggplot(aes(x = fct_reorder(puma, desc(covid_death_rate)), y = covid_death_rate)) + 
-  geom_bar(stat = "identity", aes(fill = borough))
-
-nyc_puma_summary_counties %>% 
-  arrange(desc(covid_vax_rate)) %>% 
-  mutate(
-    rank = rank(desc(covid_vax_rate))
-  ) %>% 
-  filter(rank < 11) %>% 
-  ggplot(aes(x = fct_reorder(puma, desc(covid_vax_rate)), y = covid_vax_rate)) + 
-  geom_bar(stat = "identity", aes(fill = borough))
 ```
 
