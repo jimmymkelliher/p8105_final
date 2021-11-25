@@ -221,6 +221,11 @@ cleaned_data =
       work_transport %in% c(0, 70) ~ "Other"
     )
   ) %>% 
+  # Convert hospitalization and death rates to pure percentages to match vax rate
+  mutate(
+    puma_hosp_rate = puma_hosp_rate / 1000,
+    puma_death_rate = puma_death_rate / 1000
+  ) %>% 
   # Eliminate columns no longer needed after transformation
   select(-hispan, -hcovany, -hcovpriv) %>% 
   # Relocate new columns
@@ -279,8 +284,8 @@ nyc_puma_summary %>%
 #### Correlation / heatmap of variables across observed PUMAs
 
 ```{r}
-
 library(reshape2)
+library(rstatix)
 
 # Reorder function
 reorder_cormat <- function(cormat){
@@ -291,44 +296,7 @@ reorder_cormat <- function(cormat){
 }
 
 # Create correlation matrix
-nyc_puma_summary %>% 
-  select(-puma) %>% 
-  cor() %>% 
-  round(2) %>% 
-  reorder_cormat() %>% 
-  melt() %>% 
-  filter(Var2 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
-  filter(!Var1 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
-  ggplot(aes(x = Var2, y = Var1, fill = value)) + 
-  geom_tile(color = "white") +  
-  scale_x_discrete(
-    labels = c("Vax Rate", "Hosp Rate", "Death Rate")
-  ) + 
-  geom_text(
-    aes(Var2, Var1, label = value),
-    color = "white",
-    size = 4
-  )
-
-library(rstatix)
-
-nyc_puma_summary %>% 
-  select(-puma) %>% 
-  cor_mat() %>% 
-  cor_gather() %>% 
-  filter(Var2 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
-  filter(!Var1 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
-  ggplot(aes(x = Var2, y = Var1, fill = value)) + 
-  geom_tile(color = "white") +  
-  scale_x_discrete(
-    labels = c("Vax Rate", "Hosp Rate", "Death Rate")
-  ) + 
-  geom_text(
-    aes(Var2, Var1, label = value),
-    color = "white",
-    size = 4
-  )
-
+# Show all correlation values
 nyc_puma_summary %>% 
   select(-puma) %>% 
   cor_mat() %>% 
@@ -336,88 +304,80 @@ nyc_puma_summary %>%
   filter(var1 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
   filter(!var2 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
   ggplot(aes(x = var1, y = var2, fill = cor)) + 
-  geom_tile(color = "white") + 
+  geom_tile(color = "white") +  
   scale_x_discrete(
-    labels = c("Vax Rate", "Hosp Rate", "Death Rate")
+    labels = c("Death Rate", "Hosp Rate", "Vax Rate")
   ) + 
   geom_text(
     aes(var1, var2, label = cor),
     color = "white",
     size = 4
   )
-```
 
-Strict cutoff: absolute value of correlation greater than or equal to 0.4
-
-* Vax rate positive: age, personal income, household income, college education
-* Vax rate negative: poverty, foodstamps, unemployment, welfare
-* Hosp rate positive: foreign born, US citizenship
-* Hosp rate negative: personal income, household income, college education, health insurance status, English speaking
-* Death rate positive: US citizenship, foreign born, years in USA
-* Death rate negative: Personal income, household income, college education
-
-```{r}
-puma_less = nyc_puma_summary %>% 
-  select(-puma)
-
-cor_matrix = Hmisc::rcorr(as.matrix(puma_less))
-
-cors <- function(df) { 
-   # turn all three matrices (r, n, and P into a data frame)
-   M <- Hmisc::rcorr(as.matrix(df))
-   # return the three data frames in a list return(Mdf)
-   Mdf <- map(M, ~data.frame(.x))
-}
-
-cors(puma_less) %>% 
-  map(~rownames_to_column(.x, var = "measure1")) %>% 
-  map(~pivot_longer(.x, -measure1, "measure2")) %>% 
-  bind_rows(.id = "id") %>% 
-  pivot_wider(
-    names_from = id,
-    values_from = value
+# Alternative correlation matrix
+# Show only correlation values where p < 0.01
+nyc_puma_summary %>% 
+  select(-puma) %>% 
+  cor_mat() %>% 
+  cor_gather() %>% 
+  filter(var1 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  filter(!var2 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  mutate(
+    sig_p = ifelse(p < 0.01, T, F),
+    p_if_sig = ifelse(p < 0.01, p, NA),
+    r_if_sig = ifelse(p < 0.01, cor, NA)
   ) %>% 
-  mutate(sig_p = ifelse(P < 0.01, T, F), p_if_sig = ifelse(P < 0.01, P, NA), r_if_sig = ifelse(P < 0.01, r, NA)) %>% 
-  filter(measure1 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
-  filter(!measure2 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
-  ggplot(
-    aes(
-      x = measure1, 
-      y = measure2, 
-      fill = r,
-      label = round(r_if_sig, 2)
-  )) + 
-  geom_tile() + 
-  geom_text(color = "white") +
+  ggplot(aes(
+    x = var1, 
+    y = var2, 
+    fill = cor,
+    label = round(r_if_sig, 2))) + 
+  geom_tile(color = "white") +  
   scale_x_discrete(
-    labels = c("Vax Rate", "Hosp Rate", "Death Rate")
+    labels = c("Death Rate", "Hosp Rate", "Vax Rate")
+  ) + 
+  geom_text(
+    color = "white",
+    size = 4
   )
 
-cors(puma_less) %>% 
-  map(~rownames_to_column(.x, var = "measure1")) %>% 
-  map(~pivot_longer(.x, -measure1, "measure2")) %>% 
-  bind_rows(.id = "id") %>% 
-  pivot_wider(
-    names_from = id,
-    values_from = value
+# Another alternative using size to represent cor
+nyc_puma_summary %>% 
+  select(-puma) %>% 
+  cor_mat() %>% 
+  cor_gather() %>% 
+  filter(var1 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  filter(!var2 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  mutate(
+    sig_p = ifelse(p < 0.01, T, F),
+    p_if_sig = ifelse(p < 0.01, p, NA),
+    r_if_sig = ifelse(p < 0.01, cor, NA)
   ) %>% 
-  mutate(sig_p = ifelse(P < 0.01, T, F), p_if_sig = ifelse(P < 0.01, P, NA), r_if_sig = ifelse(P < 0.01, r, NA)) %>% 
-  filter(measure1 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
-  filter(!measure2 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
-  ggplot(
-    aes(
-      x = measure1, 
-      y = measure2, 
-      color = r,
-      label = round(r_if_sig, 2)
+  ggplot(aes(
+    x = var1,
+    y = var2,
+    color = cor,
+    label = round(r_if_sig, 2)
   )) + 
   geom_tile(col = "black", fill = "white") + 
-  geom_point(aes(size = abs(r)), shape = 15) + 
-  geom_text(color = "white", size = 2) +
+  geom_point(aes(size = abs(cor)), shape = 15) + 
+  geom_text(color = "white", size = 2) + 
   scale_x_discrete(
-    labels = c("Vax Rate", "Hosp Rate", "Death Rate")
+    labels = c("Death Rate", "Hosp Rate", "Vax Rate")
   )
+
+# Notes for later:
+# Reorder matrix?
+
+# Reorder function
+reorder_cormat <- function(cormat){
+  # Use correlation between variables as distance
+  dd <- as.dist((1-cormat)/2)
+  hc <- hclust(dd)
+  cormat <-cormat[hc$order, hc$order]
+}
 ```
+
 
 #### Exploring Outcomes
 
