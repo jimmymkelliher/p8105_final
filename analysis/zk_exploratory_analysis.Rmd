@@ -1147,69 +1147,167 @@ outcome_continpredictor(household_income, "vax")
 # Test on death to hospitalization ratio by household income, or by age
 outcome_continpredictor(household_income, "ratio")
 outcome_continpredictor(age, "ratio")
-```
-
-
 
 ```
 
 ```{r}
-# Maybe we can color each bar by borough split? Or we can reverse and color each bar by demographic, but factorize on X axis across boroughs?
+# Comparisons within boroughs
 
-# Let's try one example with race vs. hospitalization first
-cleaned_data %>% 
-  mutate(
-    weighted_hosp = perwt * puma_hosp_rate
-  ) %>% 
-  group_by(race, borough) %>% 
-  summarize(
-    race_hosp_rate = sum(weighted_hosp) / sum(perwt)
-  ) %>% 
-  ggplot(
-    aes(
-      x = reorder(race, race_hosp_rate),
-      y = race_hosp_rate,
-      fill = borough
+# Write a custom function for categorical predictors
+borough_comparisons = function(predict, outcome) {
+  
+  a = cleaned_data %>% 
+    mutate(
+      weighted_hosp = perwt * puma_hosp_rate,
+      weighted_vax = perwt * puma_vacc_rate,
+      weighted_death = perwt * puma_death_rate
+  ) %>%
+    group_by({{predict}}, borough) %>% 
+    summarize(
+      predictor_vax_rate = sum(weighted_vax) / sum(perwt),
+      predictor_hosp_rate = sum(weighted_hosp) / sum(perwt),
+      predictor_death_rate = sum(weighted_death) / sum(perwt),
+      ratio = predictor_death_rate / predictor_hosp_rate,
+      num_people = sum(perwt),
+      num_hosp = sum(weighted_hosp) / 100,
+      num_vax = sum(weighted_vax) / 100,
+      num_death = sum(weighted_death) / 100
     )
-  ) + 
-  geom_bar(stat = "identity")
+      
+    if (outcome == "vax") {
+      grouped = ggplot(
+        data = a,
+        aes(
+          x = reorder(borough, predictor_vax_rate),
+          y = predictor_vax_rate,
+          fill = {{predict}}
+        )
+      ) + 
+      geom_bar(position = "dodge", stat = "identity")
+      
+      compare = a %>% 
+        pivot_longer(
+          cols = num_people:num_death,
+          names_to = "type",
+          values_to = "count"
+        ) %>% 
+        filter(type %in% c("num_people", "num_vax")) %>% 
+        ggplot(
+          aes(x = type,
+              y = count,
+              fill = {{predict}}
+          )
+        ) + 
+        geom_bar(stat = "identity", position = "fill") + 
+        facet_wrap(.~borough)
+      
+    stack = a %>% 
+      ggplot(aes(
+        x = borough,
+        y = num_vax,
+        fill = {{predict}}
+      )
+      ) + 
+      geom_bar(stat = "identity")
+      
+      grouped + stack + compare
+  } else if (outcome == "hosp"){
+    grouped = ggplot(
+        data = a,
+        aes(
+          x = reorder(borough, predictor_hosp_rate),
+          y = predictor_hosp_rate,
+          fill = {{predict}}
+        )
+      ) + 
+    geom_bar(position = "dodge", stat = "identity")
+    
+    compare = a %>% 
+        pivot_longer(
+          cols = num_people:num_death,
+          names_to = "type",
+          values_to = "count"
+        ) %>% 
+        filter(type %in% c("num_people", "num_hosp")) %>% 
+        ggplot(
+          aes(x = type,
+              y = count,
+              fill = {{predict}}
+          )
+        ) + 
+        geom_bar(stat = "identity", position = "fill") + 
+        facet_wrap(.~borough)
+      
+      stack = a %>% 
+      ggplot(aes(
+        x = borough,
+        y = num_hosp,
+        fill = {{predict}}
+      )
+      ) + 
+      geom_bar(stat = "identity")
+      
+      grouped + stack + compare
+  } else if (outcome == "death"){
+    grouped = ggplot(
+        data = a,
+        aes(
+          x = reorder(borough, predictor_death_rate),
+          y = predictor_death_rate,
+          fill = {{predict}}
+        )
+      ) + 
+      geom_bar(position = "dodge", stat = "identity")
+    
+    compare = a %>% 
+        pivot_longer(
+          cols = num_people:num_death,
+          names_to = "type",
+          values_to = "count"
+        ) %>% 
+        filter(type %in% c("num_people", "num_death")) %>% 
+        ggplot(
+          aes(x = type,
+              y = count,
+              fill = {{predict}}
+          )
+        ) + 
+        geom_bar(stat = "identity", position = "fill") + 
+        facet_wrap(.~borough)
+      
+      stack = a %>% 
+      ggplot(aes(
+        x = borough,
+        y = num_death,
+        fill = {{predict}}
+      )
+      ) + 
+      geom_bar(stat = "identity")
+      
+      grouped + stack + compare
+  } else if (outcome == "ratio"){
+    grouped = ggplot(
+        data = a,
+        aes(
+          x = reorder({{predict}}, ratio),
+          y = ratio,
+          fill = {{predict}}
+        )
+      ) + 
+      geom_bar(position = "dodge", stat = "identity")
+  }
+}
 
-# Let's try another race vs. vaccination
-cleaned_data %>% 
-  mutate(
-    weighted_vax = perwt * puma_vacc_rate
-  ) %>% 
-  group_by(race, borough) %>% 
-  summarize(
-    race_vax_rate = sum(weighted_vax) / sum(perwt)
-  ) %>% 
-  ggplot(
-    aes(
-      x = reorder(race, race_vax_rate),
-      y = race_vax_rate,
-      fill = borough
-    )
-  ) + 
-  geom_bar(stat = "identity")
+# Test on hospitalizations by race
+borough_comparisons(race, "hosp")
 
-# Here's an alternative but similar viz putting borough on the X and filling by race
-cleaned_data %>% 
-  mutate(
-    weighted_hosp = perwt * puma_hosp_rate
-  ) %>% 
-  group_by(race, borough) %>% 
-  summarize(
-    race_hosp_rate = sum(weighted_hosp) / sum(perwt)
-  ) %>% 
-  ggplot(
-    aes(
-      x = reorder(borough, race_hosp_rate),
-      y = race_hosp_rate,
-      fill = race
-    )
-  ) + 
-  geom_bar(stat = "identity")
+# Test on vaccinations by race
+borough_comparisons(race, "vax")
+
+# Test on vaccinations by sex
+borough_comparisons(sex, "vax")
 ```
+
 
 ```{r}
 # Here are some other fun ways to do it
