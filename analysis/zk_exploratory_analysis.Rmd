@@ -1154,7 +1154,7 @@ outcome_continpredictor(age, "ratio")
 # Comparisons within boroughs
 
 # Write a custom function for categorical predictors
-borough_comparisons = function(predict, outcome) {
+borough_cat_comparisons = function(predict, outcome) {
   
   a = cleaned_data %>% 
     mutate(
@@ -1173,6 +1173,28 @@ borough_comparisons = function(predict, outcome) {
       num_vax = sum(weighted_vax) / 100,
       num_death = sum(weighted_death) / 100
     )
+  
+  scatter_df = cleaned_data %>% 
+        group_by(puma, {{predict}}, borough) %>% 
+        summarize(
+          num_people = sum(perwt),
+          puma_vacc_rate = median(puma_vacc_rate),
+          number_vaxxed = num_people * puma_vacc_rate / 100,
+          puma_hosp_rate = median(puma_hosp_rate),
+          number_hosp = num_people * puma_hosp_rate / 100,
+          puma_death_rate = median(puma_death_rate),
+          number_death = num_people * puma_death_rate / 100
+        ) %>% 
+        group_by({{predict}}, borough) %>% 
+        summarize(
+          number_people = sum(num_people),
+          num_vax = sum(number_vaxxed),
+          num_hosp = sum(number_hosp),
+          num_death = sum(number_death),
+          perc_hosp = num_hosp * 100 / number_people,
+          perc_death = num_death * 100 / number_people,
+          perc_vax = num_vax * 100 / number_people
+        )
       
     if (outcome == "vax") {
       grouped = ggplot(
@@ -1210,7 +1232,11 @@ borough_comparisons = function(predict, outcome) {
       ) + 
       geom_bar(stat = "identity")
       
-      grouped + stack + compare
+      vary1 = scatter_df %>% 
+      ggplot(aes(x = borough, y = perc_vax)) + 
+      geom_point(aes(color = {{predict}}))
+      
+      (grouped + stack + compare) / vary1
   } else if (outcome == "hosp"){
     grouped = ggplot(
         data = a,
@@ -1247,7 +1273,11 @@ borough_comparisons = function(predict, outcome) {
       ) + 
       geom_bar(stat = "identity")
       
-      grouped + stack + compare
+      vary1 = scatter_df %>% 
+      ggplot(aes(x = borough, y = perc_hosp)) + 
+      geom_point(aes(color = {{predict}}))
+      
+      (grouped + stack + compare) / vary1
   } else if (outcome == "death"){
     grouped = ggplot(
         data = a,
@@ -1284,7 +1314,11 @@ borough_comparisons = function(predict, outcome) {
       ) + 
       geom_bar(stat = "identity")
       
-      grouped + stack + compare
+      vary1 = scatter_df %>% 
+      ggplot(aes(x = borough, y = perc_death)) + 
+      geom_point(aes(color = {{predict}}))
+      
+      (grouped + stack + compare) / vary1
   } else if (outcome == "ratio"){
     grouped = ggplot(
         data = a,
@@ -1298,115 +1332,226 @@ borough_comparisons = function(predict, outcome) {
   }
 }
 
+
 # Test on hospitalizations by race
-borough_comparisons(race, "hosp")
+borough_cat_comparisons(race, "hosp")
 
 # Test on vaccinations by race
-borough_comparisons(race, "vax")
+borough_cat_comparisons(race, "vax")
 
 # Test on vaccinations by sex
-borough_comparisons(sex, "vax")
+borough_cat_comparisons(sex, "vax")
 ```
 
+``` {r}
+# Let's do similar for continuous predictors
+borough_contin_comparisons = function(predict, outcome) {
+  
+  a = cleaned_data %>% 
+        mutate(
+          weighted_hosp = perwt * puma_hosp_rate,
+          weighted_vax = perwt * puma_vacc_rate,
+          weighted_death = perwt * puma_death_rate,
+          predict_class = cut({{predict}}, breaks = 6)
+      ) %>%
+        group_by(predict_class, borough) %>% 
+        summarize(
+          predictor_vax_rate = sum(weighted_vax) / sum(perwt),
+          predictor_hosp_rate = sum(weighted_hosp) / sum(perwt),
+          predictor_death_rate = sum(weighted_death) / sum(perwt),
+          ratio = predictor_death_rate / predictor_hosp_rate,
+          num_people = sum(perwt),
+          num_hosp = sum(weighted_hosp) / 100,
+          num_vax = sum(weighted_vax) / 100,
+          num_death = sum(weighted_death) / 100
+        )
+  
+  scatter_df = cleaned_data %>% 
+        mutate(
+          predict_class = cut({{predict}}, breaks = 6)
+        ) %>% 
+        group_by(puma, predict_class, borough) %>% 
+        summarize(
+          num_people = sum(perwt),
+          puma_vacc_rate = median(puma_vacc_rate),
+          number_vaxxed = num_people * puma_vacc_rate / 100,
+          puma_hosp_rate = median(puma_hosp_rate),
+          number_hosp = num_people * puma_hosp_rate / 100,
+          puma_death_rate = median(puma_death_rate),
+          number_death = num_people * puma_death_rate / 100
+        ) %>% 
+        group_by(predict_class, borough) %>% 
+        summarize(
+          number_people = sum(num_people),
+          num_vax = sum(number_vaxxed),
+          num_hosp = sum(number_hosp),
+          num_death = sum(number_death),
+          perc_hosp = num_hosp / number_people,
+          perc_death = num_death / number_people,
+          perc_vax = num_vax / number_people
+        )
+  
+    if (outcome == "vax") {
+      grouped = ggplot(
+        data = a,
+        aes(
+          x = reorder(borough, predictor_vax_rate),
+          y = predictor_vax_rate,
+          fill = predict_class
+        )
+      ) + 
+      geom_bar(position = "dodge", stat = "identity")
+      
+      compare = a %>% 
+        pivot_longer(
+          cols = num_people:num_death,
+          names_to = "type",
+          values_to = "count"
+        ) %>% 
+        filter(type %in% c("num_people", "num_vax")) %>% 
+        ggplot(
+          aes(x = type,
+              y = count,
+              fill = predict_class
+          )
+        ) + 
+        geom_bar(stat = "identity", position = "fill") + 
+        facet_wrap(.~borough)
+      
+    stack = a %>% 
+      ggplot(aes(
+        x = borough,
+        y = num_vax,
+        fill = predict_class
+      )
+      ) + 
+      geom_bar(stat = "identity")
+    
+    vary1 = scatter_df %>% 
+      ggplot(aes(x = borough, y = perc_vax)) + 
+      geom_point(aes(color = predict_class))
+    
+    vary2 = scatter_df %>% 
+      ggplot(aes(x = predict_class, y = perc_vax, color = borough, group = borough)) + 
+      geom_point() + 
+      geom_smooth()
+      
+      (grouped + stack + compare) / (vary1 + vary2)
+  } else if (outcome == "hosp"){
+    grouped = ggplot(
+        data = a,
+        aes(
+          x = reorder(borough, predictor_hosp_rate),
+          y = predictor_hosp_rate,
+          fill = predict_class
+        )
+      ) + 
+    geom_bar(position = "dodge", stat = "identity")
+    
+    compare = a %>% 
+        pivot_longer(
+          cols = num_people:num_death,
+          names_to = "type",
+          values_to = "count"
+        ) %>% 
+        filter(type %in% c("num_people", "num_hosp")) %>% 
+        ggplot(
+          aes(x = type,
+              y = count,
+              fill = predict_class
+          )
+        ) + 
+        geom_bar(stat = "identity", position = "fill") + 
+        facet_wrap(.~borough)
+      
+      stack = a %>% 
+      ggplot(aes(
+        x = borough,
+        y = num_hosp,
+        fill = predict_class
+      )
+      ) + 
+      geom_bar(stat = "identity")
+      
+      vary1 = scatter_df %>% 
+      ggplot(aes(x = borough, y = perc_hosp)) + 
+      geom_point(aes(color = predict_class))
+      
+      vary2 = scatter_df %>% 
+      ggplot(aes(x = predict_class, y = perc_hosp, color = borough, group = borough)) + 
+      geom_point() + 
+      geom_smooth()
+      
+      (grouped + stack + compare) / (vary1 + vary2)
+  } else if (outcome == "death"){
+    grouped = ggplot(
+        data = a,
+        aes(
+          x = reorder(borough, predictor_death_rate),
+          y = predictor_death_rate,
+          fill = predict_class
+        )
+      ) + 
+      geom_bar(position = "dodge", stat = "identity")
+    
+    compare = a %>% 
+        pivot_longer(
+          cols = num_people:num_death,
+          names_to = "type",
+          values_to = "count"
+        ) %>% 
+        filter(type %in% c("num_people", "num_death")) %>% 
+        ggplot(
+          aes(x = type,
+              y = count,
+              fill = predict_class
+          )
+        ) + 
+        geom_bar(stat = "identity", position = "fill") + 
+        facet_wrap(.~borough)
+      
+      stack = a %>% 
+      ggplot(aes(
+        x = borough,
+        y = num_death,
+        fill = predict_class
+      )
+      ) + 
+      geom_bar(stat = "identity")
+      
+      vary1 = scatter_df %>% 
+      ggplot(aes(x = borough, y = perc_death)) + 
+      geom_point(aes(color = predict_class))
+      
+      vary2 = scatter_df %>% 
+      ggplot(aes(x = predict_class, y = perc_death, color = borough, group = borough)) + 
+      geom_point() + 
+      geom_smooth()
+      
+      (grouped + stack + compare) / (vary1 + vary2)
+  } else if (outcome == "ratio"){
+    grouped = ggplot(
+        data = a,
+        aes(
+          x = reorder(predict_class, ratio),
+          y = ratio,
+          fill = predict_class
+        )
+      ) + 
+      geom_bar(position = "dodge", stat = "identity")
+  }
+}
 
-```{r}
-# Here are some other fun ways to do it
+# Test on age vs. vax rate
+borough_contin_comparisons(age, "vax")
 
-# Number of people vaccinated by race, colored by borough
-cleaned_data %>% 
-  group_by(puma, race, borough) %>% 
-  summarize(
-    num_people = sum(perwt),
-    puma_vacc_rate = median(puma_vacc_rate),
-    number_vaxxed = num_people * puma_vacc_rate / 100,
-    number_not_vaxxed = num_people - number_vaxxed
-  ) %>% 
-  group_by(race, borough) %>% 
-  summarize(
-    num_vaxxed = sum(number_vaxxed),
-    num_not_vaxxed = sum(number_not_vaxxed)
-  ) %>% 
-  ggplot(aes(x = reorder(race, num_vaxxed), y = num_vaxxed, fill = borough)) + 
-  geom_bar(stat = "identity")
-
-# Percent vaxxed by borough, colored by race
-cleaned_data %>% 
-  group_by(puma, race, borough) %>% 
-  summarize(
-    num_people = sum(perwt),
-    puma_vacc_rate = median(puma_vacc_rate),
-    number_vaxxed = num_people * puma_vacc_rate / 100,
-    number_not_vaxxed = num_people - number_vaxxed
-  ) %>% 
-  group_by(race, borough) %>% 
-  summarize(
-    num_vaxxed = sum(number_vaxxed),
-    num_not_vaxxed = sum(number_not_vaxxed),
-    perc_vaxxed = num_vaxxed / (num_vaxxed + num_not_vaxxed)
-  ) %>% 
-  ggplot(aes(x = borough, y = perc_vaxxed)) + 
-  geom_point(aes(color = race))
-
-# Percent vaxxed by race, colored by borough
-cleaned_data %>% 
-  group_by(puma, race, borough) %>% 
-  summarize(
-    num_people = sum(perwt),
-    puma_vacc_rate = median(puma_vacc_rate),
-    number_vaxxed = num_people * puma_vacc_rate / 100,
-    number_not_vaxxed = num_people - number_vaxxed
-  ) %>% 
-  group_by(race, borough) %>% 
-  summarize(
-    num_vaxxed = sum(number_vaxxed),
-    num_not_vaxxed = sum(number_not_vaxxed),
-    perc_vaxxed = num_vaxxed / (num_vaxxed + num_not_vaxxed)
-  ) %>% 
-  ggplot(aes(x = race, y = perc_vaxxed)) + 
-  geom_point(aes(color = borough))
+# Test on rent vs. hosp rate
+borough_contin_comparisons(rent, "hosp")
 ```
 
 ```{r}
-# Percent hospitalized by borough, colored by race
-cleaned_data %>% 
-  group_by(puma, race, borough) %>% 
-  summarize(
-    num_people = sum(perwt),
-    puma_hosp_rate = median(puma_hosp_rate),
-    number_hosp = num_people * puma_hosp_rate / 100,
-    number_not_hosp = num_people - number_hosp
-  ) %>% 
-  group_by(race, borough) %>% 
-  summarize(
-    num_hosp = sum(number_hosp),
-    num_not_hosp = sum(number_not_hosp),
-    perc_hosp = num_hosp / (num_hosp + num_not_hosp)
-  ) %>% 
-  ggplot(aes(x = borough, y = perc_hosp)) + 
-  geom_point(aes(color = race))
-
-# Percent dead by borough, colored by race
-cleaned_data %>% 
-  group_by(puma, race, borough) %>% 
-  summarize(
-    num_people = sum(perwt),
-    puma_dead_rate = median(puma_death_rate),
-    number_dead = num_people * puma_dead_rate / 100,
-    number_not_dead = num_people - number_dead
-  ) %>% 
-  group_by(race, borough) %>% 
-  summarize(
-    num_dead = sum(number_dead),
-    num_not_dead = sum(number_not_dead),
-    perc_dead = num_dead / (num_dead + num_not_dead)
-  ) %>% 
-  ggplot(aes(x = borough, y = perc_dead)) + 
-  geom_point(aes(color = race))
-```
-
-```{r}
-# Manhattan seems to have the largest disparities by race on each outcome
-# Is Manhattan also the most unequal on predictors like household income?
+# We may want to visualize demographic disparity within a borough on any given predictor
+# Here is an example of what we can do looking at variation in household income by race in each borough
 cleaned_data %>% 
   mutate(
     weighted_income = perwt * household_income
@@ -1421,7 +1566,89 @@ cleaned_data %>%
 ```
 
 ```{r}
-# Let's look at vaccination rate by income level
+# Build a function to examine outcome breakdowns across 2 categorical variables
+
+two_cat_outcome = function(predict1, predict2, outcome){
+  
+  a = cleaned_data %>% 
+    group_by({{predict1}}, {{predict2}}, puma) %>% 
+    summarize(
+      num_people = sum(perwt),
+      puma_vax_rate = median(puma_vacc_rate),
+      people_vaxxed = num_people * puma_vax_rate / 100,
+      puma_hosp_rate = median(puma_hosp_rate),
+      people_hosp = num_people * puma_hosp_rate / 100,
+      puma_death_rate = median(puma_death_rate),
+      people_dead = num_people * puma_death_rate / 100
+    ) %>% 
+    group_by({{predict1}}, {{predict2}}) %>% 
+    summarize(
+      people = sum(num_people),
+      num_vaxxed = sum(people_vaxxed),
+      num_hosp = sum(people_hosp),
+      num_dead = sum(people_dead),
+      perc_vaxxed = num_vaxxed * 100 / people,
+      perc_hosp = num_hosp * 100 / people,
+      perc_dead = num_dead * 100 / people
+    )
+  
+  if (outcome == "vax"){
+    
+    ggplot(data = a,
+           aes(
+             x = perc_vaxxed, 
+             y = {{predict1}},
+             fill = {{predict2}},
+             color = {{predict2}}
+           )
+    ) + 
+      geom_point(alpha = 0.6)
+  } else if (outcome == "hosp") {
+    ggplot(data = a,
+           aes(
+             x = perc_hosp, 
+             y = {{predict1}},
+             fill = {{predict2}},
+             color = {{predict2}}
+           )
+    ) + 
+      geom_point(alpha = 0.6)
+  } else if (outcome == "death") {
+    ggplot(data = a,
+           aes(
+             x = perc_dead, 
+             y = {{predict1}},
+             fill = {{predict2}},
+             color = {{predict2}}
+           )
+    ) + 
+      geom_point(alpha = 0.6)
+  }
+}
+
+# Test on vaccination rate by race and sex    
+two_cat_outcome(race, sex, "vax") 
+
+# Test on vaccination rate by welfare and race    
+two_cat_outcome(on_welfare, race, "vax") 
+
+# Test on hospitalization rate by insurance status and race
+two_cat_outcome(health_insurance, race, "hosp")
+
+# Test on death rate by sex and broadband
+two_cat_outcome(has_broadband, race, "death")
+
+# Test on borough and sex
+two_cat_outcome(race, borough, "vax")
+
+### FIGURE OUT WHY NO ONE HAS PUBLIC HEALTH INSURANCE IN THIS DF
+### CREATE SIMILAR FUNCTION FOR CONTINUOUS? (BUT DIFF KIND OF PLOT?)
+```
+
+
+```{r}
+## PLAYGROUND PLEASE IGNORE
+# Let's look at vaccination rate by income level in each PUMA
 cleaned_data %>% 
   mutate(
     income_class = cut(household_income, breaks = 50)
@@ -1437,101 +1664,7 @@ cleaned_data %>%
   ggplot(aes(x = puma, y = percent_vaxxed)) + 
   geom_point((aes(color = income_class)), position = "jitter")
 
-# Let's look at vaccination rate by income level across PUMAs
-cleaned_data %>% 
-  mutate(
-    income_class = cut(household_income, breaks = 10)
-  ) %>% 
-  group_by(income_class, puma) %>% 
-  summarize(
-    num_people = sum(perwt),
-    puma_vax_rate = median(puma_vacc_rate),
-    people_vaxxed = num_people * puma_vax_rate / 100,
-    people_not_vaxxed = num_people - people_vaxxed
-  ) %>% 
-  group_by(income_class) %>% 
-  summarize(
-    people_vaxxed = sum(people_vaxxed),
-    people_not_vaxxed = sum(people_not_vaxxed),
-    percent_vaxxed = 100 * people_vaxxed / (people_vaxxed + people_not_vaxxed)
-  ) %>% 
-  ggplot(aes(x = income_class, y = percent_vaxxed)) + 
-  geom_bar(stat = "identity")
-
-# By borough?
-# Let's look at vaccination rate by income level across PUMAs
-cleaned_data %>% 
-  mutate(
-    income_class = cut(household_income, breaks = 5)
-  ) %>% 
-  group_by(income_class, puma, borough) %>% 
-  summarize(
-    num_people = sum(perwt),
-    puma_vax_rate = median(puma_vacc_rate),
-    people_vaxxed = num_people * puma_vax_rate / 100,
-    people_not_vaxxed = num_people - people_vaxxed
-  ) %>% 
-  group_by(income_class, borough) %>% 
-  summarize(
-    people_vaxxed = sum(people_vaxxed),
-    people_not_vaxxed = sum(people_not_vaxxed),
-    percent_vaxxed = 100 * people_vaxxed / (people_vaxxed + people_not_vaxxed)
-  ) %>% 
-  ggplot(aes(x = income_class, y = percent_vaxxed, color = borough, group = borough)) + 
-  geom_point() + 
-  geom_smooth()
-
-cleaned_data %>% 
-  group_by(race, puma, sex, borough) %>% 
-  summarize(
-    num_people = sum(perwt),
-    puma_vax_rate = median(puma_vacc_rate),
-    people_vaxxed = num_people * puma_vax_rate / 100,
-    people_not_vaxxed = num_people - people_vaxxed
-  ) %>% 
-  group_by(race, sex, borough) %>% 
-  summarize(
-    num_vaxxed = sum(people_vaxxed),
-    num_not_vaxxed = sum(people_not_vaxxed),
-    perc_vaxxed = num_vaxxed * 100 / (num_vaxxed + num_not_vaxxed)
-  ) %>% 
-  ggplot(aes(x = perc_vaxxed, y = race, color = sex, fill = sex)) + 
-  geom_boxplot(alpha = 0.3)
-
-cleaned_data %>% 
-  group_by(race, puma, sex, borough) %>% 
-  summarize(
-    num_people = sum(perwt),
-    puma_vax_rate = median(puma_vacc_rate),
-    people_vaxxed = num_people * puma_vax_rate / 100,
-    people_not_vaxxed = num_people - people_vaxxed
-  ) %>% 
-  group_by(race, sex, borough) %>% 
-  summarize(
-    num_vaxxed = sum(people_vaxxed),
-    num_not_vaxxed = sum(people_not_vaxxed),
-    perc_vaxxed = num_vaxxed * 100 / (num_vaxxed + num_not_vaxxed)
-  ) %>% 
-  ggplot(aes(x = perc_vaxxed, y = borough, color = race, fill = race)) + 
-  geom_boxplot(alpha = 0.3)
-
-cleaned_data %>% 
-  group_by(race, puma, sex, borough) %>% 
-  summarize(
-    num_people = sum(perwt),
-    puma_vax_rate = median(puma_vacc_rate),
-    people_vaxxed = num_people * puma_vax_rate / 100,
-    people_not_vaxxed = num_people - people_vaxxed
-  ) %>% 
-  group_by(race, sex, borough) %>% 
-  summarize(
-    num_vaxxed = sum(people_vaxxed),
-    num_not_vaxxed = sum(people_not_vaxxed),
-    perc_vaxxed = num_vaxxed * 100 / (num_vaxxed + num_not_vaxxed)
-  ) %>% 
-  ggplot(aes(x = perc_vaxxed, y = sex, color = race, fill = race)) + 
-  geom_boxplot(alpha = 0.3)
-
+# Another cool plot
 cleaned_data %>% 
   group_by(race, puma, sex, borough) %>% 
   summarize(
@@ -1549,7 +1682,28 @@ cleaned_data %>%
   ggplot(aes(x = perc_vaxxed, y = borough, color = sex, fill = sex)) + 
   geom_boxplot(alpha = 0.3)
 
+# We can write a function to look at continuous predictors against outcomes, colored by borough
 
+borough_colored_cont = function(continuous_predictor){
+  
+  cleaned_data %>% 
+    mutate(
+      predict_class = cut({{continuous_predictor}}, breaks = 6)
+    ) %>% 
+    group_by(predict_class, puma, borough) %>% 
+    summarize(
+      num_people = sum(perwt),
+      puma_vax_rate = median(puma_vacc_rate),
+      num_vaxxed = num_people * puma_vax_rate / 100
+    )
+  
+}
+```
+
+
+## KEEP CHECKING EVERYTHING BELOW HERE
+
+```{r}
 cleaned_data %>% 
   group_by(race, puma, sex, borough) %>% 
   summarize(
