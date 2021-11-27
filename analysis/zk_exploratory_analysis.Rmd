@@ -16,6 +16,12 @@ Preamble
 ```{r, echo = FALSE, message = FALSE, warning = FALSE}
 # load necessary packages
 library(tidyverse)
+library(patchwork)
+library(reshape2)
+library(rstatix)
+library(patchwork)
+library(ggridges)
+library(spatstat)
 
 # set knitr defaults
 knitr::opts_chunk$set(
@@ -85,7 +91,7 @@ rm(census_data)
 head(merged_data) %>% knitr::kable()
 ```
 
-## Cleaning the Data
+# Cleaning the Data
 
 ```{r}
 # Clean the merged census and outcomes data
@@ -244,9 +250,6 @@ The Census also doesn't reach everyone; it samples the population. As a result, 
 # Check total people in NYC by summing over person-weight column
 sum(cleaned_data$perwt)
 
-# Load spatstat library
-library(spatstat)
-
 # Example data frame with weightings for summary stats over each PUMA
 nyc_puma_summary = cleaned_data %>% 
   # Note: do we need to filter to one individual per household for household weightings?
@@ -278,19 +281,20 @@ nyc_puma_summary %>%
   head(10)
 ```
 
-## Exploratory Analysis
+# Exploratory Analysis
 
-#### Preliminary outcomes; which demographic groups do best and worst?
+## Outcomes by Demographic
 
 ```{r}
 # Can we look at a density plot split by the main demographic variables (race, age, sex) and see where there are outliers for each outcome?
 
+# Generate data frame with outcomes for each combination of sex, age (class), and race
 a = cleaned_data %>% 
   mutate(
     weighted_hosp = puma_hosp_rate * perwt / 100,
     weighted_death = puma_death_rate * perwt / 100,
     weighted_vax = puma_vacc_rate * perwt / 100,
-    age_class = cut(age, breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100))
+    age_class = cut(age, breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100), include.lowest = TRUE)
   ) %>% 
   group_by(race, age_class, sex) %>% 
   summarize(
@@ -309,29 +313,50 @@ a = cleaned_data %>%
   )
 
 # Density / boxplot of hospitalization rate across PUMAs
-a %>% 
+hosp_distribution = a %>% 
   filter(outcome == "hosp_rate") %>% 
   ggplot(aes(x = outcome_rate)) + 
   geom_boxplot() + 
-  geom_density()
+  geom_density() + 
+  labs(
+    x = "Hospitalization Rate",
+    title = "Distribution by Race/Sex/Age Combo Group"
+  )
 
 # Density / boxplot of death rate across PUMAs
-a %>% 
+death_distribution = a %>% 
   filter(outcome == "death_rate") %>% 
   ggplot(aes(x = outcome_rate)) + 
   geom_boxplot() + 
-  geom_density()
+  geom_density() + 
+  labs(
+    x = "Death Rate",
+    title = "Distribution by Race/Sex/Age Combo Group"
+  )
 
 # Density / boxplot of vaccination rate across PUMAs
-a %>% 
+vax_distribution = a %>% 
   filter(outcome == "vax_rate") %>% 
   ggplot(aes(x = outcome_rate)) + 
   geom_boxplot() + 
-  geom_density()
+  geom_density() + 
+  labs(
+    x = "Vax Rate",
+    title =  "Distribution by Race/Sex/Age Combo Group"
+  )
 
+    
+hosp_distribution + death_distribution + vax_distribution
+```
+
+
+```{r}
 # Lowest hospitalization rates
 a %>% 
   filter(outcome == "hosp_rate") %>% 
+  mutate(
+    outcome_rate = outcome_rate * 100
+  ) %>% 
   arrange(outcome_rate) %>% 
   select(race, age_class, sex, outcome, outcome_rate) %>% 
   head() %>% 
@@ -340,6 +365,9 @@ a %>%
 # Highest hospitalization rates
 a %>% 
   filter(outcome == "hosp_rate") %>% 
+  mutate(
+    outcome_rate = outcome_rate * 100
+  ) %>% 
   arrange(desc(outcome_rate)) %>% 
   select(race, age_class, sex, outcome, outcome_rate) %>% 
   head() %>% 
@@ -348,6 +376,9 @@ a %>%
 # Lowest death rates
 a %>% 
   filter(outcome == "death_rate") %>% 
+  mutate(
+    outcome_rate = outcome_rate * 100
+  ) %>% 
   arrange(outcome_rate) %>% 
   select(race, age_class, sex, outcome, outcome_rate) %>% 
   head() %>% 
@@ -356,6 +387,9 @@ a %>%
 # Highest death rates
 a %>% 
   filter(outcome == "death_rate") %>% 
+  mutate(
+    outcome_rate = outcome_rate * 100
+  ) %>% 
   arrange(desc(outcome_rate)) %>% 
   select(race, age_class, sex, outcome, outcome_rate) %>% 
   head() %>% 
@@ -364,6 +398,9 @@ a %>%
 # Lowest vax rates
 a %>% 
   filter(outcome == "vax_rate") %>% 
+  mutate(
+    outcome_rate = outcome_rate * 100
+  ) %>% 
   arrange(outcome_rate) %>% 
   select(race, age_class, sex, outcome, outcome_rate) %>% 
   head() %>% 
@@ -372,104 +409,17 @@ a %>%
 # Highest vax rates
 a %>% 
   filter(outcome == "vax_rate") %>% 
+  mutate(
+    outcome_rate = outcome_rate * 100
+  ) %>% 
   arrange(desc(outcome_rate)) %>% 
   select(race, age_class, sex, outcome, outcome_rate) %>% 
   head() %>% 
   knitr::kable()
+
 ```
 
-#### Correlations between covariates and outcomes
-
-```{r}
-library(reshape2)
-library(rstatix)
-library(patchwork)
-library(ggridges)
-
-# Reorder function
-reorder_cormat <- function(cormat){
-  # Use correlation between variables as distance
-  dd <- as.dist((1-cormat)/2)
-  hc <- hclust(dd)
-  cormat <-cormat[hc$order, hc$order]
-}
-
-# Create correlation matrix
-# Show all correlation values
-nyc_puma_summary %>% 
-  select(-puma) %>% 
-  cor_mat() %>% 
-  cor_gather() %>% 
-  filter(var1 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
-  filter(!var2 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
-  ggplot(aes(x = var1, y = var2, fill = cor)) + 
-  geom_tile(color = "white") +  
-  scale_x_discrete(
-    labels = c("Death Rate", "Hosp Rate", "Vax Rate")
-  ) + 
-  geom_text(
-    aes(var1, var2, label = cor),
-    color = "white",
-    size = 4
-  )
-
-# Alternative correlation matrix
-# Show only correlation values where p < 0.01
-nyc_puma_summary %>% 
-  select(-puma) %>% 
-  cor_mat() %>% 
-  cor_gather() %>% 
-  filter(var1 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
-  filter(!var2 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
-  mutate(
-    sig_p = ifelse(p < 0.01, T, F),
-    p_if_sig = ifelse(p < 0.01, p, NA),
-    r_if_sig = ifelse(p < 0.01, cor, NA)
-  ) %>% 
-  ggplot(aes(
-    x = var1, 
-    y = var2, 
-    fill = cor,
-    label = round(r_if_sig, 2))) + 
-  geom_tile(color = "white") +  
-  scale_x_discrete(
-    labels = c("Death Rate", "Hosp Rate", "Vax Rate")
-  ) + 
-  geom_text(
-    color = "white",
-    size = 4
-  )
-
-# Another alternative using size to represent correlation
-nyc_puma_summary %>% 
-  select(-puma) %>% 
-  cor_mat() %>% 
-  cor_gather() %>% 
-  filter(var1 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
-  filter(!var2 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
-  mutate(
-    sig_p = ifelse(p < 0.01, T, F),
-    p_if_sig = ifelse(p < 0.01, p, NA),
-    r_if_sig = ifelse(p < 0.01, cor, NA)
-  ) %>% 
-  ggplot(aes(
-    x = var1,
-    y = var2,
-    color = cor,
-    label = round(r_if_sig, 2)
-  )) + 
-  geom_tile(col = "black", fill = "white") + 
-  geom_point(aes(size = abs(cor)), shape = 15) + 
-  geom_text(color = "white", size = 2) + 
-  scale_x_discrete(
-    labels = c("Death Rate", "Hosp Rate", "Vax Rate")
-  )
-
-# Notes for later:
-# Reorder matrix?
-```
-
-#### PUMA-level outcome distributions
+## Outcomes by PUMA
 
 ```{r}
 # Add county to each PUMA observation
@@ -563,6 +513,7 @@ PUMA_vax_lowest10 = nyc_puma_summary_counties %>%
     y = "COVID vax rate"
   )
 
+# "Worst" PUMAs
 (PUMA_hosp_highest10 + PUMA_death_highest10) / PUMA_vax_lowest10
 
 # PUMAs with lowest hosp rates
@@ -607,6 +558,7 @@ PUMA_vax_highest10 = nyc_puma_summary_counties %>%
     y = "COVID vax rate"
   )
 
+# "Best" PUMAs
 (PUMA_hosp_lowest10 + PUMA_death_lowest10) / PUMA_vax_highest10
 ```
 
@@ -633,7 +585,7 @@ PUMA_ratio_worst = nyc_puma_summary_counties %>%
     rank = rank(desc(ratio_death_to_hosp))
   ) %>% 
   filter(rank < 11) %>% 
-  ggplot(aes(x = fct_reorder(puma, desc(ratio_death_to_hosp)), y = ratio_death_to_hosp)) + 
+  ggplot(aes(x = fct_reorder(puma, desc(ratio_death_to_hosp)), y = ratio_death_to_hosp * 100)) + 
   geom_bar(stat = "identity", aes(fill = borough)) + 
   labs(
     x = "Worst 10 PUMAs",
@@ -647,13 +599,14 @@ PUMA_ratio_best = nyc_puma_summary_counties %>%
     rank = rank(ratio_death_to_hosp)
   ) %>% 
   filter(rank < 11) %>% 
-  ggplot(aes(x = fct_reorder(puma, ratio_death_to_hosp), y = ratio_death_to_hosp)) + 
+  ggplot(aes(x = fct_reorder(puma, ratio_death_to_hosp), y = ratio_death_to_hosp * 100)) + 
   geom_bar(stat = "identity", aes(fill = borough)) + 
   labs(
     x = "Best 10 PUMAs",
     y = "Ratio of Death Rate to Hospitalization Rate"
   )
 
+# Best and worst 10 PUMAs by ratio of death rate to hospitalization rate
 PUMA_ratio_worst + PUMA_ratio_best
 ```
 
@@ -706,8 +659,10 @@ vax_PUMA = nyc_puma_summary_counties %>%
 hosps_and_deaths_PUMA / vax_PUMA
 ```
 
+## Correlations between predictors (covariates) and outcomes
+
 ```{r}
-# Correlations between key outcome variables across PUMAs
+# First, check correlations between key outcome variables across PUMAs
 
 # Hospitalizations and deaths
 nyc_puma_summary_counties %>% 
@@ -716,7 +671,7 @@ nyc_puma_summary_counties %>%
   ) %>% 
   ggplot(aes(x = covid_hosp_rate, y = covid_death_rate)) + 
   geom_point(aes(color = borough, size = ratio)) + 
-  geom_smooth()
+  geom_smooth(method = lm, se = FALSE, color = "red")
 
 # Hospitalizations and vaccinations
 nyc_puma_summary_counties %>% 
@@ -725,7 +680,7 @@ nyc_puma_summary_counties %>%
   ) %>% 
   ggplot(aes(x = covid_hosp_rate, y = covid_vax_rate)) + 
   geom_point(aes(color = borough, size = ratio)) + 
-  geom_smooth()
+  geom_smooth(method = lm, se = FALSE, color = "red")
 
 # Deaths and vaccinations
 nyc_puma_summary_counties %>% 
@@ -734,7 +689,7 @@ nyc_puma_summary_counties %>%
   ) %>% 
   ggplot(aes(x = covid_death_rate, y = covid_vax_rate)) + 
   geom_point(aes(color = borough, size = ratio)) + 
-  geom_smooth()
+  geom_smooth(method = lm, se = FALSE, color = "red")
 
 # Ratio of deaths:hosps and vaccinations
 nyc_puma_summary_counties %>% 
@@ -743,9 +698,94 @@ nyc_puma_summary_counties %>%
   ) %>% 
   ggplot(aes(x = ratio, y = covid_vax_rate)) + 
   geom_point(aes(color = borough, size = ratio)) + 
-  geom_smooth()
+  geom_smooth(method = lm, se = FALSE, color = "red")
 ```
 
+```{r}
+# Reorder function
+reorder_cormat <- function(cormat){
+  # Use correlation between variables as distance
+  dd = as.dist((1-cormat)/2)
+  hc = hclust(dd)
+  cormat = cormat[hc$order, hc$order]
+}
+
+# Create correlation matrix
+# Show all correlation values
+corr_option_one = nyc_puma_summary %>% 
+  select(-puma) %>% 
+  cor_mat() %>% 
+  cor_gather() %>% 
+  filter(var1 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  filter(!var2 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  ggplot(aes(x = var1, y = var2, fill = cor)) + 
+  geom_tile(color = "white") +  
+  scale_x_discrete(
+    labels = c("Death Rate", "Hosp Rate", "Vax Rate")
+  ) + 
+  geom_text(
+    aes(var1, var2, label = cor),
+    color = "white",
+    size = 4
+  )
+
+# Alternative correlation matrix
+# Show only correlation values where p < 0.01
+corr_option_two = nyc_puma_summary %>% 
+  select(-puma) %>% 
+  cor_mat() %>% 
+  cor_gather() %>% 
+  filter(var1 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  filter(!var2 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  mutate(
+    sig_p = ifelse(p < 0.01, T, F),
+    p_if_sig = ifelse(p < 0.01, p, NA),
+    r_if_sig = ifelse(p < 0.01, cor, NA)
+  ) %>% 
+  ggplot(aes(
+    x = var1, 
+    y = var2, 
+    fill = cor,
+    label = round(r_if_sig, 2))) + 
+  geom_tile(color = "white") +  
+  scale_x_discrete(
+    labels = c("Death Rate", "Hosp Rate", "Vax Rate")
+  ) + 
+  geom_text(
+    color = "white",
+    size = 4
+  )
+
+# Another alternative using size to represent correlation
+corr_option_three = nyc_puma_summary %>% 
+  select(-puma) %>% 
+  cor_mat() %>% 
+  cor_gather() %>% 
+  filter(var1 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  filter(!var2 %in% c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")) %>% 
+  mutate(
+    sig_p = ifelse(p < 0.01, T, F),
+    p_if_sig = ifelse(p < 0.01, p, NA),
+    r_if_sig = ifelse(p < 0.01, cor, NA)
+  ) %>% 
+  ggplot(aes(
+    x = var1,
+    y = var2,
+    color = cor,
+    label = round(r_if_sig, 2)
+  )) + 
+  geom_tile(col = "black", fill = "white") + 
+  geom_point(aes(size = abs(cor)), shape = 15) + 
+  geom_text(color = "white", size = 2) + 
+  scale_x_discrete(
+    labels = c("Death Rate", "Hosp Rate", "Vax Rate")
+  )
+
+corr_option_one + corr_option_two + corr_option_three
+
+# Notes for later:
+# Reorder matrix?
+```
 
 #### Borough-level outcome distributions
 
