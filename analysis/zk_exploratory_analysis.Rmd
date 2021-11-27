@@ -2013,83 +2013,176 @@ nyc_puma_summary_counties %>%
   geom_point(aes(size = perc_college))
 ```
 
-## KEEP CHECKING EVERYTHING BELOW HERE
+#### Analyses using above/below outcomes median
 
 We will want to do analysis on the cleaned_data, I think.
 
 ```{r}
-cleaned_data %>% 
-  View()
 
-above_below = cleaned_data %>% 
-  mutate(
+# Function for density plot distribution for a continuous predictor, factorized by above or below median outcome rate, at the level of the interview
+
+above_below_interview = function(predictor, outcome){
+  
+  a = cleaned_data %>% 
+    mutate(
     above_hosp_median = as.factor(ifelse(puma_hosp_rate > median(puma_hosp_rate), 1, 0)),
     above_death_median = as.factor(ifelse(puma_death_rate > median(puma_death_rate), 1, 0)),
     above_vax_median = as.factor(ifelse(puma_vacc_rate > median(puma_vacc_rate), 1, 0))
   )
+  
+  if (outcome == "vax"){
+    
+      a %>% 
+        ggplot(aes(
+          x = {{predictor}}
+        )) + 
+        geom_density(aes(fill = above_vax_median), alpha = 0.5)
+    
+  } else if (outcome == "hosp") {
+    
+    a %>% 
+        ggplot(aes(
+          x = {{predictor}}
+        )) + 
+        geom_density(aes(fill = above_hosp_median), alpha = 0.5)
+    
+  } else if (outcome == "death") {
+    
+    a %>% 
+        ggplot(aes(
+          x = {{predictor}}
+        )) + 
+        geom_density(aes(fill = above_death_median), alpha = 0.5)
+  }
+}
 
-above_below %>% 
-  ggplot(aes(x = household_income)) + 
-  geom_density(aes(fill = above_hosp_median), alpha = 0.5)
+# Test on household income and hospitalization
+above_below_interview(household_income, "hosp")
 
-above_below %>% 
-  ggplot(aes(x = household_income)) + 
-  geom_density(aes(fill = above_death_median), alpha = 0.5)
+# Test on household income and death
+above_below_interview(household_income, "death")
 
-above_below %>% 
-  ggplot(aes(x = household_income)) + 
-  geom_density(aes(fill = above_vax_median), alpha = 0.5)
-
-above_below %>% 
-  ggplot(aes(x = household_income)) + 
-  geom_density(aes(fill = above_death_median), alpha = 0.5) + 
+# Test on household income and vax, faceted by borough
+above_below_interview(household_income, "vax") +   
   facet_wrap(.~borough)
+
+# Test on age and hospitalization, faceted by race
+above_below_interview(age, "hosp") +   
+  facet_wrap(.~race)
 ```
 
-Can we do something similar at PUMA level, recognizing small sample sizes? Maybe using bar charts?
 
 ```{r}
-above_below_puma %>% 
-  ggplot(aes(x = median_household_income)) + 
-  geom_density(aes(fill = above_hosp_median), alpha = 0.5)
+# Similar function but at the level of the PUMA (recognizing small sample sizes; maybe use bar charts?)
 
-above_below_puma %>% 
-  ggplot(aes(x = median_household_income)) + 
-  geom_density(aes(fill = above_death_median), alpha = 0.5)
+above_below_puma = function(predictor, outcome){
+  
+  a = nyc_puma_summary_counties %>% 
+    mutate(
+      above_hosp_median = as.factor(ifelse(covid_hosp_rate > median(covid_hosp_rate), 1, 0)),
+      above_death_median = as.factor(ifelse(covid_death_rate > median(covid_death_rate), 1, 0)),
+      above_vax_median = as.factor(ifelse(covid_vax_rate > median(covid_vax_rate), 1, 0)),
+      above_predictor = as.factor(ifelse({{predictor}} > median({{predictor}}), 1, 0))
+    )
+      
+  if (outcome == "vax"){
+    
+      one = a %>% 
+        ggplot(aes(
+          x = {{predictor}}
+        )) + 
+        geom_density(aes(fill = above_vax_median), alpha = 0.5)
+    
+    two = a %>% 
+      ggplot(aes(
+        x = above_predictor,
+        fill = above_vax_median
+      )) + 
+      geom_bar(stat = "count")
+    
+   three = a %>% 
+     ggplot(aes(
+       x = above_predictor,
+       fill = above_vax_median
+     )) + 
+     geom_bar(position = "fill")
+   
+   four = a %>% 
+     ggplot(aes(x = borough, y = sum(above_vax_median == 1), fill = above_predictor)) + 
+     geom_bar(position = "fill", stat = "identity")
+    
+    (one + two)  / (three + four)
+    
+  } else if (outcome == "hosp") {
+    
+    one = a %>% 
+        ggplot(aes(
+          x = {{predictor}}
+        )) + 
+        geom_density(aes(fill = above_hosp_median), alpha = 0.5)
+    
+    two = a %>% 
+      ggplot(aes(
+        x = above_predictor,
+        fill = above_hosp_median
+      )) + 
+      geom_bar(stat = "count")
+    
+   three = a %>% 
+     ggplot(aes(
+       x = above_predictor,
+       fill = above_hosp_median
+     )) + 
+     geom_bar(position = "fill")
+   
+   four = a %>% 
+     ggplot(aes(x = borough, y = sum(above_hosp_median == 1), fill = above_predictor)) + 
+     geom_bar(position = "fill", stat = "identity")
+    
+    (one + two)  / (three + four)
+    
+  } else if (outcome == "death") {
+    
+    one = a %>% 
+        ggplot(aes(
+          x = {{predictor}}
+        )) + 
+        geom_density(aes(fill = above_death_median), alpha = 0.5)
+    
+    two = a %>% 
+      ggplot(aes(
+        x = above_predictor,
+        fill = above_death_median
+      )) + 
+      geom_bar(stat = "count")
+    
+   three = a %>% 
+     ggplot(aes(
+       x = above_predictor,
+       fill = above_death_median
+     )) + 
+     geom_bar(position = "fill")
+   
+   four = a %>% 
+     ggplot(aes(x = borough, y = sum(above_death_median == 1), fill = above_predictor)) + 
+     geom_bar(position = "fill", stat = "identity")
+    
+    (one + two)  / (three + four)
+  }
+}
 
-above_below_puma %>% 
-  ggplot(aes(x = median_household_income)) + 
-  geom_density(aes(fill = above_vax_median), alpha = 0.5)
+# Test on household income and hospitalization
+above_below_puma(median_household_income, "hosp")
 
-above_below_puma_hh = above_below_puma %>% 
-  mutate(
-    above_median_hh_income = as.factor(ifelse(median_household_income > median(median_household_income), 1, 0))
-  )
+# Test on household income and death
+above_below_puma(median_household_income, "death")
 
-above_below_puma_hh %>% 
-  ggplot(aes(x = above_median_hh_income, fill = above_hosp_median)) + 
-  geom_bar(stat = "count")
+# Test on household income and vax, faceted by borough
+above_below_puma(median_household_income, "vax")
 
-above_below_puma_hh %>% 
-  ggplot(aes(x = above_median_hh_income, fill = above_hosp_median)) + 
-  geom_bar(position = "fill")
+# Test on age and hospitalization
+above_below_puma(median_age, "hosp")
 
-above_below_puma_hh %>% 
-  ggplot(aes(x = above_median_hh_income, fill = above_death_median)) + 
-  geom_bar(position = "fill")
-
-above_below_puma_hh %>% 
-  ggplot(aes(x = above_median_hh_income, fill = above_vax_median)) + 
-  geom_bar(position = "fill")
-
-above_below_puma_hh %>% 
-  ggplot(aes(x = above_median_hh_income, fill = above_vax_median)) + 
-  geom_bar(position = "fill") + 
-  facet_wrap(.~borough)
-
-above_below_puma_hh %>% 
-  ggplot(aes(x = borough, y = sum(above_vax_median == 1), fill = above_median_hh_income)) + 
-  geom_bar(position = "fill", stat = "identity")
 ```
 
 #### Playground: please ignore
