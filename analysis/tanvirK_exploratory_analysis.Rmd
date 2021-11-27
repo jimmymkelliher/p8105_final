@@ -357,7 +357,7 @@ borough_hospitalization_rate <-
     title = "COVID Hospitalization Rates Across Puma", 
     subtitle = "Ordered: smallest to largest rate", 
     x = "Puma",
-    y = "COVID Hospitalization rate"
+    y = "COVID Hospitalization rate per 100,000"
   ) +
   viridis::scale_color_viridis(
     name = "Boroughs in NYC", 
@@ -678,3 +678,25 @@ internet_vax_rel <-
     y = "COVID Vaccination Rate") +
   theme(legend.position = "right")
 ```
+
+
+
+```{r}
+internet_hosp_rel <- 
+  borough_info %>% 
+  ggplot(aes(x = perc_broadband,
+             y = covid_hosp_rate)) + 
+  geom_point(aes(color  = Borough)) + 
+  geom_smooth(
+    method = "lm", 
+    color = 'red',
+    se = FALSE) +
+  labs(
+    title = "Internet and Hospitalization Rate", 
+    subtitle = "By NYC Borough", 
+    x = "Internet Percentages for Each Puma in their associated Borough",
+    y = "COVID Hospitalization Rate") +
+  theme(legend.position = "right")
+```
+
+
