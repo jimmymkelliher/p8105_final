@@ -281,6 +281,101 @@ nyc_puma_summary %>%
 
 ## Exploratory Analysis
 
+#### Preliminary outcomes; which demographic groups do best and worst?
+
+```{r}
+# Can we look at a density plot split by the main demographic variables (race, age, sex) and see where there are outliers for each outcome?
+
+a = cleaned_data %>% 
+  mutate(
+    weighted_hosp = puma_hosp_rate * perwt / 100,
+    weighted_death = puma_death_rate * perwt / 100,
+    weighted_vax = puma_vacc_rate * perwt / 100,
+    age_class = cut(age, breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100))
+  ) %>% 
+  group_by(race, age_class, sex) %>% 
+  summarize(
+    total_hosp = sum(weighted_hosp),
+    total_vax = sum(weighted_vax),
+    total_death = sum(weighted_death),
+    people = sum(perwt),
+    hosp_rate = total_hosp * 100 / people,
+    vax_rate = total_vax * 100 / people,
+    death_rate = total_death * 100 / people
+  ) %>% 
+  pivot_longer(
+    cols = hosp_rate:death_rate,
+    names_to = "outcome",
+    values_to = "outcome_rate"
+  )
+
+a %>% 
+  filter(outcome == "hosp_rate") %>% 
+  ggplot(aes(x = outcome_rate)) + 
+  geom_boxplot() + 
+  geom_density()
+
+a %>% 
+  filter(outcome == "death_rate") %>% 
+  ggplot(aes(x = outcome_rate)) + 
+  geom_boxplot() + 
+  geom_density()
+
+a %>% 
+  filter(outcome == "vax_rate") %>% 
+  ggplot(aes(x = outcome_rate)) + 
+  geom_boxplot() + 
+  geom_density()
+
+# Lowest hospitalization rates
+a %>% 
+  filter(outcome == "hosp_rate") %>% 
+  arrange(outcome_rate) %>% 
+  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  head() %>% 
+  knitr::kable()
+
+# Highest hospitalization rates
+a %>% 
+  filter(outcome == "hosp_rate") %>% 
+  arrange(desc(outcome_rate)) %>% 
+  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  head() %>% 
+  knitr::kable()
+
+# Lowest death rates
+a %>% 
+  filter(outcome == "death_rate") %>% 
+  arrange(outcome_rate) %>% 
+  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  head() %>% 
+  knitr::kable()
+
+# Highest death rates
+a %>% 
+  filter(outcome == "death_rate") %>% 
+  arrange(desc(outcome_rate)) %>% 
+  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  head() %>% 
+  knitr::kable()
+
+# Lowest vax rates
+a %>% 
+  filter(outcome == "vax_rate") %>% 
+  arrange(outcome_rate) %>% 
+  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  head() %>% 
+  knitr::kable()
+
+# Highest vax rates
+a %>% 
+  filter(outcome == "vax_rate") %>% 
+  arrange(desc(outcome_rate)) %>% 
+  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  head() %>% 
+  knitr::kable()
+```
+
 #### Correlations between covariates and outcomes
 
 ```{r}
