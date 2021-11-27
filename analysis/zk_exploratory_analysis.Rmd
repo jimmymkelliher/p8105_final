@@ -702,6 +702,22 @@ nyc_puma_summary_counties %>%
 ```
 
 ```{r}
+# Here's an alternative for above that could also work for looking at relationships between predictors, outcomes, or predictors and outcomes!
+# Turn lower half of pairwise matrix scatters into correlation (r) statistic
+panel.cor <- function(x, y){
+    usr <- par("usr"); on.exit(par(usr))
+    par(usr = c(0, 1, 0, 1))
+    r <- round(cor(x, y), digits=2)
+    txt <- paste0("R = ", r)
+    text(0.5, 0.5, txt)
+}
+
+# Run pairs from PUMA data frame
+pairs(~covid_hosp_rate + covid_death_rate + covid_vax_rate + borough, data = nyc_puma_summary_counties, lower.panel = panel.cor)
+```
+
+
+```{r}
 # Reorder function
 reorder_cormat <- function(cormat){
   # Use correlation between variables as distance
@@ -796,8 +812,12 @@ nyc_puma_summary_counties %>%
   summarize(
     n_obs = n()
   ) %>% 
-  ggplot(aes(x = borough, y = n_obs)) + 
-  geom_bar(stat = "identity")
+  ggplot(aes(x = reorder(borough, desc(n_obs)), y = n_obs)) + 
+  geom_bar(stat = "identity") + 
+  labs(
+    x = "Borough",
+    y = "Number of PUMAs"
+  )
 ```
 
 ```{r}
@@ -845,6 +865,7 @@ nyc_puma_summary_counties %>%
   )
   
 ```
+
 
 ```{r}
 # Density plot of key outcome distributions across PUMAs, faceted by county
