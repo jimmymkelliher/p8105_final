@@ -222,7 +222,7 @@ cleaned_data =
   ) %>% 
   # Convert hospitalization and death rates to pure percentages to match vax rate
   mutate(
-    puma_hosp_rate = puma_hosp_rate / 1000,
+    puma_hosp_rate = puma_hosp_rate, 
     puma_death_rate = puma_death_rate / 1000
   ) %>% 
   # Eliminate columns no longer needed after transformation
