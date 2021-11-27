@@ -520,15 +520,14 @@ college_hosp_rel <-
   labs(
     title = "College and Hospitalization",
     x = "College", 
-    y = "Covid Hospitalization Rate"
+    y = "Covid Hospitalization Rate per 100,000"
   ) +
   theme(legend.position = "right")
 ```
 
 
 
-
-
+Non-College Hospitalization Rate 
 ```{r}
 noncollege_hosp_rel <- 
   borough_info %>% 
@@ -539,7 +538,7 @@ noncollege_hosp_rel <-
   labs(
     title = "Non-College and Hospitalization",
     x = "Non-College", 
-    y = "Covid Hospitalization Rate"
+    y = "Covid Hospitalization Rate per 100,000"
   ) +
   theme(legend.position = "right")
 ```
