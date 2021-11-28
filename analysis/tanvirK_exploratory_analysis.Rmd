@@ -254,6 +254,7 @@ nyc_puma_summary = cleaned_data %>%
     perc_male = sum(perwt[sex == "Male"]) * 100 / sum(perwt),
     median_age = weighted.median(age, perwt, na.rm = TRUE),
     perc_white = sum(perwt[race == "White"]) * 100 / sum(perwt),
+    perc_non_white = sum(perwt[race != "White"]) * 100 / sum(perwt), 
     perc_foreign_born = sum(perwt[birthplace == "Non-US"]) * 100 / sum(perwt),
     perc_us_born = sum(perwt[birthplace == "US"]) * 100 / sum(perwt),
     perc_citizen = sum(perwt[US_citizen == "Yes"]) * 100 / sum(perwt),
@@ -680,7 +681,7 @@ internet_vax_rel <-
 ```
 
 
-
+Internet and Hospitalization Relationship
 ```{r}
 internet_hosp_rel <- 
   borough_info %>% 
@@ -700,3 +701,125 @@ internet_hosp_rel <-
 ```
 
 
+
+Race (White) vs Hospitalization Rate 
+```{r}
+borough_info %>% 
+  ggplot(aes(
+    x = median_age,
+    y = covid_hosp_rate
+  )) + 
+  geom_point(aes(color = Borough)) + 
+  geom_smooth(method = "loess", 
+    color = 'red',
+    se = FALSE) +  
+  labs(
+    title = "Race (White) and Hospitalization Rate", 
+    subtitle = "By NYC Borough", 
+    x = "Percentage of White in that PUMA for that Borough",
+    y = "COVID Hospitalization Rate")
+```
+
+
+Race (White) vs Vaccination Rate
+```{r}
+borough_info %>% 
+  ggplot(aes(
+    x = median_age,
+    y = covid_vax_rate
+  )) + 
+  geom_point(aes(color = Borough)) + 
+  geom_smooth(method = "loess", 
+    color = 'red',
+    se = FALSE) +  
+  labs(
+    title = "Race (White) and Hospitalization Rate", 
+    subtitle = "By NYC Borough", 
+    x = "Percentage of White in that PUMA for that Borough",
+    y = "COVID Vaccination Rate")
+```
+
+
+
+Race (White) vs Death Rate 
+```{r}
+borough_info %>% 
+  ggplot(aes(
+    x = median_age,
+    y = covid_death_rate
+  )) + 
+  geom_point(aes(color = Borough)) + 
+  geom_smooth(method = "loess", 
+    color = 'red',
+    se = FALSE) +  
+  labs(
+    title = "Race (White) and Hospitalization Rate", 
+    subtitle = "By NYC Borough", 
+    x = "Percentage of White in that PUMA for that Borough",
+    y = "COVID Death Rate")
+```
+
+
+
+
+Ranking -  Vaccination Rate in Puma (colored by Borough)
+```{r}
+rank_vax_puma <- 
+  borough_info %>% 
+  arrange(desc(covid_vax_rate)) %>%
+  ggplot(aes(x = fct_reorder(puma, desc(covid_vax_rate)), 
+             y = covid_vax_rate)) + 
+  geom_bar(stat = "identity", 
+           aes(fill = Borough)) + 
+  theme(axis.text.x = element_text(angle = 70, vjust = 0.5, hjust = 0.5)) + 
+  labs(
+    title = "Ranking Vaccination Rate in each Puma", 
+    x = "PUMA",
+    y = "COVID Vaccination rate"
+  ) + 
+  theme(legend.position = "bottom")
+```
+
+
+
+
+Ranking -  Death Rate in Puma (colored by Borough)
+```{r}
+rank_death_puma <- 
+  borough_info %>% 
+  arrange(desc(covid_death_rate)) %>%
+  ggplot(aes(x = fct_reorder(puma, desc(covid_death_rate)), 
+             y = covid_death_rate)) + 
+  geom_bar(stat = "identity", 
+           aes(fill = Borough)) + 
+  theme(axis.text.x = 
+          element_text(angle = 70, vjust = 0.5, hjust = 0.5)) + 
+  labs(
+    title = "Ranking Death Rate in each Puma", 
+    x = "PUMA",
+    y = "COVID Death Rate"
+  ) + 
+  theme(legend.position = "bottom")
+```
+
+
+
+
+Ranking - Hospitalization Rate in Puma (colored by Borough)
+```{r}
+rank_hospr_puma <- 
+  borough_info %>% 
+  arrange(desc(covid_hosp_rate)) %>%
+  ggplot(aes(x = fct_reorder(puma, desc(covid_hosp_rate)), 
+             y = covid_hosp_rate)) + 
+  geom_bar(stat = "identity", 
+           aes(fill = Borough)) + 
+  theme(axis.text.x = 
+          element_text(angle = 70, vjust = 0.5, hjust = 0.5)) + 
+  labs(
+    title = "Ranking Death Rate in each Puma", 
+    x = "PUMA",
+    y = "COVID Hospitalization Rate"
+  ) + 
+  theme(legend.position = "bottom")
+```
