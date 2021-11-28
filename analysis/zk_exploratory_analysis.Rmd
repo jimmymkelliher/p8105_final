@@ -22,6 +22,7 @@ library(rstatix)
 library(patchwork)
 library(ggridges)
 library(spatstat)
+library(plotly)
 
 # set knitr defaults
 knitr::opts_chunk$set(
@@ -286,6 +287,10 @@ nyc_puma_summary %>%
 ## Outcomes by Demographic
 
 ```{r}
+
+## LATER: GO BACK AND PUT RELEVANT ANALYSES INTO PLOTLY FOR INTERACTIVITY!
+
+
 # Can we look at a density plot split by the main demographic variables (race, age, sex) and see where there are outliers for each outcome?
 
 # Generate data frame with outcomes for each combination of sex, age (class), and race
@@ -802,6 +807,180 @@ corr_option_one + corr_option_two + corr_option_three
 # Notes for later:
 # Reorder matrix?
 ```
+
+```{r}
+# We can create a function to generate a heatmap grid for a given outcome across PUMAs, split by a categorical variable
+
+heatmap_cat = function(predict1, predict2, outcome) {
+  
+  a = cleaned_data %>% 
+    mutate(
+      weighted_vax = perwt * puma_vacc_rate,
+      weighted_hosp = perwt * puma_hosp_rate,
+      weighted_death = perwt * puma_death_rate
+      ) %>% 
+    group_by({{predict1}}, {{predict2}}) %>% 
+    summarize(
+      vax_rate = sum(weighted_vax) / sum(perwt),
+      hosp_rate = sum(weighted_hosp) / sum(perwt),
+      death_rate = sum(weighted_death) / sum(perwt)
+    )
+  
+  if(outcome == "vax") { 
+    
+    a %>% 
+      ggplot(
+        aes(
+          x = {{predict1}},
+          y = {{predict2}},
+          fill = vax_rate
+        )
+      ) + 
+      geom_tile()
+  } else if(outcome == "hosp"){
+    a %>% 
+      ggplot(
+        aes(
+          x = {{predict1}},
+          y = {{predict2}},
+          fill = hosp_rate
+        )
+      ) + 
+      geom_tile()
+    
+  } else if (outcome == "death") {
+    
+    a %>% 
+        ggplot(
+          aes(
+            x = {{predict1}},
+            y = {{predict2}},
+            fill = death_rate
+          )
+        ) + 
+        geom_tile()
+  }
+}
+
+# Test on race and borough, hospitalizations
+heatmap_cat(race, borough, "hosp")
+
+# We can create similar but for one continuous variable by one categorical variable
+
+heatmap_cont = function(predict1, predict2, outcome) {
+  
+  a = cleaned_data %>% 
+    mutate(
+      weighted_vax = perwt * puma_vacc_rate,
+      weighted_hosp = perwt * puma_hosp_rate,
+      weighted_death = perwt * puma_death_rate,
+      predictor_class = cut({{predict1}}, breaks = 6)
+      ) %>% 
+    group_by(predictor_class, {{predict2}}) %>% 
+    summarize(
+      vax_rate = sum(weighted_vax) / sum(perwt),
+      hosp_rate = sum(weighted_hosp) / sum(perwt),
+      death_rate = sum(weighted_death) / sum(perwt)
+    )
+  
+  if(outcome == "vax") { 
+    
+    a %>% 
+      ggplot(
+        aes(
+          x = predictor_class,
+          y = {{predict2}},
+          fill = vax_rate
+        )
+      ) + 
+      geom_tile()
+  } else if(outcome == "hosp"){
+    a %>% 
+      ggplot(
+        aes(
+          x = predictor_class,
+          y = {{predict2}},
+          fill = hosp_rate
+        )
+      ) + 
+      geom_tile()
+    
+  } else if (outcome == "death") {
+    
+    a %>% 
+        ggplot(
+          aes(
+            x = predictor_class,
+            y = {{predict2}},
+            fill = death_rate
+          )
+        ) + 
+        geom_tile()
+  }
+}
+
+# Test on race by age, vaccinations
+heatmap_cont(age, race, "vax")
+
+# And finally for two continuous variables
+heatmap_both_cont = function(predict1, predict2, outcome) {
+  
+  a = cleaned_data %>% 
+    mutate(
+      weighted_vax = perwt * puma_vacc_rate,
+      weighted_hosp = perwt * puma_hosp_rate,
+      weighted_death = perwt * puma_death_rate,
+      predictor_class1 = cut({{predict1}}, breaks = 6),
+      predictor_class2 = cut({{predict2}}, breaks = 6)
+      ) %>% 
+    group_by(predictor_class1, predictor_class2) %>% 
+    summarize(
+      vax_rate = sum(weighted_vax) / sum(perwt),
+      hosp_rate = sum(weighted_hosp) / sum(perwt),
+      death_rate = sum(weighted_death) / sum(perwt)
+    )
+  
+  if(outcome == "vax") { 
+    
+    a %>% 
+      ggplot(
+        aes(
+          x = predictor_class1,
+          y = predictor_class2,
+          fill = vax_rate
+        )
+      ) + 
+      geom_tile()
+  } else if(outcome == "hosp"){
+    a %>% 
+      ggplot(
+        aes(
+          x = predictor_class1,
+          y = predictor_class2,
+          fill = hosp_rate
+        )
+      ) + 
+      geom_tile()
+    
+  } else if (outcome == "death") {
+    
+    a %>% 
+        ggplot(
+          aes(
+            x = predictor_class1,
+            y = predictor_class2,
+            fill = death_rate
+          )
+        ) + 
+        geom_tile()
+  }
+}
+
+# Test on household income by age, vaccinations
+heatmap_both_cont(age, household_income, "hosp")
+
+```
+
 
 #### Borough-level outcome distributions
 
