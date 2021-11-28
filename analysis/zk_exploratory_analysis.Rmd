@@ -973,7 +973,13 @@ borough_cat_comparisons = function(predict, outcome) {
       (grouped + stack + compare) / vary1
   } 
 }
-
+two_var_summarize_borough(race, sex) %>% 
+  ggplot(aes(x = vax_rate,
+              y = borough,
+              color = predict2,
+              fill = predict2)) + 
+      geom_density_ridges(alpha = 0.3, size = 0.5)
+  
 # Build a function to examine outcome breakdowns across 2 categorical variables
 outcome_by_two_vars = function(predict1, predict2, outcome) {
   
@@ -1010,8 +1016,26 @@ outcome_by_two_vars = function(predict1, predict2, outcome) {
            color = predict2
         )) + 
         geom_density_ridges(alpha = 0.3)
+  
+    four = c %>% 
+      ggplot(aes(x = vax_rate, y = predict2, color = predict1, fill = predict1)) + 
+      geom_density_ridges(alpha = 0.3, size = 0.5)
     
-    one + two / three
+    five = ggplot(data = c,
+                  aes(x = vax_rate,
+                      y = borough,
+                      color = predict1,
+                      fill = predict1)) + 
+      geom_density_ridges(alpha = 0.3, size = 0.5)
+    
+    six = ggplot(data = c,
+                  aes(x = vax_rate,
+                      y = borough,
+                      color = predict2,
+                      fill = predict2)) + 
+      geom_density_ridges(alpha = 0.3, size = 0.5)
+    
+    (one + two) / (three + four) / (five + six)
   } else if (outcome == "hosp") {
     one = ggplot(data = b,
            aes(
@@ -1042,7 +1066,25 @@ outcome_by_two_vars = function(predict1, predict2, outcome) {
         )) + 
         geom_density_ridges(alpha = 0.3)
     
-    one + two / three
+    four = c %>% 
+      ggplot(aes(x = hosp_rate, y = predict2, color = predict1, fill = predict1)) + 
+      geom_density_ridges(alpha = 0.3, size = 0.5)
+    
+    five = ggplot(data = c,
+                  aes(x = hosp_rate,
+                      y = borough,
+                      color = predict1,
+                      fill = predict1)) + 
+      geom_density_ridges(alpha = 0.3, size = 0.5)
+    
+    six = ggplot(data = c,
+                  aes(x = hosp_rate,
+                      y = borough,
+                      color = predict2,
+                      fill = predict2)) + 
+      geom_density_ridges(alpha = 0.3, size = 0.5)
+    
+    (one + two) / (three + four) / (five + six)
   } else if (outcome == "death") {
     one = ggplot(data = b,
            aes(
@@ -1073,8 +1115,61 @@ outcome_by_two_vars = function(predict1, predict2, outcome) {
         )) + 
         geom_density_ridges(alpha = 0.3)
     
-    one + two / three
+    four = c %>% 
+      ggplot(aes(x = death_rate, y = predict2, color = predict1, fill = predict1)) + 
+      geom_density_ridges(alpha = 0.3, size = 0.5)
+    
+    five = ggplot(data = c,
+                  aes(x = death_rate,
+                      y = borough,
+                      color = predict1,
+                      fill = predict1)) + 
+      geom_density_ridges(alpha = 0.3, size = 0.5)
+    
+    six = ggplot(data = c,
+                  aes(x = death_rate,
+                      y = borough,
+                      color = predict2,
+                      fill = predict2)) + 
+      geom_density_ridges(alpha = 0.3, size = 0.5)
+    
+    (one + two) / (three + four) / (five + six)
   }
+}
+
+# Function for scatterplots representing one predictor vs one outcome, colored by a second predictor, at the PUMA level
+predict_scatter = function(predict1, predict2, outcome){
+  
+  a = puma_level_data %>% 
+    mutate(
+      vax = covid_vax_rate,
+      hosp = covid_hosp_rate,
+      death = covid_death_rate
+    ) %>% 
+    ggplot(
+      aes(
+        x = {{predict1}},
+        y = {{outcome}}
+      )) + 
+    geom_point(aes(color = {{predict2}})) + 
+    geom_smooth(se = FALSE, method = "lm")
+  
+  b = puma_level_data %>% 
+    mutate(
+      vax = covid_vax_rate,
+      hosp = covid_hosp_rate,
+      death = covid_death_rate
+    ) %>% 
+    ggplot(
+      aes(
+        x = {{predict2}},
+        y = {{outcome}}
+      )) + 
+    geom_point(aes(color = {{predict1}})) + 
+    geom_smooth(se = FALSE, method = "lm")
+  
+  a + b
+  
 }
 
 ```
@@ -1918,81 +2013,29 @@ outcome_by_two_vars(race, rent, "hosp")
 
 ```
 
-```{r}
-# Another fun one: borough and sex
-cleaned_data %>% 
-  group_by(race, puma, sex, borough) %>% 
-  summarize(
-    num_people = sum(perwt),
-    puma_vax_rate = median(puma_vacc_rate),
-    people_vaxxed = num_people * puma_vax_rate / 100,
-    people_not_vaxxed = num_people - people_vaxxed
-  ) %>% 
-  group_by(race, sex, borough) %>% 
-  summarize(
-    num_vaxxed = sum(people_vaxxed),
-    num_not_vaxxed = sum(people_not_vaxxed),
-    perc_vaxxed = num_vaxxed * 100 / (num_vaxxed + num_not_vaxxed)
-  ) %>% 
-  ggplot(aes(x = perc_vaxxed, y = borough, color = sex, fill = sex)) + 
-  geom_density_ridges(alpha = 0.3, size = 0.5)
-
-# Also race and sex
-cleaned_data %>% 
-  group_by(race, puma, sex, borough) %>% 
-  summarize(
-    num_people = sum(perwt),
-    puma_vax_rate = median(puma_vacc_rate),
-    people_vaxxed = num_people * puma_vax_rate / 100,
-    people_not_vaxxed = num_people - people_vaxxed
-  ) %>% 
-  group_by(race, sex, borough) %>% 
-  summarize(
-    num_vaxxed = sum(people_vaxxed),
-    num_not_vaxxed = sum(people_not_vaxxed),
-    perc_vaxxed = num_vaxxed * 100 / (num_vaxxed + num_not_vaxxed)
-  ) %>% 
-  ggplot(aes(x = perc_vaxxed, y = sex, color = race, fill = race)) + 
-  geom_density_ridges(alpha = 0.3, size = 0.5)
-```
-
 #### Other Explorations
 
 ```{r}
-# Another function to plot PUMAs based on a continuous predictor and an outcome, colored by a second predictor
-
-predict_scatter = function(contpredict, predict2, outcome){
-  
-  nyc_puma_summary_counties %>% 
-    mutate(
-      vax = covid_vax_rate,
-      hosp = covid_hosp_rate,
-      death = covid_death_rate
-    ) %>% 
-    ggplot(aes(
-      x = {{contpredict}},
-      y = {{outcome}}
-    )) + 
-    geom_point(aes(color = {{predict2}}))
-  
-}
-
 # Testing on hospitalization rate by household income, colored by college completion percentage
 predict_scatter(median_household_income, perc_college, hosp)
 
 # More examples
+
+# Death rates, PUMA income vs college rate
 predict_scatter(median_household_income, perc_college, death)
+
+# Death rates, PUMA white vs male rate
 predict_scatter(perc_white, perc_male, death)
+
+# Vax rates, PUMA foodstamps use vs white rate
 predict_scatter(perc_foodstamps, perc_white, vax)
+
+# Vax rates, PUMA welfare use vs white rate
 predict_scatter(perc_welfare, perc_white, vax)
-predict_scatter(perc_poverty, perc_college, death)
 
+# Hosp rates, PUMA poverty vs college rate
+predict_scatter(perc_poverty, perc_college, hosp)
 
-# A note for later: maybe try size instead of color?
-# Example here
-nyc_puma_summary_counties %>% 
-  ggplot(aes(x = median_household_income, y = covid_death_rate)) + 
-  geom_point(aes(size = perc_college))
 ```
 
 #### Analyses using above/below outcomes median
@@ -2221,5 +2264,11 @@ borough_colored_cont = function(continuous_predictor){
     )
   
 }
+
+# A note for later: maybe try size instead of color?
+# Example here
+puma_level_data %>% 
+  ggplot(aes(x = median_household_income, y = covid_death_rate)) + 
+  geom_point(aes(size = perc_college))
 ```
 
