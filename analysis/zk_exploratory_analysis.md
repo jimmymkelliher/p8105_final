@@ -974,17 +974,7 @@ borough_cat_comparisons = function(predict, outcome) {
       (grouped + stack + compare) / vary1
   } 
 }
-two_var_summarize_borough(race, sex) %>% 
-  ggplot(aes(x = vax_rate,
-              y = borough,
-              color = predict2,
-              fill = predict2)) + 
-      geom_density_ridges(alpha = 0.3, size = 0.5)
-```
-
-<img src="zk_exploratory_analysis_files/figure-gfm/functions-1.png" width="90%" />
-
-``` r
+  
 # Build a function to examine outcome breakdowns across 2 categorical variables
 outcome_by_two_vars = function(predict1, predict2, outcome) {
   
@@ -1358,8 +1348,7 @@ hosp_distribution = race_age_sex %>%
   geom_boxplot() + 
   geom_density() + 
   labs(
-    x = "Hospitalization Rate",
-    title = "Distribution by Race/Sex/Age Combo Group"
+    x = "Hospitalization Rate"
   )
 
 # Density / boxplot of death rate across PUMAs
@@ -1380,8 +1369,7 @@ vax_distribution = race_age_sex %>%
   geom_boxplot() + 
   geom_density() + 
   labs(
-    x = "Vax Rate",
-    title =  "Distribution by Race/Sex/Age Combo Group"
+    x = "Vax Rate"
   )
 
     
@@ -1395,7 +1383,7 @@ hosp_distribution + death_distribution + vax_distribution
 race_age_sex %>% 
   filter(outcome == "hosp_rate") %>% 
   mutate(
-    outcome_rate = outcome_rate * 100
+    outcome_rate = outcome_rate
   ) %>% 
   arrange(outcome_rate) %>% 
   select(race, age_class, sex, outcome, outcome_rate) %>% 
@@ -1405,19 +1393,19 @@ race_age_sex %>%
 
 | race  | age\_class | sex    | outcome    | outcome\_rate |
 |:------|:-----------|:-------|:-----------|--------------:|
-| White | (20,30\]   | Female | hosp\_rate |      87.61103 |
-| White | (30,40\]   | Male   | hosp\_rate |      88.59347 |
-| White | (30,40\]   | Female | hosp\_rate |      89.08692 |
-| White | (20,30\]   | Male   | hosp\_rate |      89.63785 |
-| White | (40,50\]   | Male   | hosp\_rate |      92.75371 |
-| White | (40,50\]   | Female | hosp\_rate |      93.48149 |
+| White | (20,30\]   | Female | hosp\_rate |     0.8761103 |
+| White | (30,40\]   | Male   | hosp\_rate |     0.8859347 |
+| White | (30,40\]   | Female | hosp\_rate |     0.8908692 |
+| White | (20,30\]   | Male   | hosp\_rate |     0.8963785 |
+| White | (40,50\]   | Male   | hosp\_rate |     0.9275371 |
+| White | (40,50\]   | Female | hosp\_rate |     0.9348149 |
 
 ``` r
 # Highest hospitalization rates
 race_age_sex %>% 
   filter(outcome == "hosp_rate") %>% 
   mutate(
-    outcome_rate = outcome_rate * 100
+    outcome_rate = outcome_rate
   ) %>% 
   arrange(desc(outcome_rate)) %>% 
   select(race, age_class, sex, outcome, outcome_rate) %>% 
@@ -1427,19 +1415,19 @@ race_age_sex %>%
 
 | race                       | age\_class | sex    | outcome    | outcome\_rate |
 |:---------------------------|:-----------|:-------|:-----------|--------------:|
-| American Indian            | (80,90\]   | Male   | hosp\_rate |      127.2494 |
-| Other                      | (60,70\]   | Male   | hosp\_rate |      121.6952 |
-| Other                      | (10,20\]   | Male   | hosp\_rate |      121.1757 |
-| Other                      | (40,50\]   | Male   | hosp\_rate |      120.0270 |
-| Other                      | (60,70\]   | Female | hosp\_rate |      118.5198 |
-| Asian and Pacific Islander | (90,100\]  | Male   | hosp\_rate |      117.3874 |
+| American Indian            | (80,90\]   | Male   | hosp\_rate |      1.272494 |
+| Other                      | (60,70\]   | Male   | hosp\_rate |      1.216953 |
+| Other                      | (10,20\]   | Male   | hosp\_rate |      1.211757 |
+| Other                      | (40,50\]   | Male   | hosp\_rate |      1.200270 |
+| Other                      | (60,70\]   | Female | hosp\_rate |      1.185197 |
+| Asian and Pacific Islander | (90,100\]  | Male   | hosp\_rate |      1.173874 |
 
 ``` r
 # Lowest death rates
 race_age_sex %>% 
   filter(outcome == "death_rate") %>% 
   mutate(
-    outcome_rate = outcome_rate * 100
+    outcome_rate = outcome_rate
   ) %>% 
   arrange(outcome_rate) %>% 
   select(race, age_class, sex, outcome, outcome_rate) %>% 
@@ -1449,19 +1437,19 @@ race_age_sex %>%
 
 | race  | age\_class | sex    | outcome     | outcome\_rate |
 |:------|:-----------|:-------|:------------|--------------:|
-| White | (20,30\]   | Female | death\_rate |      23.76527 |
-| White | (30,40\]   | Male   | death\_rate |      24.24399 |
-| White | (20,30\]   | Male   | death\_rate |      24.35824 |
-| White | (30,40\]   | Female | death\_rate |      24.55473 |
-| Other | (80,90\]   | Male   | death\_rate |      25.41018 |
-| White | (40,50\]   | Male   | death\_rate |      25.64677 |
+| White | (20,30\]   | Female | death\_rate |     0.2376527 |
+| White | (30,40\]   | Male   | death\_rate |     0.2424399 |
+| White | (20,30\]   | Male   | death\_rate |     0.2435824 |
+| White | (30,40\]   | Female | death\_rate |     0.2455473 |
+| Other | (80,90\]   | Male   | death\_rate |     0.2541018 |
+| White | (40,50\]   | Male   | death\_rate |     0.2564677 |
 
 ``` r
 # Highest death rates
 race_age_sex %>% 
   filter(outcome == "death_rate") %>% 
   mutate(
-    outcome_rate = outcome_rate * 100
+    outcome_rate = outcome_rate
   ) %>% 
   arrange(desc(outcome_rate)) %>% 
   select(race, age_class, sex, outcome, outcome_rate) %>% 
@@ -1471,19 +1459,19 @@ race_age_sex %>%
 
 | race                       | age\_class | sex  | outcome     | outcome\_rate |
 |:---------------------------|:-----------|:-----|:------------|--------------:|
-| 2+ races                   | (90,100\]  | Male | death\_rate |      35.25028 |
-| Asian and Pacific Islander | (90,100\]  | Male | death\_rate |      33.86789 |
-| American Indian            | (80,90\]   | Male | death\_rate |      32.46158 |
-| Other                      | (10,20\]   | Male | death\_rate |      32.28600 |
-| Other                      | (40,50\]   | Male | death\_rate |      32.20782 |
-| Other                      | (70,80\]   | Male | death\_rate |      32.02419 |
+| 2+ races                   | (90,100\]  | Male | death\_rate |     0.3525028 |
+| Asian and Pacific Islander | (90,100\]  | Male | death\_rate |     0.3386789 |
+| American Indian            | (80,90\]   | Male | death\_rate |     0.3246158 |
+| Other                      | (10,20\]   | Male | death\_rate |     0.3228600 |
+| Other                      | (40,50\]   | Male | death\_rate |     0.3220782 |
+| Other                      | (70,80\]   | Male | death\_rate |     0.3202419 |
 
 ``` r
 # Lowest vax rates
 race_age_sex %>% 
   filter(outcome == "vax_rate") %>% 
   mutate(
-    outcome_rate = outcome_rate * 100
+    outcome_rate = outcome_rate
   ) %>% 
   arrange(outcome_rate) %>% 
   select(race, age_class, sex, outcome, outcome_rate) %>% 
@@ -1493,19 +1481,19 @@ race_age_sex %>%
 
 | race            | age\_class | sex    | outcome   | outcome\_rate |
 |:----------------|:-----------|:-------|:----------|--------------:|
-| American Indian | (70,80\]   | Male   | vax\_rate |      4932.433 |
-| Black           | (10,20\]   | Female | vax\_rate |      4936.218 |
-| Black           | \[0,10\]   | Male   | vax\_rate |      4947.396 |
-| Black           | (10,20\]   | Male   | vax\_rate |      4948.072 |
-| Black           | (30,40\]   | Female | vax\_rate |      4949.356 |
-| Black           | \[0,10\]   | Female | vax\_rate |      4951.926 |
+| American Indian | (70,80\]   | Male   | vax\_rate |      49.32433 |
+| Black           | (10,20\]   | Female | vax\_rate |      49.36218 |
+| Black           | \[0,10\]   | Male   | vax\_rate |      49.47396 |
+| Black           | (10,20\]   | Male   | vax\_rate |      49.48072 |
+| Black           | (30,40\]   | Female | vax\_rate |      49.49356 |
+| Black           | \[0,10\]   | Female | vax\_rate |      49.51926 |
 
 ``` r
 # Highest vax rates
 race_age_sex %>% 
   filter(outcome == "vax_rate") %>% 
   mutate(
-    outcome_rate = outcome_rate * 100
+    outcome_rate = outcome_rate
   ) %>% 
   arrange(desc(outcome_rate)) %>% 
   select(race, age_class, sex, outcome, outcome_rate) %>% 
@@ -1515,12 +1503,12 @@ race_age_sex %>%
 
 | race                       | age\_class | sex    | outcome   | outcome\_rate |
 |:---------------------------|:-----------|:-------|:----------|--------------:|
-| Asian and Pacific Islander | (90,100\]  | Female | vax\_rate |      6610.248 |
-| Asian and Pacific Islander | (70,80\]   | Female | vax\_rate |      6589.982 |
-| Asian and Pacific Islander | (70,80\]   | Male   | vax\_rate |      6573.426 |
-| Asian and Pacific Islander | (30,40\]   | Male   | vax\_rate |      6561.553 |
-| Asian and Pacific Islander | (30,40\]   | Female | vax\_rate |      6557.662 |
-| 2+ races                   | (80,90\]   | Male   | vax\_rate |      6547.910 |
+| Asian and Pacific Islander | (90,100\]  | Female | vax\_rate |      66.10248 |
+| Asian and Pacific Islander | (70,80\]   | Female | vax\_rate |      65.89982 |
+| Asian and Pacific Islander | (70,80\]   | Male   | vax\_rate |      65.73426 |
+| Asian and Pacific Islander | (30,40\]   | Male   | vax\_rate |      65.61553 |
+| Asian and Pacific Islander | (30,40\]   | Female | vax\_rate |      65.57662 |
+| 2+ races                   | (80,90\]   | Male   | vax\_rate |      65.47910 |
 
 ``` r
 # Let's look at outcomes by demographics WITHOUT splitting by PUMA
@@ -1540,7 +1528,7 @@ outcome_vs_predictor(race, "vax")
 
 ``` r
 # Test3: vax rate by sex
-outcome_vs_predictor(sex, "vax")
+outcome_vs_predictor(race, "vax")
 ```
 
 <img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-9-3.png" width="90%" />
@@ -1869,7 +1857,7 @@ corr_option_one = puma_level_data %>%
   ggplot(aes(x = var1, y = var2, fill = cor)) + 
   geom_tile(color = "white") +  
   scale_x_discrete(
-    labels = c("Death Rate", "Hosp Rate", "Vax Rate", "Death to Hosp Rate")
+    labels = c("Death Rate", "Hosp Rate", "Death to Hosp Rate", "Vax Rate")
   ) + 
   geom_text(
     aes(var1, var2, label = cor),
@@ -1897,7 +1885,7 @@ corr_option_two = puma_level_data %>%
     label = round(r_if_sig, 2))) + 
   geom_tile(color = "white") +  
   scale_x_discrete(
-    labels = c("Death Rate", "Hosp Rate", "Vax Rate", "Death to Hosp Rate")
+    labels = c("Death Rate", "Hosp Rate", "Death to Hosp Rate", "Vax Rate")
   ) + 
   geom_text(
     color = "white",
@@ -1926,7 +1914,7 @@ corr_option_three = puma_level_data %>%
   geom_point(aes(size = abs(cor)), shape = 15) + 
   geom_text(color = "white", size = 2) + 
   scale_x_discrete(
-    labels = c("Death Rate", "Hosp Rate", "Vax Rate", "Death to Hosp Rate")
+    labels = c("Death Rate", "Hosp Rate", "Death to Hosp Rate", "Vax Rate")
   )
 
 corr_option_one + corr_option_two + corr_option_three
@@ -1939,8 +1927,9 @@ corr_option_one + corr_option_two + corr_option_three
 <img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-16-1.png" width="90%" />
 
 ``` r
-# Notes for later:
+## Notes for later:
 # Reorder matrix?
+# Do these at interview level? (But then need only numeric x and y vectors; how do we treat categoricals?)
 ```
 
 ## Heatmaps for any two predictors (including borough)
@@ -2056,7 +2045,6 @@ PUMA_outcomes %>%
     x = "Hosp Rate",
     y = "Density"
   ) + 
-  theme(legend.position = "none") + 
   geom_vline(aes(xintercept=median(outcome_rate)),
             color="red", linetype="dashed", size=1)
 ```
@@ -2069,15 +2057,14 @@ PUMA_outcomes %>%
   filter(name == "covid_death_rate") %>% 
   ggplot(
     aes(
-      x = outcome_rate / 100
+      x = outcome_rate
     )
   ) + 
   geom_density(aes(color = borough, fill = borough), alpha = 0.1) + 
   labs(
-    x = "Hosp Rate",
+    x = "Death Rate",
     y = "Density"
-  ) + 
-  theme(legend.position = "none") +
+  ) +
   geom_vline(aes(xintercept=median(outcome_rate)),
             color="red", linetype="dashed", size=1)
 ```
@@ -2098,8 +2085,7 @@ PUMA_outcomes %>%
   labs(
     x = "Vax Rate",
     y = "Density"
-  ) + 
-  theme(legend.position = "none") +
+  ) +
   geom_vline(aes(xintercept=median(outcome_rate)),
             color="red", linetype="dashed", size=1)
 ```
@@ -2119,8 +2105,7 @@ PUMA_outcomes %>%
   labs(
     x = "Vax rate",
     y = "Density"
-  ) + 
-  theme(legend.position = "none") +
+  ) +
   geom_vline(aes(xintercept=median(outcome_rate)),
             color="red", linetype="dashed", size=1)
 ```
@@ -2272,6 +2257,13 @@ borough_cat_comparisons(rent, "hosp")
 
 <img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-23-5.png" width="90%" />
 
+``` r
+# Test on education vs. vax rate
+borough_cat_comparisons(education, "vax")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-23-6.png" width="90%" />
+
 ## Borough-level predictor distributions
 
 ``` r
@@ -2396,6 +2388,28 @@ demo_puma_graph("perc_college", "covid_vax_rate")
 
 <img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-14.png" width="90%" />
 
+``` r
+# No outcomes for these
+# Poverty vs foodstamps 
+demo_puma_graph("perc_foodstamps", "perc_poverty")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-15.png" width="90%" />
+
+``` r
+# Poverty vs broadband 
+demo_puma_graph("perc_broadband", "perc_poverty")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-16.png" width="90%" />
+
+``` r
+# Foodstamps vs broadband
+demo_puma_graph("perc_foodstamps", "perc_broadband")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-17.png" width="90%" />
+
 ## Outcomes across two variables
 
 ``` r
@@ -2492,6 +2506,13 @@ predict_scatter(perc_poverty, perc_college, hosp)
 ```
 
 <img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-27-6.png" width="90%" />
+
+``` r
+# Hosp rates, PUMA poverty vs welfare
+predict_scatter(perc_poverty, perc_welfare, hosp)
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-27-7.png" width="90%" />
 
 ## Analyses using above/below outcomes median by interview or by PUMA
 
