@@ -1818,8 +1818,9 @@ corr_option_three = puma_level_data %>%
 
 corr_option_one + corr_option_two + corr_option_three
 
-# Notes for later:
+## Notes for later:
 # Reorder matrix?
+# Do these at interview level? (But then need only numeric x and y vectors; how do we treat categoricals?)
 ```
 
 ## Heatmaps for any two predictors (including borough)
