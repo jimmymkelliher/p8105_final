@@ -909,6 +909,7 @@ borough_info %>%
 ```
 
 
+
 English and Hospitalization Rate 
 ```{r}
 english_vax_rel <- 
@@ -929,3 +930,18 @@ english_vax_rel <-
 ```
 
 
+
+```{r}
+college_hosp_rel <- 
+  borough_info %>% 
+  ggplot(aes(x = perc_college,
+             y = covid_hosp_rate)) + 
+  geom_point(aes(color = Borough)) + 
+  geom_smooth(method = lm, formula = y ~ splines::bs(x, 3), se = FALSE) + 
+  labs(
+    title = "College and Hospitalization",
+    x = "College", 
+    y = "Covid Hospitalization Rate per 100,000"
+  ) +
+  theme(legend.position = "right")
+```
