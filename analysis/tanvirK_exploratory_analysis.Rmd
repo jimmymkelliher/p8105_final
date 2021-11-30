@@ -767,7 +767,8 @@ Ranking -  Vaccination Rate in Puma (colored by Borough)
 rank_vax_puma <- 
   borough_info %>% 
   arrange(desc(covid_vax_rate)) %>%
-  ggplot(aes(x = fct_reorder(puma, desc(covid_vax_rate)), 
+  ggplot(aes(x = fct_reorder(puma, 
+                             desc(covid_vax_rate)), 
              y = covid_vax_rate)) + 
   geom_bar(stat = "identity", 
            aes(fill = Borough)) + 
@@ -788,7 +789,8 @@ Ranking -  Death Rate in Puma (colored by Borough)
 rank_death_puma <- 
   borough_info %>% 
   arrange(desc(covid_death_rate)) %>%
-  ggplot(aes(x = fct_reorder(puma, desc(covid_death_rate)), 
+  ggplot(aes(x = fct_reorder(puma, 
+                             desc(covid_death_rate)), 
              y = covid_death_rate)) + 
   geom_bar(stat = "identity", 
            aes(fill = Borough)) + 
@@ -810,16 +812,102 @@ Ranking - Hospitalization Rate in Puma (colored by Borough)
 rank_hospr_puma <- 
   borough_info %>% 
   arrange(desc(covid_hosp_rate)) %>%
-  ggplot(aes(x = fct_reorder(puma, desc(covid_hosp_rate)), 
+  ggplot(aes(x = fct_reorder(puma, 
+                             desc(covid_hosp_rate)), 
              y = covid_hosp_rate)) + 
   geom_bar(stat = "identity", 
            aes(fill = Borough)) + 
   theme(axis.text.x = 
           element_text(angle = 70, vjust = 0.5, hjust = 0.5)) + 
   labs(
-    title = "Ranking Death Rate in each Puma", 
+    title = "Ranking Hospitalization Rate in each Puma", 
     x = "PUMA",
     y = "COVID Hospitalization Rate"
   ) + 
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom") + 
+  facet_grid(Borough~puma)
 ```
+
+
+
+
+```{r}
+
+borough_info %>% 
+  ggplot(aes(
+    x = perc_male,
+    y = covid_hosp_rate
+  )) + 
+  geom_point() + 
+  geom_smooth(method = lm, 
+              formula = y ~ splines::bs(x, 3), 
+              se = FALSE) + 
+   labs(
+    title = "Relationship between Male and Hospitalization Rate", 
+    x = "Percentage of Male in Each Puma",
+    y = "COVID Hospitalization Rate") 
+```
+
+
+
+# Meeting Discussion - Creating Plots - *(11/30/2021)*
+
+WHite and Hospitalization Rate 
+```{r}
+borough_info %>% 
+  ggplot(aes(
+    x = perc_white,
+    y = covid_hosp_rate
+  )) + 
+  geom_point(aes(color = Borough)) + 
+  geom_smooth(method = "loess", 
+    color = 'red',
+    se = FALSE) +  
+  labs(
+    title = "Race (White) and Hospitalization Rate", 
+    subtitle = "By NYC Borough", 
+    x = "Percentage of White in that PUMA for that Borough",
+    y = "COVID Hospitalization Rate")
+```
+
+
+Public Transport and Hospitalization Rate 
+```{r}
+borough_info %>% 
+  ggplot(aes(
+    x = perc_public_transport,
+    y = covid_hosp_rate
+  )) + 
+  geom_point(aes(color = Borough)) + 
+  geom_smooth(method = "loess", 
+    color = 'red',
+    se = FALSE) +  
+  labs(
+    title = "Public Transportation and Hospitalization Rate", 
+    subtitle = "By NYC Borough", 
+    x = "Percentage of Public Transportation usage in that PUMA for that Borough",
+    y = "COVID Hospitalization Rate")
+```
+
+
+
+Insured and Hospitalization Rate 
+```{r}
+borough_info %>% 
+  ggplot(aes(
+    x = perc_insured,
+    y = covid_hosp_rate
+  )) + 
+  geom_point(aes(color = Borough)) + 
+  geom_smooth(method = "loess", 
+    color = 'red',
+    se = FALSE) +  
+  labs(
+    title = "Insured and Hospitalization Rate", 
+    subtitle = "By NYC Borough", 
+    x = "Percentage of Insured in that PUMA for that Borough",
+    y = "COVID Hospitalization Rate")
+```
+
+
+
