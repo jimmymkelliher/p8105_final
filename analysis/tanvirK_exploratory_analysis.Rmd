@@ -965,3 +965,25 @@ internet_hosp_rel <-
     y = "COVID Hospitalization Rate") +
   theme(legend.position = "right")
 ```
+
+
+
+
+Median Household Income and Covid Hospitalization Rate
+```{r}
+borough_info %>% 
+  ggplot(aes(x = median_household_income,
+             y = covid_hosp_rate)) + 
+  geom_point(aes(color  = Borough)) + 
+  geom_smooth(
+    method = "lm", 
+    color = 'red',
+    se = FALSE) +
+  labs(
+    title = "Median Household Income and Hospitalization Rate", 
+    subtitle = "By NYC Borough", 
+    x = "Median Household Income",
+    y = "COVID Hospitalization Rate") +
+  theme(legend.position = "right")
+```
+
