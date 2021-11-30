@@ -279,8 +279,10 @@ interview_level_data = cleaned_data %>%
     mutate(
       above_hosp_median = as.factor(ifelse(puma_hosp_rate > median(puma_hosp_rate), 1, 0)),
       above_death_median = as.factor(ifelse(puma_death_rate > median(puma_death_rate), 1, 0)),
-      above_vax_median = as.factor(ifelse(puma_vacc_rate > median(puma_vacc_rate), 1, 0))
-  )
+      above_vax_median = as.factor(ifelse(puma_vacc_rate > median(puma_vacc_rate), 1, 0)),
+      age_class = as.factor(cut(age, breaks = c(0, 15, 30, 45, 60, 75, 90, 105), include.lowest = TRUE)),
+      household_income_class = as.factor(cut(household_income, breaks = c(0, 50000, 100000, 150000, 200000, 250000, 300000, 350000, 400000), include.lowest = TRUE))
+    )
 
 # PUMA level data with boroughs and some new metrics / categoricals
 puma_level_data = 
@@ -646,7 +648,8 @@ one_var_borough_summarize = function(predict){
         num_hosp = sum(weighted_hosp) / 100,
         num_vax = sum(weighted_vax) / 100,
         num_death = sum(weighted_death) / 100
-      )
+      ) %>% 
+      drop_na(predict)
     
     return(a)
     
@@ -796,19 +799,6 @@ borough_cat_comparisons = function(predict, outcome) {
   b = one_var_borough_summarize({{predict}})
       
     if (outcome == "vax") {
-      grouped = ggplot(
-        data = b,
-        aes(
-          x = reorder(borough, vax_rate),
-          y = vax_rate,
-          fill = predict
-        )
-      ) + 
-      geom_bar(position = "dodge", stat = "identity") + 
-      theme(legend.position = "none") + 
-        labs(
-          x = "Borough"
-        )
       
       compare = b %>% 
         pivot_longer(
@@ -816,7 +806,7 @@ borough_cat_comparisons = function(predict, outcome) {
           names_to = "type",
           values_to = "count"
         ) %>% 
-        filter(type %in% c("num_people", "num_vax")) %>% 
+        filter(type %in% c("num_people", "num_vax")) %>%
         ggplot(
           aes(x = type,
               y = count,
@@ -827,8 +817,11 @@ borough_cat_comparisons = function(predict, outcome) {
         facet_wrap(.~borough) + 
         theme(legend.position = "none") + 
         labs(
-          x = "Prop w/ Outcome vs. Demographic Prop"
-        )
+          x = "",
+          y = "Proportion in Borough"
+        ) + 
+        scale_y_continuous(labels = scales::percent_format()) + 
+        scale_x_discrete(labels = c("num_people" = "Overall", "num_vax" = "Vaccinated"))
       
     stack = b %>% 
       ggplot(aes(
@@ -840,31 +833,25 @@ borough_cat_comparisons = function(predict, outcome) {
       geom_bar(stat = "identity") + 
       theme(legend.position = "none") + 
         labs(
-          x = "Borough"
+          x = "Borough",
+          y = "Number of People Vaccinated"
         )
       
       vary1 = b %>% 
       ggplot(aes(x = borough, y = vax_rate)) + 
       geom_point(aes(color = predict)) + 
         labs(
-          x = "Borough"
+          x = "Borough",
+          y = "% Vaccinated"
         )
       
-      (grouped + stack + compare) / vary1
+      total = (stack + compare) / vary1
+      
+      total + plot_annotation(
+  title = "Outcomes Across Boroughs",
+  subtitle = "Categorized by Predictor Level" 
+)
   } else if (outcome == "hosp"){
-    grouped = ggplot(
-        data = b,
-        aes(
-          x = reorder(borough, hosp_rate),
-          y = hosp_rate,
-          fill = predict
-        )
-      ) + 
-      geom_bar(position = "dodge", stat = "identity") + 
-      theme(legend.position = "none") + 
-        labs(
-          x = "Borough"
-        )
       
       compare = b %>% 
         pivot_longer(
@@ -872,7 +859,7 @@ borough_cat_comparisons = function(predict, outcome) {
           names_to = "type",
           values_to = "count"
         ) %>% 
-        filter(type %in% c("num_people", "num_hosp")) %>% 
+        filter(type %in% c("num_people", "num_hosp")) %>%
         ggplot(
           aes(x = type,
               y = count,
@@ -883,10 +870,13 @@ borough_cat_comparisons = function(predict, outcome) {
         facet_wrap(.~borough) + 
         theme(legend.position = "none") + 
         labs(
-          x = "Prop w/ Outcome vs. Demographic Prop"
-        )
+          x = "",
+          y = "Proportion in Borough"
+        ) + 
+        scale_y_continuous(labels = scales::percent_format()) + 
+        scale_x_discrete(labels = c("num_people" = "Overall", "num_hosp" = "Hospitalized"))
       
-    stack = b %>% 
+    stack = b %>%
       ggplot(aes(
         x = borough,
         y = num_hosp,
@@ -896,39 +886,33 @@ borough_cat_comparisons = function(predict, outcome) {
       geom_bar(stat = "identity") + 
       theme(legend.position = "none") + 
         labs(
-          x = "Borough"
+          x = "Borough",
+          y = "Number of People Hospitalized"
         )
       
-      vary1 = b %>% 
+      vary1 = b %>%
       ggplot(aes(x = borough, y = hosp_rate)) + 
       geom_point(aes(color = predict)) + 
         labs(
-          x = "Borough"
+          x = "Borough",
+          y = "% Hospitalized"
         )
       
-      (grouped + stack + compare) / vary1
+      total = (stack + compare) / vary1
+      
+      total + plot_annotation(
+  title = "Outcomes Across Boroughs",
+  subtitle = "Categorized by Predictor Level" 
+)
   } else if (outcome == "death"){
-    grouped = ggplot(
-        data = b,
-        aes(
-          x = reorder(borough, death_rate),
-          y = death_rate,
-          fill = predict
-        )
-      ) + 
-      geom_bar(position = "dodge", stat = "identity") + 
-      theme(legend.position = "none") + 
-        labs(
-          x = "Borough"
-        )
-      
+ 
       compare = b %>% 
         pivot_longer(
           cols = num_people:num_death,
           names_to = "type",
           values_to = "count"
         ) %>% 
-        filter(type %in% c("num_people", "num_death")) %>% 
+        filter(type %in% c("num_people", "num_death")) %>%
         ggplot(
           aes(x = type,
               y = count,
@@ -939,10 +923,13 @@ borough_cat_comparisons = function(predict, outcome) {
         facet_wrap(.~borough) + 
         theme(legend.position = "none") + 
         labs(
-          x = "Prop w/ Outcome vs. Demographic Prop"
-        )
+          x = "",
+          y = "Proportion in Borough"
+        ) + 
+        scale_y_continuous(labels = scales::percent_format()) + 
+        scale_x_discrete(labels = c("num_people" = "Overall", "num_deceased" = "Deceased"))
       
-    stack = b %>% 
+    stack = b %>%
       ggplot(aes(
         x = borough,
         y = num_death,
@@ -952,17 +939,23 @@ borough_cat_comparisons = function(predict, outcome) {
       geom_bar(stat = "identity") + 
       theme(legend.position = "none") + 
         labs(
-          x = "Borough"
+          x = "Borough",
+          y = "Number of People Deceased"
         )
       
-      vary1 = b %>% 
+      vary1 = b %>%
       ggplot(aes(x = borough, y = death_rate)) + 
       geom_point(aes(color = predict)) + 
         labs(
-          x = "Borough"
+          x = "Borough",
+          y = "% Deceased"
         )
       
-      (grouped + stack + compare) / vary1
+      total = (stack + compare) / vary1
+      total + plot_annotation(
+  title = "Outcomes Across Boroughs",
+  subtitle = "Categorized by Predictor Level" 
+)
   } 
 }
   
@@ -2453,4 +2446,203 @@ fourth_predict_ses = outcome_vs_predictor(employment, "vax") +
   geom_text(aes(label = round(vax_rate, 2)), vjust = 1.5, color = "white")
 
 (first_predict_ses + second_predict_ses) / (third_predict_ses + fourth_predict_ses)
+```
+
+## Associations between Predictors and Outcomes by Borough
+
+What kinds of disparities occur within each borough on key outcome rates across levels of a predictor?
+
+First, hospitalizations:
+
+```{r hospitalization borough disparities, echo = FALSE, message = FALSE, warning = FALSE}
+
+# Hospitalizations by race
+borough_cat_comparisons(race, "hosp") + plot_annotation(
+  title = "Hospitalizations Across Boroughs",
+  subtitle = "Categorized by Race" 
+)
+
+# Hospitalizations by sex
+borough_cat_comparisons(sex, "hosp") + plot_annotation(
+  title = "Hospitalizations Across Boroughs",
+  subtitle = "Categorized by Sex" 
+)
+
+# Hospitalizations by age
+borough_cat_comparisons(age_class, "hosp")  + plot_annotation(
+  title = "Hospitalizations Across Boroughs",
+  subtitle = "Categorized by Age Group" 
+)
+```
+
+Then, deaths:
+
+```{r death borough disparities, echo = FALSE, message = FALSE, warning = FALSE}
+
+# Deaths by race
+borough_cat_comparisons(race, "death") + plot_annotation(
+  title = "Deaths Across Boroughs",
+  subtitle = "Categorized by Race" 
+)
+
+# Deaths by sex
+borough_cat_comparisons(sex, "death") + plot_annotation(
+  title = "Deaths Across Boroughs",
+  subtitle = "Categorized by Sex" 
+)
+
+# Deaths by age
+borough_cat_comparisons(age_class, "death")  + plot_annotation(
+  title = "Deaths Across Boroughs",
+  subtitle = "Categorized by Age Group" 
+)
+```
+
+And finally, vaccinations:
+
+```{r vax borough disparities, echo = FALSE, message = FALSE, warning = FALSE}
+
+# Deaths by race
+borough_cat_comparisons(race, "vax")  + plot_annotation(
+  title = "Vaccinations Across Boroughs",
+  subtitle = "Categorized by Race" 
+)
+
+# Deaths by sex
+borough_cat_comparisons(sex, "vax")  + plot_annotation(
+  title = "Vaccinations Across Boroughs",
+  subtitle = "Categorized by Sex" 
+)
+
+# Deaths by age
+borough_cat_comparisons(age_class, "vax") + plot_annotation(
+  title = "Vaccinations Across Boroughs",
+  subtitle = "Categorized by Age Group" 
+)
+```
+
+A note for later -- we could try this for key SES indicators as well, such as:
+
+```{r vax borough ses disparity, echo = FALSE, message = FALSE, warning = FALSE}
+# Vaccination by household income class
+borough_cat_comparisons(household_income_class, "vax") + plot_annotation(
+  title = "Outcomes Across Boroughs",
+  subtitle = "Categorized by Income Level" 
+)
+```
+
+And finally, we can visualize outcomes on a given predictor across boroughs in the following way -- for simplicity's sake, only demographic variables and outcomes included here.
+
+```{r borough predictor heatmap hosp, echo = FALSE, message = FALSE, warning = FALSE}
+# Hospitalizations
+# Race x Borough
+race_hosp_borough = heatmap_two_var(race, borough, "hosp") + 
+  labs(
+    x = "Race",
+    y = "Borough",
+    title = "% Hospitalized by Borough and Race",
+    fill = "% Hospitalized"
+  ) + 
+  theme(legend.position = "none")
+
+# Sex x Borough
+sex_hosp_borough = heatmap_two_var(sex, borough, "hosp") + 
+  labs(
+    x = "Sex",
+    y = "Borough",
+    title = "% Hospitalized by Borough and Sex",
+    fill = "% Hospitalized"
+  ) + 
+  theme(legend.position = "none")
+
+# Age x Borough
+age_hosp_borough = heatmap_two_var(age_class, borough, "hosp") + 
+  labs(
+    x = "Age Group",
+    y = "Borough",
+    title = "% Hospitalized by Borough and Age Group",
+    fill = "% Hospitalized"
+  ) + 
+  theme(legend.position = "none")
+
+hosp_heat = race_hosp_borough / sex_hosp_borough / age_hosp_borough
+
+hosp_heat + theme(legend.position = "bottom") + 
+  plot_layout(guides = "collect")
+```
+
+```{r borough predictor heatmap death, echo = FALSE, message = FALSE, warning = FALSE}
+# Deaths
+# Race x Borough
+race_death_borough = heatmap_two_var(race, borough, "death") + 
+  labs(
+    x = "Race",
+    y = "Borough",
+    title = "% Deceased by Borough and Race",
+    fill = "% Deceased"
+  ) + 
+  theme(legend.position = "none")
+
+# Sex x Borough
+sex_death_borough = heatmap_two_var(sex, borough, "death") + 
+  labs(
+    x = "Sex",
+    y = "Borough",
+    title = "% Deceased by Borough and Sex",
+    fill = "% Deceased"
+  ) + 
+  theme(legend.position = "none")
+
+# Age x Borough
+age_death_borough = heatmap_two_var(age_class, borough, "death") + 
+  labs(
+    x = "Age Group",
+    y = "Borough",
+    title = "% Deceased by Borough and Age Group",
+    fill = "% Deceased"
+  ) + 
+  theme(legend.position = "none")
+
+death_heat = race_death_borough / sex_death_borough / age_death_borough
+
+death_heat + theme(legend.position = "bottom") + 
+  plot_layout(guides = "collect")
+```
+
+```{r borough predictor heatmap vax, echo = FALSE, message = FALSE, warning = FALSE}
+# Vaccinations
+# Race x Borough
+race_vax_borough = heatmap_two_var(race, borough, "vax") + 
+  labs(
+    x = "Race",
+    y = "Borough",
+    title = "% Vaccinated by Borough and Race",
+    fill = "% Vaccinated"
+  ) + 
+  theme(legend.position = "none")
+
+# Sex x Borough
+sex_vax_borough = heatmap_two_var(sex, borough, "vax") + 
+  labs(
+    x = "Sex",
+    y = "Borough",
+    title = "% Vaccinated by Borough and Sex",
+    fill = "% Vaccinated"
+  ) + 
+  theme(legend.position = "none")
+
+# Age x Borough
+age_vax_borough = heatmap_two_var(age_class, borough, "vax") + 
+  labs(
+    x = "Age Group",
+    y = "Borough",
+    title = "% Vaccinated by Borough and Age Group",
+    fill = "% Vaccinated"
+  ) + 
+  theme(legend.position = "none")
+
+vax_heat = race_vax_borough / sex_vax_borough / age_vax_borough
+
+vax_heat + theme(legend.position = "bottom") + 
+  plot_layout(guides = "collect")
 ```

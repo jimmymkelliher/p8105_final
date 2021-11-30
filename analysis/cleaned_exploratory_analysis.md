@@ -9,77 +9,6 @@ Zachary Katz
 
 ## Overview of Outcome Variables
 
-### Outcomes by Demographic
-
-Which distinct race/sex/age group combinations have the best and worst
-outcomes?
-
-| Race  | Age Group | Sex    | % Hospitalized |
-|:------|:----------|:-------|---------------:|
-| White | (20,30\]  | Female |          0.876 |
-| White | (30,40\]  | Male   |          0.886 |
-| White | (30,40\]  | Female |          0.891 |
-| White | (20,30\]  | Male   |          0.896 |
-| White | (40,50\]  | Male   |          0.928 |
-| White | (40,50\]  | Female |          0.935 |
-
-Lowest hospitalization rates (per 100)
-
-| Race                       | Age Group | Sex    | % Hospitalized |
-|:---------------------------|:----------|:-------|---------------:|
-| American Indian            | (80,90\]  | Male   |          1.272 |
-| Other                      | (60,70\]  | Male   |          1.217 |
-| Other                      | (10,20\]  | Male   |          1.212 |
-| Other                      | (40,50\]  | Male   |          1.200 |
-| Other                      | (60,70\]  | Female |          1.185 |
-| Asian and Pacific Islander | (90,100\] | Male   |          1.174 |
-
-Highest hospitalization rates (per 100)
-
-| Race  | Age Group | Sex    | % Deceased |
-|:------|:----------|:-------|-----------:|
-| White | (20,30\]  | Female |      0.238 |
-| White | (30,40\]  | Male   |      0.242 |
-| White | (20,30\]  | Male   |      0.244 |
-| White | (30,40\]  | Female |      0.246 |
-| Other | (80,90\]  | Male   |      0.254 |
-| White | (40,50\]  | Male   |      0.256 |
-
-Lowest death rates (per 100)
-
-| Race                       | Age Group | Sex    | % Deceased |
-|:---------------------------|:----------|:-------|-----------:|
-| American Indian            | (80,90\]  | Male   |      1.272 |
-| Other                      | (60,70\]  | Male   |      1.217 |
-| Other                      | (10,20\]  | Male   |      1.212 |
-| Other                      | (40,50\]  | Male   |      1.200 |
-| Other                      | (60,70\]  | Female |      1.185 |
-| Asian and Pacific Islander | (90,100\] | Male   |      1.174 |
-
-Highest death rates (per 100)
-
-| Race            | Age Group | Sex    | % Vaccinated |
-|:----------------|:----------|:-------|-------------:|
-| American Indian | (70,80\]  | Male   |       49.324 |
-| Black           | (10,20\]  | Female |       49.362 |
-| Black           | \[0,10\]  | Male   |       49.474 |
-| Black           | (10,20\]  | Male   |       49.481 |
-| Black           | (30,40\]  | Female |       49.494 |
-| Black           | \[0,10\]  | Female |       49.519 |
-
-Lowest vaccination rates (per 100)
-
-| Race                       | Age Group | Sex    | % Vaccinated |
-|:---------------------------|:----------|:-------|-------------:|
-| Asian and Pacific Islander | (90,100\] | Female |       66.102 |
-| Asian and Pacific Islander | (70,80\]  | Female |       65.900 |
-| Asian and Pacific Islander | (70,80\]  | Male   |       65.734 |
-| Asian and Pacific Islander | (30,40\]  | Male   |       65.616 |
-| Asian and Pacific Islander | (30,40\]  | Female |       65.577 |
-| 2+ races                   | (80,90\]  | Male   |       65.479 |
-
-Highest vaccination rates (per 100)
-
 ### Outcomes by PUMA
 
 How are key outcomes distributed across PUMAs?
@@ -130,3 +59,63 @@ citywide median on a given outcome?
 How do key predictors correlate with key outcomes at the PUMA level?
 
 <img src="cleaned_exploratory_analysis_files/figure-gfm/correlations predictors vs outcomes-1.png" width="90%" />
+
+For each of the four most correlated variables (excluding obvious
+redundancies) with each outcome, can we explore more precisely the
+relationship between outcome and predictor?
+
+First, across PUMAs:
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/PUMA hospitalization rate vs predictor-1.png" width="90%" />
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/PUMA death rate vs predictor-1.png" width="90%" />
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/PUMA vax rate vs predictor-1.png" width="90%" />
+
+Then, across all interviews, for key demographic predictors:
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/hospitalization rate by demo-1.png" width="90%" />
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/death rate by demo-1.png" width="90%" />
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/vax rate by demo-1.png" width="90%" />
+
+And finally across all interviews for key socioeconomic predictors:
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/hosp rate by ses-1.png" width="90%" />
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/death rate by ses-1.png" width="90%" />
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/vax rate by ses-1.png" width="90%" />
+
+## Associations between Predictors and Outcomes by Borough
+
+What kinds of disparities occur within each borough on key outcome rates
+across levels of a predictor?
+
+First, hospitalizations:
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/hospitalization borough disparities-1.png" width="90%" /><img src="cleaned_exploratory_analysis_files/figure-gfm/hospitalization borough disparities-2.png" width="90%" /><img src="cleaned_exploratory_analysis_files/figure-gfm/hospitalization borough disparities-3.png" width="90%" />
+
+Then, deaths:
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/death borough disparities-1.png" width="90%" /><img src="cleaned_exploratory_analysis_files/figure-gfm/death borough disparities-2.png" width="90%" /><img src="cleaned_exploratory_analysis_files/figure-gfm/death borough disparities-3.png" width="90%" />
+
+And finally, vaccinations:
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/vax borough disparities-1.png" width="90%" /><img src="cleaned_exploratory_analysis_files/figure-gfm/vax borough disparities-2.png" width="90%" /><img src="cleaned_exploratory_analysis_files/figure-gfm/vax borough disparities-3.png" width="90%" />
+
+A note for later – we could try this for key SES indicators as well,
+such as:
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/vax borough ses disparity-1.png" width="90%" />
+
+And finally, we can visualize outcomes on a given predictor across
+boroughs in the following way – for simplicity’s sake, only demographic
+variables and outcomes included here.
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/borough predictor heatmap hosp-1.png" width="90%" />
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/borough predictor heatmap death-1.png" width="90%" />
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/borough predictor heatmap vax-1.png" width="90%" />
