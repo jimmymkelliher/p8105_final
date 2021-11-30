@@ -706,7 +706,7 @@ Race (White) vs Hospitalization Rate
 ```{r}
 borough_info %>% 
   ggplot(aes(
-    x = median_age,
+    x = perc_white,
     y = covid_hosp_rate
   )) + 
   geom_point(aes(color = Borough)) + 
@@ -725,7 +725,7 @@ Race (White) vs Vaccination Rate
 ```{r}
 borough_info %>% 
   ggplot(aes(
-    x = median_age,
+    x = perc_white,
     y = covid_vax_rate
   )) + 
   geom_point(aes(color = Borough)) + 
@@ -745,7 +745,7 @@ Race (White) vs Death Rate
 ```{r}
 borough_info %>% 
   ggplot(aes(
-    x = median_age,
+    x = perc_white,
     y = covid_death_rate
   )) + 
   geom_point(aes(color = Borough)) + 
@@ -832,7 +832,6 @@ rank_hospr_puma <-
 
 
 ```{r}
-
 borough_info %>% 
   ggplot(aes(
     x = perc_male,
@@ -909,5 +908,24 @@ borough_info %>%
     y = "COVID Hospitalization Rate")
 ```
 
+
+English and Hospitalization Rate 
+```{r}
+english_vax_rel <- 
+  borough_info %>% 
+  ggplot(aes(x = perc_english,
+             y = covid_hosp_rate)) + 
+  geom_point(aes(color = Borough)) + 
+  geom_smooth(
+    method = "lm", 
+    color = 'red',
+    se = FALSE) +
+  labs(
+    title = "English Speaking and Hospitalization Rate", 
+    subtitle = "By NYC Borough", 
+    x = "Percentage Speaking English in that puma for that Borough",
+    y = "COVID Hospitalization Rate") +
+  theme(legend.position = "none")
+```
 
 
