@@ -849,7 +849,7 @@ borough_info %>%
 
 
 
-# Meeting Discussion - Creating Plots - *(11/30/2021)*
+# Meeting Discussion - Creating Plots - *(11/30/2021)* - Verifying the Middle Heat Map in Zak's Document 
 
 WHite and Hospitalization Rate 
 ```{r}
@@ -930,7 +930,7 @@ english_vax_rel <-
 ```
 
 
-
+College and Hospitalization Rate 
 ```{r}
 college_hosp_rel <- 
   borough_info %>% 
@@ -943,5 +943,25 @@ college_hosp_rel <-
     x = "College", 
     y = "Covid Hospitalization Rate per 100,000"
   ) +
+  theme(legend.position = "right")
+```
+
+
+Internet and Hospitalization Relationship
+```{r}
+internet_hosp_rel <- 
+  borough_info %>% 
+  ggplot(aes(x = perc_broadband,
+             y = covid_hosp_rate)) + 
+  geom_point(aes(color  = Borough)) + 
+  geom_smooth(
+    method = "lm", 
+    color = 'red',
+    se = FALSE) +
+  labs(
+    title = "Internet and Hospitalization Rate", 
+    subtitle = "By NYC Borough", 
+    x = "Internet Percentages for Each Puma in their associated Borough",
+    y = "COVID Hospitalization Rate") +
   theme(legend.position = "right")
 ```
