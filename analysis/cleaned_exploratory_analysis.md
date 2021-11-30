@@ -9,7 +9,7 @@ Zachary Katz
 
 ## Overview of Outcome Variables
 
-### Outcomes by Demographic Combination
+### Outcomes by Demographic
 
 Which distinct race/sex/age group combinations have the best and worst
 outcomes?
@@ -91,3 +91,42 @@ Which PUMAs have the worst and best outcomes?
 <img src="cleaned_exploratory_analysis_files/figure-gfm/worst PUMA outcomes-1.png" width="90%" />
 
 <img src="cleaned_exploratory_analysis_files/figure-gfm/best PUMA outcomes-1.png" width="90%" />
+
+What about with PUMAs in the same order?
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/outcomes sorted by puma-1.png" width="90%" />
+
+How do key outcomes associate with each other at the PUMA level?
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/key outcome associations-1.png" width="90%" />
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/outcome correlations-1.png" width="90%" /><img src="cleaned_exploratory_analysis_files/figure-gfm/outcome correlations-2.png" width="90%" />
+
+### Outcomes by Borough
+
+Within each borough, how are PUMAs distributed on each key outcome?
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/hospitalizations by borough-1.png" width="90%" />
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/deaths by borough-1.png" width="90%" />
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/vax by borough-1.png" width="90%" />
+
+What proportion of PUMAs in a given borough were above or below the
+citywide median on a given outcome?
+
+| Borough       | Total PUMAs | % Above Hosp Median | % Above Death Median | % Above Vax Median |
+|:--------------|------------:|--------------------:|---------------------:|-------------------:|
+| Bronx         |          10 |                70.0 |                 50.0 |               20.0 |
+| Brooklyn      |          18 |                22.2 |                 38.9 |               16.7 |
+| Manhattan     |          10 |                30.0 |                 30.0 |               80.0 |
+| Queens        |          14 |                85.7 |                 78.6 |               85.7 |
+| Staten Island |           3 |                33.3 |                 33.3 |               66.7 |
+
+% of PUMAs in Each Borough Above Citywide PUMA Median
+
+## Associations between Predictors and Outcomes
+
+How do key predictors correlate with key outcomes at the PUMA level?
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/correlations predictors vs outcomes-1.png" width="90%" />
