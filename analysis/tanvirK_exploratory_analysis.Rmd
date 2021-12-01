@@ -851,6 +851,8 @@ borough_info %>%
 
 # Meeting Discussion - Creating Plots - *(11/30/2021)* - Verifying the Middle Heat Map in Zak's Document 
 
+*Hospitalization Rate*
+
 WHite and Hospitalization Rate 
 ```{r}
 borough_info %>% 
@@ -967,6 +969,23 @@ internet_hosp_rel <-
 ```
 
 
+Median Personal Income and Covid Hospitalization Rate 
+```{r}
+borough_info %>% 
+  ggplot(aes(x = median_personal_income,
+             y = covid_hosp_rate)) + 
+  geom_point(aes(color  = Borough)) + 
+  geom_smooth(
+    method = "lm", 
+    color = 'red',
+    se = FALSE) +
+  labs(
+    title = "Median Personal Income and Hospitalization Rate", 
+    subtitle = "By NYC Borough", 
+    x = "Median Personal Income",
+    y = "COVID Hospitalization Rate") +
+  theme(legend.position = "right")
+```
 
 
 Median Household Income and Covid Hospitalization Rate
@@ -986,4 +1005,46 @@ borough_info %>%
     y = "COVID Hospitalization Rate") +
   theme(legend.position = "right")
 ```
+
+
+*Death Rate* 
+
+Median Household income and Covid Death Rate 
+```{r}
+borough_info %>% 
+  ggplot(aes(x = median_household_income,
+             y = covid_death_rate)) + 
+  geom_point(aes(color  = Borough)) + 
+  geom_smooth(
+    method = "lm", 
+    color = 'red',
+    se = FALSE) +
+  labs(
+    title = "Median Household Income and Death Rate", 
+    subtitle = "By NYC Borough", 
+    x = "Median Household Income in that Puma for that Borough",
+    y = "COVID Death Rate") +
+  theme(legend.position = "right")
+```
+
+
+Median Personal Income and Covid Death Rate 
+```{r}
+borough_info %>% 
+  ggplot(aes(x = median_personal_income,
+             y = covid_death_rate)) + 
+  geom_point(aes(color  = Borough)) + 
+  geom_smooth(
+    method = "lm", 
+    color = 'red',
+    se = FALSE) +
+  labs(
+    title = "Median Personal Income and Death Rate", 
+    subtitle = "By NYC Borough", 
+    x = "Median Personal Income in that Puma for that Borough",
+    y = "COVID Death Rate") +
+  theme(legend.position = "right")
+```
+
+
 
