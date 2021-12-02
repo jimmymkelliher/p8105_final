@@ -235,11 +235,11 @@ Overview
 
 When considering a regression to predict health outcomes, our primary limitation is that outcomes are recorded at the PUMA-level. This is unfortunate, but without access to anonymized health records, this is the best we can do, so let's work with it!
 
-To that end, we must be careful to avoid over-fitting our model. For example, suppose we have a two-state model with states $s \in$ {0, 1}, and we run the regression
+To that end, we must be careful to avoid over-fitting our model. For example, suppose we have a two-state model with states $s \in$ {0, 1}, and for all individuals $i \in$ {$1, \ldots, n$}, we observe binary outcome $y_{ i, s } = s$. Further suppose we run the regression
 
-&nbsp; &nbsp; &nbsp; &nbsp; $y_s = \alpha + \beta$ $I_{\{s = 1\}} + \varepsilon_s.$
+&nbsp; &nbsp; &nbsp; &nbsp; $y_{ i, s } = \alpha + \beta$ $I_{\{s = 1\}} + \varepsilon_{ i, s }.$
 
-Trivially, we will find that $\hat{\alpha} = y_0$ and $\hat{\beta} = y_1 - y_0$. Moreover, we will find that $R^2 = 1$, but this is deceptive! While the model enjoys a perfect linear fit, it does not say anything meaningful: "If we know the value for each group, we can predict the value for each group!" Below is an example of this in the context of our data.
+Trivially, we will find that $\hat{\alpha} = 0$ and $\hat{\beta} = 1$. Moreover, we will find that $R^2 = 1$, but this is deceptive! While the model enjoys a perfect linear fit, it does not say anything meaningful: "If we know the value for each group, we can predict the value for each group!" Below is an example of this in the context of our data.
 
 ```{r}
 # example of overfitting
@@ -254,4 +254,26 @@ summary(example_overfit) %>%
   knitr::kable()
 ```
 
-Thus, for any independent variable $x$ that we consider to predict health outcome $y$, we must ensure that $x$ exhibits sufficient heterogeneity within PUMAs.
+Thus, for any independent variable $x$ that we consider to predict health outcome $y$, we must ensure that $x$ exhibits sufficient heterogeneity within PUMAs. If not, $x$ is just a predictor of where someone lives, and not of their probability of observing health outcome $y$.
+
+```{r}
+example_validate_vax <-
+  lm(
+    puma_vacc_rate ~ personal_income
+  , data = cleaned_data
+  , weights = perwt
+  ) %>%
+  summary()
+
+example_validate_puma <-
+  lm(
+    personal_income ~ puma
+  , data = cleaned_data
+  , weights = perwt
+  ) %>%
+  summary()
+
+example_validate_vax %>%broom::tidy() %>% knitr::kable()
+example_validate_vax %>%broom::glance() %>% knitr::kable()
+example_validate_puma %>%broom::glance() %>% knitr::kable()
+```
