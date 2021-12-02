@@ -1,66 +1,18 @@
----
-title: "Initial Exploratory Analysis"
-author: 'Zachary Katz'
-date: "11/24/2021"
-output: github_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+Initial Exploratory Analysis
+================
+Zachary Katz
+11/24/2021
 
 <!------------------------------------------------------------------------------
 Preamble
 ------------------------------------------------------------------------------->
-
-```{r, echo = FALSE, message = FALSE, warning = FALSE}
-# load necessary packages
-library(tidyverse)
-library(patchwork)
-library(reshape2)
-library(rstatix)
-library(patchwork)
-library(ggridges)
-library(spatstat)
-library(plotly)
-library(ggpubr)
-
-# set knitr defaults
-knitr::opts_chunk$set(
-    echo      = TRUE
-  , message   = FALSE
-  , fig.width = 6
-  , fig.asp   = .6
-  , out.width = "90%"
-)
-
-# set theme defaults
-theme_set(
-  theme_bw() +
-  theme(
-    legend.position = "bottom"
-    , plot.title    = element_text(hjust = 0.5)
-    , plot.subtitle = element_text(hjust = 0.5)    
-    , plot.caption  = element_text(hjust = 0.0)
-  )
-)
-
-# set color scale defaults
-options(
-    ggplot2.continuous.colour = "viridis"
-  , ggplot2.continuous.fill   = "viridis"
-)
-scale_colour_discrete = scale_colour_viridis_d
-scale_fill_discrete   = scale_fill_viridis_d
-```
-
 <!------------------------------------------------------------------------------
 Overview
 ------------------------------------------------------------------------------->
 
 # Unzipping the Census Data
 
-```{r}
+``` r
 jimzip <- function(csv_file, path) {
   # create full path to csv file
   full_csv <- paste0(path, "/", csv_file)
@@ -80,9 +32,18 @@ census_data <- jimzip("census_filtered.csv", "./data")
 head(census_data) %>%  knitr::kable()
 ```
 
+| multyear |  serial | hhwt |      cluster | countyfip | puma | strata | rent | hhincome | foodstmp | cihispeed | perwt | famsize | nchild | sex | age | race | hispan | bpl | ancestr1 | ancestr2 | citizen | yrsusa1 | language | hcovany | hcovpriv | hcovpub | educd | empstat | labforce |  occ |  ind |  inctot | ftotinc | incwage | incwelfr | poverty | occscore | pwpuma00 | tranwork |
+|---------:|--------:|-----:|-------------:|----------:|-----:|-------:|-----:|---------:|---------:|----------:|------:|--------:|-------:|----:|----:|-----:|-------:|----:|---------:|---------:|--------:|--------:|---------:|--------:|---------:|--------:|------:|--------:|---------:|-----:|-----:|--------:|--------:|--------:|---------:|--------:|---------:|---------:|---------:|
+|     2015 | 4100568 |   30 | 2.019041e+12 |        61 | 3806 | 380636 | 2806 |    93882 |        1 |        10 |    31 |       1 |      0 |   2 |  25 |    1 |      0 |  42 |       51 |      999 |       0 |       0 |       11 |       2 |        2 |       1 |   101 |       1 |        2 | 5940 | 7580 |   50718 |   50718 |   50718 |        0 |     381 |       25 |     3800 |       36 |
+|     2015 | 4100568 |   30 | 2.019041e+12 |        61 | 3806 | 380636 | 2806 |    93882 |        1 |        10 |    49 |       1 |      0 |   2 |  27 |    1 |      0 |  39 |      148 |      153 |       0 |       0 |        1 |       2 |        2 |       1 |   114 |       1 |        2 |  726 | 8564 |   43164 |   43164 |   43164 |        0 |     325 |       24 |     3800 |       36 |
+|     2015 | 4100570 |   20 | 2.019041e+12 |        47 | 4004 | 400436 |  453 |    16834 |        1 |        10 |    20 |       4 |      2 |   2 |  45 |    4 |      0 | 500 |      706 |      999 |       3 |      11 |       43 |       2 |        1 |       2 |    63 |       1 |        2 | 4850 | 4390 |    5503 |   16834 |    5503 |        0 |      62 |       24 |     3200 |       36 |
+|     2015 | 4100570 |   20 | 2.019041e+12 |        47 | 4004 | 400436 |  453 |    16834 |        1 |        10 |    20 |       4 |      2 |   1 |  49 |    4 |      0 | 500 |      706 |      999 |       3 |      11 |       43 |       2 |        1 |       2 |    65 |       1 |        2 | 4030 | 8680 |   11331 |   16834 |   11331 |        0 |      62 |       16 |     3800 |       36 |
+|     2015 | 4100570 |   20 | 2.019041e+12 |        47 | 4004 | 400436 |  453 |    16834 |        1 |        10 |    13 |       4 |      0 |   1 |  21 |    4 |      0 | 500 |      706 |      999 |       2 |      11 |       43 |       2 |        1 |       2 |    63 |       3 |        1 | 2545 | 7860 |       0 |   16834 |       0 |        0 |      62 |       33 |        0 |        0 |
+|     2015 | 4100570 |   20 | 2.019041e+12 |        47 | 4004 | 400436 |  453 |    16834 |        1 |        10 |    18 |       4 |      0 |   2 |  10 |    4 |      0 |  36 |      706 |      999 |       0 |       0 |       43 |       2 |        1 |       2 |    17 |       0 |        0 |    0 |    0 | 9999999 |   16834 |  999999 |    99999 |      62 |        0 |        0 |        0 |
+
 # Merging the Outcome Data
 
-```{r}
+``` r
 health_data <-
   read_csv("./data/outcome_puma.csv") %>%
   rename(puma = puma10)
@@ -93,9 +54,18 @@ rm(census_data)
 head(merged_data) %>% knitr::kable()
 ```
 
+| puma | multyear |  serial | hhwt |      cluster | countyfip | strata | rent | hhincome | foodstmp | cihispeed | perwt | famsize | nchild | sex | age | race | hispan | bpl | ancestr1 | ancestr2 | citizen | yrsusa1 | language | hcovany | hcovpriv | hcovpub | educd | empstat | labforce |  occ |  ind | inctot | ftotinc | incwage | incwelfr | poverty | occscore | pwpuma00 | tranwork | puma\_death\_rate | puma\_hosp\_rate | puma\_vacc\_per |
+|-----:|---------:|--------:|-----:|-------------:|----------:|-------:|-----:|---------:|---------:|----------:|------:|--------:|-------:|----:|----:|-----:|-------:|----:|---------:|---------:|--------:|--------:|---------:|--------:|---------:|--------:|------:|--------:|---------:|-----:|-----:|-------:|--------:|--------:|---------:|--------:|---------:|---------:|---------:|------------------:|-----------------:|----------------:|
+| 3701 |     2017 | 4301368 |   25 | 2.019043e+12 |         5 | 370136 |    0 |   166870 |        1 |        20 |    18 |       2 |      0 |   1 |  58 |    1 |      0 | 465 |      999 |      999 |       2 |      19 |        1 |       2 |        2 |       1 |   116 |       1 |        2 | 2100 | 7270 |  83435 |  166870 |   83435 |        0 |     501 |       62 |     3800 |       36 |          398.2366 |         1064.624 |        55.79213 |
+| 3701 |     2018 | 4429112 |   22 | 2.019044e+12 |         5 | 370136 | 1018 |   123192 |        1 |        10 |    22 |       2 |      0 |   1 |  52 |    2 |      0 | 600 |      522 |      999 |       2 |      27 |       60 |       2 |        2 |       1 |    81 |       1 |        2 | 9142 | 6190 | 107920 |  123192 |   85522 |        0 |     501 |       22 |     3800 |       10 |          398.2366 |         1064.624 |        55.79213 |
+| 3701 |     2019 | 4496321 |   17 | 2.019045e+12 |         5 | 370136 | 2000 |   125000 |        1 |        10 |    16 |       1 |      0 |   2 |  59 |    1 |      2 | 110 |      200 |      261 |       0 |      50 |       12 |       2 |        2 |       1 |    81 |       1 |        2 | 5740 | 6870 | 125000 |  125000 |  125000 |        0 |     501 |       22 |     3800 |       31 |          398.2366 |         1064.624 |        55.79213 |
+| 3701 |     2017 | 4272796 |    6 | 2.019043e+12 |         5 | 370136 |    0 |   140588 |        2 |        10 |     4 |       6 |      3 |   1 |  64 |    4 |      0 | 500 |      706 |      999 |       2 |      26 |       43 |       2 |        1 |       2 |   114 |       3 |        1 | 1050 | 8191 |  11264 |  140588 |       0 |        0 |     388 |       33 |        0 |        0 |          398.2366 |         1064.624 |        55.79213 |
+| 3701 |     2015 | 4184953 |   19 | 2.019042e+12 |         5 | 370136 | 1058 |    52876 |        1 |        10 |    20 |       2 |      1 |   1 |  44 |    1 |      4 | 300 |      237 |      999 |       2 |      23 |       12 |       2 |        1 |       2 |    81 |       1 |        2 | 4220 | 7072 |  32373 |   52876 |   32373 |        0 |     309 |       19 |     3800 |       36 |          398.2366 |         1064.624 |        55.79213 |
+| 3701 |     2016 | 4255659 |    9 | 2.019043e+12 |         5 | 370136 |    0 |    26101 |        1 |        10 |     9 |       1 |      0 |   2 |  64 |    1 |      0 |  36 |       50 |       32 |       0 |       0 |        1 |       2 |        2 |       1 |   114 |       1 |        2 | 2360 | 7890 |  26101 |   26101 |   12784 |        0 |     198 |       20 |     3100 |       10 |          398.2366 |         1064.624 |        55.79213 |
+
 # Cleaning the Data
 
-```{r}
+``` r
 # Clean the merged census and outcomes data
 cleaned_data = 
   merged_data %>% 
@@ -108,6 +78,7 @@ cleaned_data =
     borough = countyfip,
     has_broadband = cihispeed,
     birthplace = bpl,
+    years_in_usa = yrsusa1,
     education = educd,
     employment = empstat,
     personal_income = inctot,
@@ -242,15 +213,21 @@ cleaned_data =
   relocate(perwt, .before = cluster) %>% 
   # Create factor variables where applicable
   mutate(across(.cols = c(puma, borough, on_foodstamps, has_broadband, sex, race, birthplace, US_citizen, language, health_insurance, education, employment, on_welfare, poverty_threshold, work_transport), as.factor))
-
 ```
 
-The Census also doesn't reach everyone; it samples the population. As a result, we need to weight our statistics by how many households look like a particular household observed, or how many persons look like a particular person observed. We also want to group by PUMA.
+The Census also doesn’t reach everyone; it samples the population. As a
+result, we need to weight our statistics by how many households look
+like a particular household observed, or how many persons look like a
+particular person observed. We also want to group by PUMA.
 
-```{r}
+``` r
 # Check total people in NYC by summing over person-weight column
 sum(cleaned_data$perwt)
+```
 
+    ## [1] 8409840
+
+``` r
 # Example data frame with weightings for summary stats over each PUMA
 nyc_puma_summary = cleaned_data %>% 
   # Note: do we need to filter to one individual per household for household weightings?
@@ -264,6 +241,7 @@ nyc_puma_summary = cleaned_data %>%
     perc_white = sum(perwt[race == "White"]) * 100 / sum(perwt),
     perc_foreign_born = sum(perwt[birthplace == "Non-US"]) * 100 / sum(perwt),
     perc_citizen = sum(perwt[US_citizen == "Yes"]) * 100 / sum(perwt),
+    median_years_in_usa = weighted.median(years_in_usa, perwt, na.rm = TRUE),
     perc_english = sum(perwt[language == "English"]) * 100 / sum(perwt),
     perc_college = sum(perwt[education %in% c("Some College", "Bachelor's Degree", "Post-Graduate Degree")]) * 100 / sum(perwt),
     perc_unemployed = sum(perwt[employment == "Unemployed"]) * 100 / sum(perwt),
@@ -281,11 +259,32 @@ nyc_puma_summary %>%
   head(10)
 ```
 
+    ## # A tibble: 10 × 21
+    ##    puma  median_household_i… perc_foodstamps perc_broadband perc_male median_age
+    ##    <fct>               <dbl>           <dbl>          <dbl>     <dbl>      <dbl>
+    ##  1 3701               69000             24.5           89.5      46.9         39
+    ##  2 3702               68610             28.2           82.9      45.1         36
+    ##  3 3703               77588             15.9           86.6      46.7         43
+    ##  4 3704               64662             23.9           81.6      47.7         37
+    ##  5 3705               36500             50.7           87.6      46.2         30
+    ##  6 3706               43490             46.2           82.2      48.3         32
+    ##  7 3707               36715.            52.9           83.0      46.8         30
+    ##  8 3708               39096             47.3           85.0      46.4         32
+    ##  9 3709               49124.            36.3           87.7      47.4         34
+    ## 10 3710               34316             49.3           87.6      49.9         31
+    ## # … with 15 more variables: perc_white <dbl>, perc_foreign_born <dbl>,
+    ## #   perc_citizen <dbl>, median_years_in_usa <dbl>, perc_english <dbl>,
+    ## #   perc_college <dbl>, perc_unemployed <dbl>, perc_insured <dbl>,
+    ## #   median_personal_income <dbl>, perc_welfare <dbl>, perc_poverty <dbl>,
+    ## #   perc_public_transit <dbl>, covid_hosp_rate <dbl>, covid_vax_rate <dbl>,
+    ## #   covid_death_rate <dbl>
+
 # Exploratory Analysis
 
-Let's start by creating the data sets and functions for analysis at different levels (e.g. interview level, PUMA level).
+Let’s start by creating the data sets and functions for analysis at
+different levels (e.g. interview level, PUMA level).
 
-```{r}
+``` r
 # Data sets
 
 # Interview level data
@@ -353,10 +352,9 @@ PUMA_outcomes = puma_level_data %>%
     cols = starts_with("covid"),
     values_to = 'outcome_rate'
   )
-
 ```
 
-```{r functions}
+``` r
 # Functions
 
 # Turn lower half of pairwise matrix scatters into correlation (r) statistic
@@ -1336,11 +1334,9 @@ above_below_puma = function(predictor, outcome){
 }
 ```
 
-
 ## Outcomes by Demographic
 
-```{r}
-
+``` r
 ## LATER: GO BACK AND PUT RELEVANT ANALYSES INTO PLOTLY FOR INTERACTIVITY!
 
 # Can we look at a density plot split by the main demographic variables (race, age, sex) and see where there are outliers for each outcome?
@@ -1380,8 +1376,9 @@ vax_distribution = race_age_sex %>%
 hosp_distribution + death_distribution + vax_distribution
 ```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-7-1.png" width="90%" />
 
-```{r}
+``` r
 # Lowest hospitalization rates
 race_age_sex %>% 
   filter(outcome == "hosp_rate") %>% 
@@ -1392,7 +1389,18 @@ race_age_sex %>%
   select(race, age_class, sex, outcome, outcome_rate) %>% 
   head() %>% 
   knitr::kable()
+```
 
+| race  | age\_class | sex    | outcome    | outcome\_rate |
+|:------|:-----------|:-------|:-----------|--------------:|
+| White | (20,30\]   | Female | hosp\_rate |     0.8761103 |
+| White | (30,40\]   | Male   | hosp\_rate |     0.8859347 |
+| White | (30,40\]   | Female | hosp\_rate |     0.8908692 |
+| White | (20,30\]   | Male   | hosp\_rate |     0.8963785 |
+| White | (40,50\]   | Male   | hosp\_rate |     0.9275371 |
+| White | (40,50\]   | Female | hosp\_rate |     0.9348149 |
+
+``` r
 # Highest hospitalization rates
 race_age_sex %>% 
   filter(outcome == "hosp_rate") %>% 
@@ -1403,7 +1411,18 @@ race_age_sex %>%
   select(race, age_class, sex, outcome, outcome_rate) %>% 
   head() %>% 
   knitr::kable()
+```
 
+| race                       | age\_class | sex    | outcome    | outcome\_rate |
+|:---------------------------|:-----------|:-------|:-----------|--------------:|
+| American Indian            | (80,90\]   | Male   | hosp\_rate |      1.272494 |
+| Other                      | (60,70\]   | Male   | hosp\_rate |      1.216953 |
+| Other                      | (10,20\]   | Male   | hosp\_rate |      1.211757 |
+| Other                      | (40,50\]   | Male   | hosp\_rate |      1.200270 |
+| Other                      | (60,70\]   | Female | hosp\_rate |      1.185197 |
+| Asian and Pacific Islander | (90,100\]  | Male   | hosp\_rate |      1.173874 |
+
+``` r
 # Lowest death rates
 race_age_sex %>% 
   filter(outcome == "death_rate") %>% 
@@ -1414,7 +1433,18 @@ race_age_sex %>%
   select(race, age_class, sex, outcome, outcome_rate) %>% 
   head() %>% 
   knitr::kable()
+```
 
+| race  | age\_class | sex    | outcome     | outcome\_rate |
+|:------|:-----------|:-------|:------------|--------------:|
+| White | (20,30\]   | Female | death\_rate |     0.2376527 |
+| White | (30,40\]   | Male   | death\_rate |     0.2424399 |
+| White | (20,30\]   | Male   | death\_rate |     0.2435824 |
+| White | (30,40\]   | Female | death\_rate |     0.2455473 |
+| Other | (80,90\]   | Male   | death\_rate |     0.2541018 |
+| White | (40,50\]   | Male   | death\_rate |     0.2564677 |
+
+``` r
 # Highest death rates
 race_age_sex %>% 
   filter(outcome == "death_rate") %>% 
@@ -1425,7 +1455,18 @@ race_age_sex %>%
   select(race, age_class, sex, outcome, outcome_rate) %>% 
   head() %>% 
   knitr::kable()
+```
 
+| race                       | age\_class | sex  | outcome     | outcome\_rate |
+|:---------------------------|:-----------|:-----|:------------|--------------:|
+| 2+ races                   | (90,100\]  | Male | death\_rate |     0.3525028 |
+| Asian and Pacific Islander | (90,100\]  | Male | death\_rate |     0.3386789 |
+| American Indian            | (80,90\]   | Male | death\_rate |     0.3246158 |
+| Other                      | (10,20\]   | Male | death\_rate |     0.3228600 |
+| Other                      | (40,50\]   | Male | death\_rate |     0.3220782 |
+| Other                      | (70,80\]   | Male | death\_rate |     0.3202419 |
+
+``` r
 # Lowest vax rates
 race_age_sex %>% 
   filter(outcome == "vax_rate") %>% 
@@ -1436,7 +1477,18 @@ race_age_sex %>%
   select(race, age_class, sex, outcome, outcome_rate) %>% 
   head() %>% 
   knitr::kable()
+```
 
+| race            | age\_class | sex    | outcome   | outcome\_rate |
+|:----------------|:-----------|:-------|:----------|--------------:|
+| American Indian | (70,80\]   | Male   | vax\_rate |      49.32433 |
+| Black           | (10,20\]   | Female | vax\_rate |      49.36218 |
+| Black           | \[0,10\]   | Male   | vax\_rate |      49.47396 |
+| Black           | (10,20\]   | Male   | vax\_rate |      49.48072 |
+| Black           | (30,40\]   | Female | vax\_rate |      49.49356 |
+| Black           | \[0,10\]   | Female | vax\_rate |      49.51926 |
+
+``` r
 # Highest vax rates
 race_age_sex %>% 
   filter(outcome == "vax_rate") %>% 
@@ -1447,41 +1499,71 @@ race_age_sex %>%
   select(race, age_class, sex, outcome, outcome_rate) %>% 
   head() %>% 
   knitr::kable()
-
 ```
 
-```{r}
+| race                       | age\_class | sex    | outcome   | outcome\_rate |
+|:---------------------------|:-----------|:-------|:----------|--------------:|
+| Asian and Pacific Islander | (90,100\]  | Female | vax\_rate |      66.10248 |
+| Asian and Pacific Islander | (70,80\]   | Female | vax\_rate |      65.89982 |
+| Asian and Pacific Islander | (70,80\]   | Male   | vax\_rate |      65.73426 |
+| Asian and Pacific Islander | (30,40\]   | Male   | vax\_rate |      65.61553 |
+| Asian and Pacific Islander | (30,40\]   | Female | vax\_rate |      65.57662 |
+| 2+ races                   | (80,90\]   | Male   | vax\_rate |      65.47910 |
+
+``` r
 # Let's look at outcomes by demographics WITHOUT splitting by PUMA
 
 # Test1: hospitalization rate by race
 outcome_vs_predictor(race, "hosp")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-9-1.png" width="90%" />
+
+``` r
 # Test2: vax rate by race
 outcome_vs_predictor(race, "vax")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-9-2.png" width="90%" />
+
+``` r
 # Test3: vax rate by sex
 outcome_vs_predictor(race, "vax")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-9-3.png" width="90%" />
+
+``` r
 # Test4: vax rate by welfare status
 outcome_vs_predictor(on_welfare, "vax")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-9-4.png" width="90%" />
+
+``` r
 # Test5: vax rate by broadband status
 outcome_vs_predictor(has_broadband, "vax")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-9-5.png" width="90%" />
+
+``` r
 # Test6: vax rate by age
 outcome_vs_predictor(age, "vax")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-9-6.png" width="90%" />
+
+``` r
 # Test7: vax rate by household income
-outcome_vs_predictor(household_income, "vax")
-
 outcome_vs_predictor(household_income, "vax")
 ```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-9-7.png" width="90%" />
 
 ## Outcomes by PUMA
 
-```{r}
-
+``` r
 # Hospitalization rates across PUMAs, colored by borough
 PUMA_hosp = puma_level_data %>% 
   ggplot(aes(x = fct_reorder(puma, covid_hosp_rate), y = covid_hosp_rate)) + 
@@ -1515,7 +1597,9 @@ PUMA_vax = puma_level_data %>%
 (PUMA_hosp + PUMA_death) / PUMA_vax
 ```
 
-``` {r}
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-10-1.png" width="90%" />
+
+``` r
 # Alternatively, can rank 10 "worst" and "best" for each to see how they compare
 
 # PUMAs with highest hosp rates
@@ -1562,7 +1646,11 @@ PUMA_vax_lowest10 = puma_level_data %>%
 
 # "Worst" PUMAs
 (PUMA_hosp_highest10 + PUMA_death_highest10) / PUMA_vax_lowest10
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-11-1.png" width="90%" />
+
+``` r
 # PUMAs with lowest hosp rates
 PUMA_hosp_lowest10 = puma_level_data %>% 
   arrange(covid_hosp_rate) %>% 
@@ -1609,7 +1697,9 @@ PUMA_vax_highest10 = puma_level_data %>%
 (PUMA_hosp_lowest10 + PUMA_death_lowest10) / PUMA_vax_highest10
 ```
 
-```{r}
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-11-2.png" width="90%" />
+
+``` r
 # Can also determine "conversion rates", i.e. ratios of deaths to hospitalizations
 # Here's an example
 PUMA_ratio = puma_level_data %>% 
@@ -1657,7 +1747,9 @@ PUMA_ratio_best = puma_level_data %>%
 PUMA_ratio + (PUMA_ratio_worst + PUMA_ratio_best)
 ```
 
-```{r}
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-12-1.png" width="90%" />
+
+``` r
 # Hospitalizations, deaths, and ratio between the two across PUMAs, colored by borough
 hosps_and_deaths_PUMA = PUMA_outcomes %>% 
   filter(!name == "covid_vax_rate") %>%
@@ -1698,9 +1790,11 @@ vax_PUMA = PUMA_outcomes %>%
 hosps_and_deaths_PUMA / vax_PUMA
 ```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-13-1.png" width="90%" />
+
 ## Correlations between predictors (covariates) and outcomes
 
-```{r}
+``` r
 # First, check correlations between key outcome variables across PUMAs
 
 # Hospitalizations and deaths
@@ -1708,19 +1802,31 @@ puma_level_data %>%
   ggplot(aes(x = covid_hosp_rate, y = covid_death_rate)) + 
   geom_point(aes(color = borough, size = covid_ratio)) + 
   geom_smooth(method = lm, se = FALSE, color = "red")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-14-1.png" width="90%" />
+
+``` r
 # Hospitalizations and vaccinations
 puma_level_data %>% 
   ggplot(aes(x = covid_hosp_rate, y = covid_vax_rate)) + 
   geom_point(aes(color = borough, size = covid_ratio)) + 
   geom_smooth(method = lm, se = FALSE, color = "red")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-14-2.png" width="90%" />
+
+``` r
 # Deaths and vaccinations
 puma_level_data %>%
   ggplot(aes(x = covid_death_rate, y = covid_vax_rate)) + 
   geom_point(aes(color = borough, size = covid_ratio)) + 
   geom_smooth(method = lm, se = FALSE, color = "red")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-14-3.png" width="90%" />
+
+``` r
 # Ratio of deaths:hosps and vaccinations
 puma_level_data %>% 
   ggplot(aes(x = covid_ratio, y = covid_vax_rate)) + 
@@ -1728,15 +1834,18 @@ puma_level_data %>%
   geom_smooth(method = lm, se = FALSE, color = "red")
 ```
 
-```{r}
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-14-4.png" width="90%" />
+
+``` r
 # Here's an alternative for above that could also work for looking at relationships between predictors, outcomes, or predictors and outcomes!
 
 # Run pairs from PUMA data frame
-pairs(~covid_hosp_rate + covid_death_rate + covid_vax_rate + covid_ratio, data = puma_level_data, lower.panel = panel.cor)
+pairs(~covid_hosp_rate + covid_death_rate + covid_vax_rate + covid_ratio + borough, data = puma_level_data, lower.panel = panel.cor)
 ```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-15-1.png" width="90%" />
 
-```{r}
+``` r
 # Create correlation matrix
 # Show all correlation values
 corr_option_one = puma_level_data %>% 
@@ -1809,7 +1918,15 @@ corr_option_three = puma_level_data %>%
   )
 
 corr_option_one + corr_option_two + corr_option_three
+```
 
+    ## Warning: Removed 36 rows containing missing values (geom_text).
+
+    ## Warning: Removed 36 rows containing missing values (geom_text).
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-16-1.png" width="90%" />
+
+``` r
 ## Notes for later:
 # Reorder matrix?
 # Do these at interview level? (But then need only numeric x and y vectors; how do we treat categoricals?)
@@ -1817,21 +1934,30 @@ corr_option_one + corr_option_two + corr_option_three
 
 ## Heatmaps for any two predictors (including borough)
 
-```{r}
+``` r
 # Test1: Heatmap for two categorical variables
 heatmap_two_var(race, borough, "hosp")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-17-1.png" width="90%" />
+
+``` r
 # Test2: Heatmap on race by age, vaccinations
 heatmap_two_var(age, race, "vax")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-17-2.png" width="90%" />
+
+``` r
 # Test3: heatmap on household income by age, deaths
 heatmap_two_var(age, household_income, "death")
-
 ```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-17-3.png" width="90%" />
 
 ## Borough-level outcome distributions
 
-```{r}
+``` r
 # Check number of PUMAs per borough
 puma_level_data %>% 
   group_by(borough) %>% 
@@ -1846,7 +1972,9 @@ puma_level_data %>%
   )
 ```
 
-```{r}
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-18-1.png" width="90%" />
+
+``` r
 # Outcomes distribution by borough
 
 # Hospitalizations across PUMAs in each borough
@@ -1881,7 +2009,11 @@ vax = puma_level_data %>%
 
 # Hosp, death, and vax rates by borough
 hosps + deaths + vax
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-19-1.png" width="90%" />
+
+``` r
 # Ratio of death rate to hosp rate by borough
 puma_level_data %>% 
   mutate(
@@ -1894,11 +2026,11 @@ puma_level_data %>%
     y = "COVID death to hosp ratio"
   ) + 
   theme(legend.position = "none")
-  
 ```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-19-2.png" width="90%" />
 
-```{r}
+``` r
 # Alternative1: density plots instead of boxplots for outcome rates by borough, each borough on same graph
 # Hospitalization rate
 PUMA_outcomes %>%
@@ -1915,7 +2047,11 @@ PUMA_outcomes %>%
   ) + 
   geom_vline(aes(xintercept=median(outcome_rate)),
             color="red", linetype="dashed", size=1)
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-20-1.png" width="90%" />
+
+``` r
 # Death rate
 PUMA_outcomes %>% 
   filter(name == "covid_death_rate") %>% 
@@ -1931,7 +2067,11 @@ PUMA_outcomes %>%
   ) +
   geom_vline(aes(xintercept=median(outcome_rate)),
             color="red", linetype="dashed", size=1)
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-20-2.png" width="90%" />
+
+``` r
 # Vax rate
 PUMA_outcomes %>%
   filter(name == "covid_vax_rate") %>% 
@@ -1948,7 +2088,11 @@ PUMA_outcomes %>%
   ) +
   geom_vline(aes(xintercept=median(outcome_rate)),
             color="red", linetype="dashed", size=1)
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-20-3.png" width="90%" />
+
+``` r
 # Try vax without borough faceting, but color/fill by borough
 PUMA_outcomes %>%
   filter(name == "covid_vax_rate") %>% 
@@ -1957,16 +2101,18 @@ PUMA_outcomes %>%
       x = outcome_rate
     )
   ) + 
-  geom_density(aes(fill = reorder(borough, outcome_rate, FUN = "median")), alpha = 0.2) + 
+  geom_density(aes(fill = reorder(borough, outcome_rate, FUN = "median"), alpha = 0.1)) + 
   labs(
     x = "Vax rate",
     y = "Density"
   ) +
   geom_vline(aes(xintercept=median(outcome_rate)),
-            color="red", linetype="dashed")
+            color="red", linetype="dashed", size=1)
 ```
 
-```{r}
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-20-4.png" width="90%" />
+
+``` r
 # Alternative2: density plots instead of boxplots for outcome rates by borough, but boroughs not on same graphs
 
 # Hospitalizations
@@ -2003,7 +2149,9 @@ vax_rate_by_borough = puma_level_data %>%
 hosp_rate_by_borough + death_rate_by_borough + vax_rate_by_borough
 ```
 
-```{r}
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-21-1.png" width="90%" />
+
+``` r
 # Stacked bar charts: frequency
 
 # PUMA hospitalization outcomes by borough
@@ -2036,7 +2184,11 @@ puma_prop_vax = puma_level_data %>%
   )
 
 puma_prop_vax / (puma_prop_hosp | puma_prop_death)
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-22-1.png" width="90%" />
+
+``` r
 # Stacked bar charts: counts
 
 # PUMA outcomes by borough
@@ -2066,34 +2218,55 @@ puma_level_data %>%
   )
 ```
 
-```{r}
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-22-2.png" width="90%" />
+
+``` r
 # Comparisons within boroughs
 
 # Test on hospitalizations by race
 borough_cat_comparisons(race, "hosp")
-
-# Test on vaccinations by race
-borough_cat_comparisons(race, "vax")
-
-# Test on deaths by age
-borough_cat_comparisons(age, "death")
-
-# Test on age vs. vax rate
-borough_cat_comparisons(age, "vax")
-
-# Test on rent vs. hosp rate
-borough_cat_comparisons(rent, "hosp")
-
-# Test on education vs. vax rate
-borough_cat_comparisons(education, "vax")
-
-borough_cat_comparisons(household_income, "vax")
 ```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-23-1.png" width="90%" />
+
+``` r
+# Test on vaccinations by race
+borough_cat_comparisons(race, "vax")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-23-2.png" width="90%" />
+
+``` r
+# Test on deaths by age
+borough_cat_comparisons(age, "death")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-23-3.png" width="90%" />
+
+``` r
+# Test on age vs. vax rate
+borough_cat_comparisons(age, "vax")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-23-4.png" width="90%" />
+
+``` r
+# Test on rent vs. hosp rate
+borough_cat_comparisons(rent, "hosp")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-23-5.png" width="90%" />
+
+``` r
+# Test on education vs. vax rate
+borough_cat_comparisons(education, "vax")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-23-6.png" width="90%" />
 
 ## Borough-level predictor distributions
 
-```{r}
+``` r
 # We may want to visualize demographic disparity within a borough on any given predictor
 # Here is an example of what we can do looking at variation in household income by race in each borough
 cleaned_data %>% 
@@ -2109,151 +2282,326 @@ cleaned_data %>%
   geom_point(aes(color = race))
 ```
 
-## PUMA-level scatterplots  
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-24-1.png" width="90%" />
 
-``` {r}
+## PUMA-level scatterplots
+
+``` r
 # Scatterplots showing basic demographics vs outcomes
 
 # Sex vs hospitalization
 demo_puma_graph("perc_male", "covid_hosp_rate")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-1.png" width="90%" />
+
+``` r
 # Sex vs death
 demo_puma_graph("perc_male", "covid_death_rate")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-2.png" width="90%" />
+
+``` r
 # Sex vs vax
 demo_puma_graph("perc_male", "covid_vax_rate")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-3.png" width="90%" />
+
+``` r
 # Race vs hospitalization
 demo_puma_graph("perc_white", "covid_hosp_rate")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-4.png" width="90%" />
+
+``` r
 # Race vs death
 demo_puma_graph("perc_white", "covid_death_rate")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-5.png" width="90%" />
+
+``` r
 # Race vs vax
 demo_puma_graph("perc_white", "covid_vax_rate")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-6.png" width="90%" />
+
+``` r
 # Age vs hospitalization
 demo_puma_graph("median_age", "covid_hosp_rate")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-7.png" width="90%" />
+
+``` r
 # Age vs death
 demo_puma_graph("median_age", "covid_death_rate")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-8.png" width="90%" />
+
+``` r
 # Age vs vax
 demo_puma_graph("median_age", "covid_vax_rate")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-9.png" width="90%" />
 
+``` r
 # Scatterplots showing non-demographic predictors vs outcomes
 
 # Income vs vax
 demo_puma_graph("median_household_income", "covid_vax_rate")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-10.png" width="90%" />
+
+``` r
 # Health insurance vs vax
 demo_puma_graph("perc_insured", "covid_vax_rate")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-11.png" width="90%" />
+
+``` r
 # Foodstamps vs vax
 demo_puma_graph("perc_foodstamps", "covid_vax_rate")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-12.png" width="90%" />
+
+``` r
 # Welfare vs vax
 demo_puma_graph("perc_welfare", "covid_vax_rate")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-13.png" width="90%" />
+
+``` r
 # Education vs vax
 demo_puma_graph("perc_college", "covid_vax_rate")
 ```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-14.png" width="90%" />
+
+``` r
+# No outcomes for these
+# Poverty vs foodstamps 
+demo_puma_graph("perc_foodstamps", "perc_poverty")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-15.png" width="90%" />
+
+``` r
+# Poverty vs broadband 
+demo_puma_graph("perc_broadband", "perc_poverty")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-16.png" width="90%" />
+
+``` r
+# Foodstamps vs broadband
+demo_puma_graph("perc_foodstamps", "perc_broadband")
+```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-25-17.png" width="90%" />
+
 ## Outcomes across two variables
 
-```{r}
-
+``` r
 # Test on vaccination rate by race and sex    
 outcome_by_two_vars(race, sex, "vax") 
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-26-1.png" width="90%" />
+
+``` r
 # Test on vaccination rate by welfare and race    
 outcome_by_two_vars(on_welfare, race, "vax") 
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-26-2.png" width="90%" />
+
+``` r
 # Test on hospitalization rate by insurance status and race
 outcome_by_two_vars(health_insurance, race, "hosp")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-26-3.png" width="90%" />
+
+``` r
 # Test on death rate by sex and broadband
 outcome_by_two_vars(has_broadband, race, "death")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-26-4.png" width="90%" />
+
+``` r
 # Test on borough and sex
 outcome_by_two_vars(race, borough, "vax")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-26-5.png" width="90%" />
+
+``` r
 # Test on race and age for vaccination
 outcome_by_two_vars(race, age, "vax")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-26-6.png" width="90%" />
+
+``` r
 # Test on race and rent for hospitalization
 outcome_by_two_vars(race, rent, "hosp")
-
 ```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-26-7.png" width="90%" />
 
 #### Other Explorations
 
-```{r}
+``` r
 # Testing on hospitalization rate by household income, colored by college completion percentage
 predict_scatter(median_household_income, perc_college, hosp)
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-27-1.png" width="90%" />
+
+``` r
 # More examples
 
 # Death rates, PUMA income vs college rate
 predict_scatter(median_household_income, perc_college, death)
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-27-2.png" width="90%" />
+
+``` r
 # Death rates, PUMA white vs male rate
 predict_scatter(perc_white, perc_male, death)
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-27-3.png" width="90%" />
+
+``` r
 # Vax rates, PUMA foodstamps use vs white rate
 predict_scatter(perc_foodstamps, perc_white, vax)
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-27-4.png" width="90%" />
+
+``` r
 # Vax rates, PUMA welfare use vs white rate
 predict_scatter(perc_welfare, perc_white, vax)
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-27-5.png" width="90%" />
+
+``` r
 # Hosp rates, PUMA poverty vs college rate
 predict_scatter(perc_poverty, perc_college, hosp)
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-27-6.png" width="90%" />
+
+``` r
 # Hosp rates, PUMA poverty vs welfare
 predict_scatter(perc_poverty, perc_welfare, hosp)
-
 ```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-27-7.png" width="90%" />
 
 ## Analyses using above/below outcomes median by interview or by PUMA
 
-```{r}
+``` r
 # By interview first
 
 # Test on household income and hospitalization
 above_below_interview(household_income, "hosp")
+```
 
+    ## Warning: Removed 15290 rows containing non-finite values (stat_density).
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-28-1.png" width="90%" />
+
+``` r
 # Test on household income and death
 above_below_interview(household_income, "death")
+```
 
+    ## Warning: Removed 15290 rows containing non-finite values (stat_density).
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-28-2.png" width="90%" />
+
+``` r
 # Test on categorical variable
-above_below_interview(age, "vax")
+above_below_interview(race, "vax")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-28-3.png" width="90%" />
+
+``` r
 # Test on household income and vax, faceted by borough
 above_below_interview(household_income, "vax") +   
   facet_wrap(.~borough)
+```
 
+    ## Warning: Removed 15290 rows containing non-finite values (stat_density).
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-28-4.png" width="90%" />
+
+``` r
 # Test on age and hospitalization, faceted by race
 above_below_interview(age, "hosp") +   
   facet_wrap(.~race)
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-28-5.png" width="90%" />
+
+``` r
 # Test on categorical variable faceted by borough
 above_below_interview(race, "vax") + 
   facet_wrap(.~borough)
 ```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-28-6.png" width="90%" />
 
-```{r}
+``` r
 # Now by PUMA
 
 # Test on household income and hospitalization
 above_below_puma(median_household_income, "hosp")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-29-1.png" width="90%" />
+
+``` r
 # Test on household income and death
 above_below_puma(median_household_income, "death")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-29-2.png" width="90%" />
+
+``` r
 # Test on household income and vax, faceted by borough
 above_below_puma(median_household_income, "vax")
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-29-3.png" width="90%" />
+
+``` r
 # Test on age and hospitalization
 above_below_puma(median_age, "hosp")
-
-above_below_puma(median_personal_income, "vax")
 ```
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-29-4.png" width="90%" />
 
 ## Playground (IGNORE)
 
-```{r}
+``` r
 ## PLAYGROUND PLEASE IGNORE
 # Let's look at vaccination rate by income level in each PUMA
 cleaned_data %>% 
@@ -2270,7 +2618,13 @@ cleaned_data %>%
   ) %>% 
   ggplot(aes(x = puma, y = percent_vaxxed)) + 
   geom_point((aes(color = income_class)), position = "jitter")
+```
 
+    ## Warning: Removed 55 rows containing missing values (geom_point).
+
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-30-1.png" width="90%" />
+
+``` r
 # Another cool plot
 cleaned_data %>% 
   group_by(race, puma, sex, borough) %>% 
@@ -2288,7 +2642,11 @@ cleaned_data %>%
   ) %>% 
   ggplot(aes(x = perc_vaxxed, y = borough, color = sex, fill = sex)) + 
   geom_boxplot(alpha = 0.3)
+```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-30-2.png" width="90%" />
+
+``` r
 # We can write a function to look at continuous predictors against outcomes, colored by borough
 
 borough_colored_cont = function(continuous_predictor){
@@ -2313,3 +2671,4 @@ puma_level_data %>%
   geom_point(aes(size = perc_college))
 ```
 
+<img src="zk_exploratory_analysis_files/figure-gfm/unnamed-chunk-30-3.png" width="90%" />

@@ -99,6 +99,7 @@ cleaned_data =
     borough = countyfip,
     has_broadband = cihispeed,
     birthplace = bpl,
+    years_in_usa = yrsusa1,
     education = educd,
     employment = empstat,
     personal_income = inctot,
@@ -257,6 +258,7 @@ nyc_puma_summary = cleaned_data %>%
     perc_foreign_born = sum(perwt[birthplace == "Non-US"]) * 100 / sum(perwt),
     perc_us_born = sum(perwt[birthplace == "US"]) * 100 / sum(perwt),
     perc_citizen = sum(perwt[US_citizen == "Yes"]) * 100 / sum(perwt),
+    median_years_in_usa = weighted.median(years_in_usa, perwt, na.rm = TRUE),
     perc_english = sum(perwt[language == "English"]) * 100 / sum(perwt),
     perc_non_english =  sum(perwt[language != "English"]) * 100 / sum(perwt), 
     perc_college = sum(perwt[education %in% c("Some College", "Bachelor's Degree", "Post-Graduate Degree")]) * 100 / sum(perwt),
@@ -704,7 +706,7 @@ Race (White) vs Hospitalization Rate
 ```{r}
 borough_info %>% 
   ggplot(aes(
-    x = perc_white,
+    x = median_age,
     y = covid_hosp_rate
   )) + 
   geom_point(aes(color = Borough)) + 
@@ -723,7 +725,7 @@ Race (White) vs Vaccination Rate
 ```{r}
 borough_info %>% 
   ggplot(aes(
-    x = perc_white,
+    x = median_age,
     y = covid_vax_rate
   )) + 
   geom_point(aes(color = Borough)) + 
@@ -743,7 +745,7 @@ Race (White) vs Death Rate
 ```{r}
 borough_info %>% 
   ggplot(aes(
-    x = perc_white,
+    x = median_age,
     y = covid_death_rate
   )) + 
   geom_point(aes(color = Borough)) + 
@@ -765,8 +767,7 @@ Ranking -  Vaccination Rate in Puma (colored by Borough)
 rank_vax_puma <- 
   borough_info %>% 
   arrange(desc(covid_vax_rate)) %>%
-  ggplot(aes(x = fct_reorder(puma, 
-                             desc(covid_vax_rate)), 
+  ggplot(aes(x = fct_reorder(puma, desc(covid_vax_rate)), 
              y = covid_vax_rate)) + 
   geom_bar(stat = "identity", 
            aes(fill = Borough)) + 
@@ -787,8 +788,7 @@ Ranking -  Death Rate in Puma (colored by Borough)
 rank_death_puma <- 
   borough_info %>% 
   arrange(desc(covid_death_rate)) %>%
-  ggplot(aes(x = fct_reorder(puma, 
-                             desc(covid_death_rate)), 
+  ggplot(aes(x = fct_reorder(puma, desc(covid_death_rate)), 
              y = covid_death_rate)) + 
   geom_bar(stat = "identity", 
            aes(fill = Borough)) + 
@@ -810,239 +810,16 @@ Ranking - Hospitalization Rate in Puma (colored by Borough)
 rank_hospr_puma <- 
   borough_info %>% 
   arrange(desc(covid_hosp_rate)) %>%
-  ggplot(aes(x = fct_reorder(puma, 
-                             desc(covid_hosp_rate)), 
+  ggplot(aes(x = fct_reorder(puma, desc(covid_hosp_rate)), 
              y = covid_hosp_rate)) + 
   geom_bar(stat = "identity", 
            aes(fill = Borough)) + 
   theme(axis.text.x = 
           element_text(angle = 70, vjust = 0.5, hjust = 0.5)) + 
   labs(
-    title = "Ranking Hospitalization Rate in each Puma", 
+    title = "Ranking Death Rate in each Puma", 
     x = "PUMA",
     y = "COVID Hospitalization Rate"
   ) + 
-  theme(legend.position = "bottom") + 
-  facet_grid(Borough~puma)
+  theme(legend.position = "bottom")
 ```
-
-
-
-
-```{r}
-borough_info %>% 
-  ggplot(aes(
-    x = perc_male,
-    y = covid_hosp_rate
-  )) + 
-  geom_point() + 
-  geom_smooth(method = lm, 
-              formula = y ~ splines::bs(x, 3), 
-              se = FALSE) + 
-   labs(
-    title = "Relationship between Male and Hospitalization Rate", 
-    x = "Percentage of Male in Each Puma",
-    y = "COVID Hospitalization Rate") 
-```
-
-
-
-# Meeting Discussion - Creating Plots - *(11/30/2021)* - Verifying the Middle Heat Map in Zak's Document 
-
-*Hospitalization Rate*
-
-WHite and Hospitalization Rate 
-```{r}
-borough_info %>% 
-  ggplot(aes(
-    x = perc_white,
-    y = covid_hosp_rate
-  )) + 
-  geom_point(aes(color = Borough)) + 
-  geom_smooth(method = "loess", 
-    color = 'red',
-    se = FALSE) +  
-  labs(
-    title = "Race (White) and Hospitalization Rate", 
-    subtitle = "By NYC Borough", 
-    x = "Percentage of White in that PUMA for that Borough",
-    y = "COVID Hospitalization Rate")
-```
-
-
-Public Transport and Hospitalization Rate 
-```{r}
-borough_info %>% 
-  ggplot(aes(
-    x = perc_public_transport,
-    y = covid_hosp_rate
-  )) + 
-  geom_point(aes(color = Borough)) + 
-  geom_smooth(method = "loess", 
-    color = 'red',
-    se = FALSE) +  
-  labs(
-    title = "Public Transportation and Hospitalization Rate", 
-    subtitle = "By NYC Borough", 
-    x = "Percentage of Public Transportation usage in that PUMA for that Borough",
-    y = "COVID Hospitalization Rate")
-```
-
-
-
-Insured and Hospitalization Rate 
-```{r}
-borough_info %>% 
-  ggplot(aes(
-    x = perc_insured,
-    y = covid_hosp_rate
-  )) + 
-  geom_point(aes(color = Borough)) + 
-  geom_smooth(method = "loess", 
-    color = 'red',
-    se = FALSE) +  
-  labs(
-    title = "Insured and Hospitalization Rate", 
-    subtitle = "By NYC Borough", 
-    x = "Percentage of Insured in that PUMA for that Borough",
-    y = "COVID Hospitalization Rate")
-```
-
-
-
-English and Hospitalization Rate 
-```{r}
-english_vax_rel <- 
-  borough_info %>% 
-  ggplot(aes(x = perc_english,
-             y = covid_hosp_rate)) + 
-  geom_point(aes(color = Borough)) + 
-  geom_smooth(
-    method = "lm", 
-    color = 'red',
-    se = FALSE) +
-  labs(
-    title = "English Speaking and Hospitalization Rate", 
-    subtitle = "By NYC Borough", 
-    x = "Percentage Speaking English in that puma for that Borough",
-    y = "COVID Hospitalization Rate") +
-  theme(legend.position = "none")
-```
-
-
-College and Hospitalization Rate 
-```{r}
-college_hosp_rel <- 
-  borough_info %>% 
-  ggplot(aes(x = perc_college,
-             y = covid_hosp_rate)) + 
-  geom_point(aes(color = Borough)) + 
-  geom_smooth(method = lm, formula = y ~ splines::bs(x, 3), se = FALSE) + 
-  labs(
-    title = "College and Hospitalization",
-    x = "College", 
-    y = "Covid Hospitalization Rate per 100,000"
-  ) +
-  theme(legend.position = "right")
-```
-
-
-Internet and Hospitalization Relationship
-```{r}
-internet_hosp_rel <- 
-  borough_info %>% 
-  ggplot(aes(x = perc_broadband,
-             y = covid_hosp_rate)) + 
-  geom_point(aes(color  = Borough)) + 
-  geom_smooth(
-    method = "lm", 
-    color = 'red',
-    se = FALSE) +
-  labs(
-    title = "Internet and Hospitalization Rate", 
-    subtitle = "By NYC Borough", 
-    x = "Internet Percentages for Each Puma in their associated Borough",
-    y = "COVID Hospitalization Rate") +
-  theme(legend.position = "right")
-```
-
-
-Median Personal Income and Covid Hospitalization Rate 
-```{r}
-borough_info %>% 
-  ggplot(aes(x = median_personal_income,
-             y = covid_hosp_rate)) + 
-  geom_point(aes(color  = Borough)) + 
-  geom_smooth(
-    method = "lm", 
-    color = 'red',
-    se = FALSE) +
-  labs(
-    title = "Median Personal Income and Hospitalization Rate", 
-    subtitle = "By NYC Borough", 
-    x = "Median Personal Income",
-    y = "COVID Hospitalization Rate") +
-  theme(legend.position = "right")
-```
-
-
-Median Household Income and Covid Hospitalization Rate
-```{r}
-borough_info %>% 
-  ggplot(aes(x = median_household_income,
-             y = covid_hosp_rate)) + 
-  geom_point(aes(color  = Borough)) + 
-  geom_smooth(
-    method = "lm", 
-    color = 'red',
-    se = FALSE) +
-  labs(
-    title = "Median Household Income and Hospitalization Rate", 
-    subtitle = "By NYC Borough", 
-    x = "Median Household Income",
-    y = "COVID Hospitalization Rate") +
-  theme(legend.position = "right")
-```
-
-
-*Death Rate* 
-
-Median Household income and Covid Death Rate 
-```{r}
-borough_info %>% 
-  ggplot(aes(x = median_household_income,
-             y = covid_death_rate)) + 
-  geom_point(aes(color  = Borough)) + 
-  geom_smooth(
-    method = "lm", 
-    color = 'red',
-    se = FALSE) +
-  labs(
-    title = "Median Household Income and Death Rate", 
-    subtitle = "By NYC Borough", 
-    x = "Median Household Income in that Puma for that Borough",
-    y = "COVID Death Rate") +
-  theme(legend.position = "right")
-```
-
-
-Median Personal Income and Covid Death Rate 
-```{r}
-borough_info %>% 
-  ggplot(aes(x = median_personal_income,
-             y = covid_death_rate)) + 
-  geom_point(aes(color  = Borough)) + 
-  geom_smooth(
-    method = "lm", 
-    color = 'red',
-    se = FALSE) +
-  labs(
-    title = "Median Personal Income and Death Rate", 
-    subtitle = "By NYC Borough", 
-    x = "Median Personal Income in that Puma for that Borough",
-    y = "COVID Death Rate") +
-  theme(legend.position = "right")
-```
-
-
-
