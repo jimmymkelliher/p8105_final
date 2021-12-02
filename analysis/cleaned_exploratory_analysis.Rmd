@@ -282,7 +282,25 @@ interview_level_data = cleaned_data %>%
       above_vax_median = as.factor(ifelse(puma_vacc_rate > median(puma_vacc_rate), 1, 0)),
       age_class = as.factor(cut(age, breaks = c(0, 15, 30, 45, 60, 75, 90, 105), include.lowest = TRUE)),
       household_income_class = as.factor(cut(household_income, breaks = c(0, 50000, 100000, 150000, 200000, 250000, 300000, 350000, 400000), include.lowest = TRUE))
-    )
+    ) %>% 
+  mutate(age_class = fct_recode(age_class, 
+                          "<16" = "[0,15]", 
+                          "16-30" = "(15,30]", 
+                          "31-45" = "(30,45]", 
+                          "46-60" = "(45,60]", 
+                          "61-75" = "(60,75]", 
+                          "76-90" = "(75,90]", 
+                          "91-105" = "(90,105]"),
+         household_income_class = fct_recode(household_income_class, 
+                                       "<$50k" = "[0,5e+04]", 
+                                       "+$50k-100k" = "(5e+04,1e+05]", 
+                                       "+$100k-150k" = "(1e+05,1.5e+05]", 
+                                       "+$150k-200k" = "(1.5e+05,2e+05]", 
+                                       "+$200k-250k" = "(2e+05,2.5e+05]", 
+                                       "+$250k-300k" = "(2.5e+05,3e+05]", 
+                                       "+$300k-350k" = "(3e+05,3.5e+05]",
+                                       ">$350k" = "(3.5e+05,4e+05]"))
+  
 
 # PUMA level data with boroughs and some new metrics / categoricals
 puma_level_data = 
@@ -2089,7 +2107,8 @@ first_predict = outcome_vs_predictor(race, "hosp") +
     subtitle = "Across All Census Interviews",
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
-  theme(legend.position = "None") + 
+  theme(legend.position = "None",
+        axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
   geom_text(aes(label = round(hosp_rate, 2)), vjust = 1.5, color = "white")
 
 # Hospitalizations vs age
@@ -2101,6 +2120,14 @@ age_grouped = interview_level_data %>%
     weighted_death = perwt * puma_death_rate,
     age = as.factor(cut(age, breaks = c(0, 15, 30, 45, 60, 75, 90, 105), include.lowest = TRUE))) %>% 
   group_by(age) %>% 
+  mutate(age = fct_recode(age, 
+                          "<16" = "[0,15]", 
+                          "16-30" = "(15,30]", 
+                          "31-45" = "(30,45]", 
+                          "46-60" = "(45,60]", 
+                          "61-75" = "(60,75]", 
+                          "76-90" = "(75,90]", 
+                          "91-105" = "(90,105]")) %>% 
   summarize(
     vax_rate = sum(weighted_vax) / sum(perwt),
     hosp_rate = sum(weighted_hosp) / sum(perwt),
@@ -2128,7 +2155,8 @@ second_predict = age_grouped %>%
     subtitle = "Across All Census Interviews",
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
-  theme(legend.position = "None") + 
+  theme(legend.position = "None",
+        axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
   geom_text(aes(label = round(hosp_rate, 2)), vjust = 1.5, color = "white")
   
 # Hospitalizations vs sex
@@ -2140,7 +2168,8 @@ third_predict = outcome_vs_predictor(sex, "hosp") +
     subtitle = "Across All Census Interviews",
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
-  theme(legend.position = "None") + 
+  theme(legend.position = "None",
+        axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
   geom_text(aes(label = round(hosp_rate, 2)), vjust = 1.5, color = "white")
 
 first_predict + second_predict + third_predict
@@ -2256,6 +2285,15 @@ income_grouped = interview_level_data %>%
     weighted_death = perwt * puma_death_rate,
     household_income = as.factor(cut(household_income, breaks = c(0, 50000, 100000, 150000, 200000, 250000, 300000, 350000, 400000), include.lowest = TRUE))) %>% 
   group_by(household_income) %>% 
+  mutate(household_income = fct_recode(household_income, 
+                                       "<$50k" = "[0,5e+04]", 
+                                       "+$50k-100k" = "(5e+04,1e+05]", 
+                                       "+$100k-150k" = "(1e+05,1.5e+05]", 
+                                       "+$150k-200k" = "(1.5e+05,2e+05]", 
+                                       "+$200k-250k" = "(2e+05,2.5e+05]", 
+                                       "+$250k-300k" = "(2.5e+05,3e+05]", 
+                                       "+$300k-350k" = "(3e+05,3.5e+05]",
+                                       ">$350k" = "(3.5e+05,4e+05]")) %>% 
   summarize(
     vax_rate = sum(weighted_vax) / sum(perwt),
     hosp_rate = sum(weighted_hosp) / sum(perwt),
@@ -2284,7 +2322,8 @@ first_predict_ses = income_grouped %>%
     subtitle = "Across All Census Interviews",
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
-  theme(legend.position = "None") + 
+  theme(legend.position = "None",
+        axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
   geom_text(aes(label = round(hosp_rate, 2)), vjust = 1.5, color = "white")
 
 # Hospitalizations vs Education
@@ -2296,7 +2335,8 @@ second_predict_ses = outcome_vs_predictor(education, "hosp") +
     subtitle = "Across All Census Interviews",
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
-  theme(legend.position = "None") + 
+  theme(legend.position = "None",
+        axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
   geom_text(aes(label = round(hosp_rate, 2)), vjust = 1.5, color = "white")
 
 # Hospitalizations vs Insurance
@@ -2345,7 +2385,8 @@ first_predict_ses = income_grouped %>%
     subtitle = "Across All Census Interviews",
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
-  theme(legend.position = "None") + 
+  theme(legend.position = "None",
+        axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
   geom_text(aes(label = round(death_rate, 2)), vjust = 1.5, color = "white")
 
 # Deaths vs Education
@@ -2357,7 +2398,8 @@ second_predict_ses = outcome_vs_predictor(education, "death") +
     subtitle = "Across All Census Interviews",
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
-  theme(legend.position = "None") + 
+  theme(legend.position = "None",
+        axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
   geom_text(aes(label = round(death_rate, 2)), vjust = 1.5, color = "white")
 
 # Deaths vs Citizenship
@@ -2430,7 +2472,8 @@ third_predict_ses = income_grouped %>%
     subtitle = "Across All Census Interviews",
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
-  theme(legend.position = "None") + 
+  theme(legend.position = "None",
+        axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
   geom_text(aes(label = round(vax_rate, 2)), vjust = 1.5, color = "white")
 
 # Vax vs Employment
@@ -2442,7 +2485,8 @@ fourth_predict_ses = outcome_vs_predictor(employment, "vax") +
     subtitle = "Across All Census Interviews",
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
-  theme(legend.position = "None") + 
+  theme(legend.position = "None",
+        axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
   geom_text(aes(label = round(vax_rate, 2)), vjust = 1.5, color = "white")
 
 (first_predict_ses + second_predict_ses) / (third_predict_ses + fourth_predict_ses)
