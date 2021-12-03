@@ -1,0 +1,299 @@
+---
+title: "plot_ly first draft"
+output: github_document
+---
+
+
+```{r message = FALSE, echo = FALSE}
+library(tidyverse)
+library(plotly)
+```
+
+
+
+*CREATING THE PLOTLY WITH THE EXPLORATORY ANALYSIS FILE, NOT FINAL, STILL NEED TO ADD AND EDIT* 
+
+
+**General Trend for each PUMA in each borough: Vaccination Rate, Death Rate, Hospitalization Rate for each PUMA in each Borough**
+
+# Hospitalization rates across PUMAs, colored by borough
+```{r include = FALSE}
+puma_hosp <-
+  puma_level_data %>% 
+  mutate(puma = fct_reorder(puma, covid_hosp_rate)) %>% 
+  mutate(text_label = str_c("PUMA: ", puma, 
+                            "\n% Hospitalization: ", covid_hosp_rate)) %>%
+  plot_ly(y = ~covid_hosp_rate, 
+          x = ~puma, 
+          color = ~borough, 
+          type = "scatter",
+          mode = "markers", 
+          colors = "viridis",
+          text = ~ text_label) %>% 
+  config(scrollZoom = FALSE,
+         fig,modeBarButtonsToAdd = list('drawline', 
+                                 'drawopenpath', 
+                                 'drawclosedpath', 
+                                 'drawcircle', 
+                                 'drawrect', 
+                                 'eraseshape'),
+         displayModeBar = TRUE) %>%
+  layout(plot_bgcolor = '#e5ecf6',
+          title = "Hospitalization rates across PUMAs", 
+          xaxis = list(
+            title = "PUMA", 
+            zerolinecolor = '#ffff',
+            zerolinewidth = 2,
+            gridcolor = 'ffff'),
+          yaxis = list(
+            title = "% Hospitalized", 
+            zerolinecolor = '#ffff',
+            zerolinewidth = 2,
+            gridcolor = 'ffff'),
+         legend = list(title = list(text = 'Borough')))
+```
+
+
+# Death rates across PUMAs, colored by borough
+```{r include = FALSE}
+puma_death <-
+  puma_level_data %>% 
+  mutate(puma = fct_reorder(puma, covid_death_rate)) %>% 
+  mutate(text_label = str_c("PUMA: ", puma, 
+                            "\n% Death: ", covid_death_rate)) %>%
+  plot_ly(y = ~covid_death_rate, 
+          x = ~puma, 
+          color = ~borough, 
+          type = "scatter",
+          mode = "markers", 
+          colors = "viridis",
+          text = ~ text_label) %>% 
+  config(scrollZoom = FALSE,
+         fig,modeBarButtonsToAdd = list('drawline', 
+                                 'drawopenpath', 
+                                 'drawclosedpath', 
+                                 'drawcircle', 
+                                 'drawrect', 
+                                 'eraseshape'),
+         displayModeBar = TRUE) %>%
+  layout(plot_bgcolor = '#e5ecf6',
+          title = "Death rates across PUMAs", 
+          xaxis = list(
+            title = "PUMA", 
+            zerolinecolor = '#ffff',
+            zerolinewidth = 2,
+            gridcolor = 'ffff'),
+          yaxis = list(
+            title = "% Death", 
+            zerolinecolor = '#ffff',
+            zerolinewidth = 2,
+            gridcolor = 'ffff'),
+         legend = list(title = list(text = 'Borough')))
+```
+
+
+# Vax rates across PUMAs, colored by borough
+```{r include = FALSE}
+puma_vax <-
+  puma_level_data %>% 
+  mutate(puma = fct_reorder(puma, covid_vax_rate)) %>% 
+  mutate(text_label = str_c("PUMA: ", puma, 
+                            "\n% Vaccinated: ", covid_vax_rate)) %>%
+  plot_ly(y = ~covid_vax_rate, 
+          x = ~puma, 
+          color = ~borough, 
+          type = "scatter",
+          mode = "markers", 
+          colors = "viridis",
+          text = ~ text_label) %>% 
+  config(scrollZoom = FALSE,
+         fig,modeBarButtonsToAdd = list('drawline', 
+                                 'drawopenpath', 
+                                 'drawclosedpath', 
+                                 'drawcircle', 
+                                 'drawrect', 
+                                 'eraseshape'),
+         displayModeBar = TRUE) %>%
+  layout(plot_bgcolor = '#e5ecf6',
+          title = "Vaccination rates across PUMAs", 
+          xaxis = list(
+            title = "PUMA", 
+            zerolinecolor = '#ffff',
+            zerolinewidth = 2,
+            gridcolor = 'ffff'),
+          yaxis = list(
+            title = "% Death", 
+            zerolinecolor = '#ffff',
+            zerolinewidth = 2,
+            gridcolor = 'ffff'),
+         legend = list(title = list(text = 'Borough')))
+```
+
+**Which PUMAs have the highest Hospitalization Rate, Death Rate, Vaccination Rate**
+
+# Puma with the highest hospitalization rate 
+```{r include = FALSE}
+puma_level_data %>% 
+  arrange(desc(covid_hosp_rate)) %>% 
+  mutate(rank 
+         = rank(desc(covid_hosp_rate))) %>% 
+  mutate(text_label = str_c("PUMA: ", puma, 
+                            "\n% Hospitalization: ", covid_hosp_rate)) %>%
+  filter(rank < 11) %>% 
+  mutate(puma = 
+           fct_reorder(puma, desc(covid_hosp_rate))) %>%
+  plot_ly(x = ~puma,
+          y = ~covid_hosp_rate, 
+          color = ~borough, 
+          type = "bar",
+          text = ~ text_label, 
+          colors = "viridis") %>% 
+          #colors = c("#D62728", "#FF9900", "#1616A7", "#4C78A8")) %>%
+  layout(plot_bgcolor = '#e5ecf6',
+          title = "Top 10 Puma with the highest Hospitalization Rate", 
+          xaxis = list(
+            title = "PUMA", 
+            zerolinecolor = '#ffff',
+            zerolinewidth = 2,
+            gridcolor = 'ffff'),
+          yaxis = list(
+            title = "% Death", 
+            zerolinecolor = '#ffff',
+            zerolinewidth = 2,
+            gridcolor = 'ffff'),
+         legend = list(title = list(text = 'Borough')))
+
+
+# Puma with the highest Death rate 
+```{r include = FALSE}
+puma_level_data %>% 
+  arrange(desc(covid_death_rate)) %>% 
+  mutate(
+    rank = rank(desc(covid_death_rate))
+  ) %>% 
+  filter(rank < 11) %>% 
+  mutate(puma = 
+           fct_reorder(puma, desc(covid_death_rate))) %>%
+  plot_ly(x = ~puma,
+          y = ~covid_death_rate, 
+          color = ~borough, 
+          type = "bar",
+          colors = "viridis") %>%
+  layout(title = "Top 10 Puma with the highest Death Rate",
+         xaxis = list(title = "PUMA",
+                      zerolinecolor = '#ffff',
+                      gridcolor = 'ffff'),
+         yaxis = list(title = "% Deceased (highest)",
+                      zerolinecolor = '#ffff',
+                      gridcolor = 'ffff'),
+         legend = list(title = list(text = 'Borough')))
+```
+
+
+# Puma with the highest Vaccination rate 
+```{r include = FALSE}
+puma_level_data %>% 
+  arrange(desc(covid_vax_rate)) %>% 
+  mutate(
+    rank = rank(desc(covid_vax_rate))
+  ) %>% 
+  filter(rank < 11) %>% 
+  mutate(puma = 
+           fct_reorder(puma, desc(covid_vax_rate))) %>%
+  plot_ly(x = ~puma, 
+          y = ~covid_vax_rate, 
+          color = ~borough, 
+          type = "bar",
+          colors = "viridis") %>%
+  layout(title = "Top 10 Puma with the highest Vaccination Rate",
+         xaxis = list(title = "PUMA",
+                      zerolinecolor = '#ffff',
+                      gridcolor = 'ffff'),
+         yaxis = list(title = "% Vaccinated (highest)",
+                      zerolinecolor = '#ffff',
+                      gridcolor = 'ffff'),
+         legend = list(title = list(text = 'Borough')))
+```
+
+
+**Which PUMAs has the lowest Hospitalization Rate, Death Rate, Vaccination Rate**
+
+
+# PUMAs with lowest hospitalization rates
+```{r include = FALSE}
+puma_level_data %>% 
+  arrange(covid_hosp_rate) %>% 
+  mutate(rank 
+         = rank(desc(covid_hosp_rate))) %>% 
+  filter(rank < 11) %>% 
+  mutate(puma = 
+           fct_reorder(puma, covid_hosp_rate)) %>%
+  plot_ly(x = ~puma,
+          y = ~covid_hosp_rate, 
+          color = ~borough, 
+          type = "bar",
+          colors = "viridis") %>%
+  layout(title = "Top 10 Puma with the Lowest Hospitalization Rate",
+         xaxis = list(title = "PUMA",
+                      zerolinecolor = '#ffff',
+                      gridcolor = 'ffff'),
+         yaxis = list(title = "% Hospitalized (Lowest)",
+                      zerolinecolor = '#ffff',
+                      gridcolor = 'ffff'),
+         legend = list(title = list(text = 'Borough')))
+```
+
+
+# PUMAs with lowest death rates
+```{r include = FALSE}
+puma_level_data %>% 
+  arrange(covid_death_rate) %>% 
+  mutate(
+    rank = rank(desc(covid_death_rate))
+  ) %>% 
+  filter(rank < 11) %>% 
+  mutate(puma = 
+           fct_reorder(puma, covid_death_rate)) %>%
+  plot_ly(x = ~puma,
+          y = ~covid_death_rate, 
+          color = ~borough, 
+          type = "bar",
+          colors = "viridis") %>%
+  layout(title = "Top 10 Puma with the Lowest Death Rate",
+         xaxis = list(title = "PUMA",
+                      zerolinecolor = '#ffff',
+                      gridcolor = 'ffff'),
+         yaxis = list(title = "% Deceased (Lowest)",
+                      zerolinecolor = '#ffff',
+                      gridcolor = 'ffff'),
+         legend = list(title = list(text = 'Borough')))
+```
+
+
+
+# PUMAs with the lowest Vaccination rates
+```{r include = FALSE}
+puma_level_data %>% 
+  arrange(covid_vax_rate) %>% 
+  mutate(
+    rank = rank(desc(covid_vax_rate))
+  ) %>% 
+  filter(rank < 11) %>% 
+  mutate(puma = 
+           fct_reorder(puma, covid_vax_rate)) %>%
+  plot_ly(x = ~puma, 
+          y = ~covid_vax_rate, 
+          color = ~borough, 
+          type = "bar",
+          colors = "viridis") %>%
+  layout(title = "Top 10 Puma with the Lowest Vaccination Rate",
+         xaxis = list(title = "PUMA",
+                      zerolinecolor = '#ffff',
+                      gridcolor = 'ffff'),
+         yaxis = list(title = "% Vaccinated (Lowest)",
+                      zerolinecolor = '#ffff',
+                      gridcolor = 'ffff'),
+         legend = list(title = list(text = 'Borough')))
+```
+
+
