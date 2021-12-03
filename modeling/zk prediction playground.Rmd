@@ -87,7 +87,7 @@ rm(census_data)
 cleaned_data = 
   merged_data %>% 
   # Remove variables less useful for analysis, including ones with high correlation with remaining variables
-  select(-multyear, -ancestr1, -ancestr2, -labforce, -occ, -ind, -incwage, -occscore, -pwpuma00, -ftotinc, -hcovpub) %>% 
+  select(-multyear, -ancestr1, -ancestr2, -labforce, -occ, -ind, -incwage, -occscore, -pwpuma00, -ftotinc, -hcovpub, -yrsusa1) %>% 
   # Remove duplicate rows
   distinct() %>% 
   # Rename variables
@@ -95,7 +95,6 @@ cleaned_data =
     borough = countyfip,
     has_broadband = cihispeed,
     birthplace = bpl,
-    years_in_usa = yrsusa1,
     education = educd,
     employment = empstat,
     personal_income = inctot,
@@ -255,7 +254,6 @@ nyc_puma_summary = cleaned_data %>%
     perc_white = sum(perwt[race == "White"]) * 100 / sum(perwt),
     perc_foreign_born = sum(perwt[birthplace == "Non-US"]) * 100 / sum(perwt),
     perc_citizen = sum(perwt[US_citizen == "Yes"]) * 100 / sum(perwt),
-    median_years_in_usa = weighted.median(years_in_usa, perwt, na.rm = TRUE),
     perc_english = sum(perwt[language == "English"]) * 100 / sum(perwt),
     perc_college = sum(perwt[education %in% c("Some College", "Bachelor's Degree", "Post-Graduate Degree")]) * 100 / sum(perwt),
     perc_unemployed = sum(perwt[employment == "Unemployed"]) * 100 / sum(perwt),
@@ -271,7 +269,75 @@ nyc_puma_summary = cleaned_data %>%
 ```
 
 
-## ZK Playground
+## Prediction Modeling
+
+### Risk scoring
+
+We want to develop a method to score PUMAs on risk of not achieving herd immunity from vaccination. Let's say that herd immunity occurs at 70% vaccination rate, for our purposes.
+
+```{r}
+# Define binary outcome and set of predictors
+# 1 indicates BELOW 70% vaccination rate
+logistic_df = nyc_puma_summary %>% 
+  mutate(
+    below_herd_vax = ifelse(covid_vax_rate >= 70, 0, 1)
+  ) %>% 
+  select(-puma, -total_people, -covid_hosp_rate, -covid_death_rate, -covid_vax_rate)
+
+# Define predictors and outcome
+x = model.matrix(below_herd_vax ~ ., logistic_df)[,-1]
+y = logistic_df$below_herd_vax
+```
+
+Then, we want to develop the penalized (logistic) regression model.
+
+```{r}
+# Define a grid of possible tuning parameters
+lambda = 10 ^ seq(3, -2, -0.1)
+
+# Build model
+lasso_fit = cv.glmnet(x, y, lambda = lambda, family = "binomial")
+
+# Define minimal lambda
+lambda_opt = lasso_fit$lambda.min
+```
+
+Let's check out the coefficients from the optimal model:
+
+```{r}
+# Calculate model with optimal tuning parameter
+lasso_optimal = glmnet(x, y, lambda = lambda_opt, family = "binomial")
+
+# Determine coefficients
+lasso_optimal %>% broom::tidy()
+```
+
+Now, let's see the predictions our model makes for each PUMA and assess fit.
+
+```{r}
+# Model predictions for each PUMA
+predictions = predict(lasso_optimal, x, type = "class")
+
+# Confusion matrix
+confusionMatrix(data = factor(predictions), reference = factor(y))
+```
+
+For raw risk scores, we can use the fitted probabilities for our binomial classifier.
+
+```{r}
+# Fitted probabilities for binomial classifier, transformed into percentages
+predictions = round((predict(lasso_optimal, x, type = "response"))*100, 1)
+
+# List of PUMAS
+pumas = nyc_puma_summary %>% 
+  select(puma)
+
+# Join with PUMA and create table
+puma_risk_score = cbind(pumas, predictions) %>% 
+  knitr::kable()
+```
+
+## PLAYGROUND: PLEASE IGNORE FOR NOW
 
 ### K-Means Clustering
 
@@ -466,132 +532,3 @@ fviz_nbclust(for_clustering, kmeans, method = "silhouette")
 gap_stat = clusGap(for_clustering, FUN = kmeans, nstart = 25, K.max = 10, B = 50)
 fviz_gap_stat(gap_stat)
 ```
-
-### Risk scoring
-
-```{r}
-# Let's try on vax first
-# 1 represents low vaccination rate
-logistic_df = nyc_puma_summary %>% 
-  mutate(
-    below_herd_vax = ifelse(covid_vax_rate >= 70, 0, 1)
-  ) %>% 
-  select(-puma, -total_people, -covid_hosp_rate, -covid_death_rate, -covid_vax_rate)
-
-# Develop logistic regression model for low vax rate
-fit_logistic = 
-  glm(below_herd_vax ~ ., data = logistic_df, family = binomial())
-
-# Algorithm does not converge, so we should use some form of penalized regression instead
-x = model.matrix(below_herd_vax ~ ., logistic_df)[,-1]
-y = logistic_df$below_herd_vax
-
-lambda = 10 ^ seq(3, -2, -0.1)
-
-lasso_fit = glmnet(x, y, lambda = lambda)
-lasso_cv = cv.glmnet(x, y, lambda = lambda)
-lambda_opt = lasso_cv$lambda.min
-
-broom::tidy(lasso_fit) %>% 
-  select(term, lambda, estimate) %>% 
-  complete(term, lambda, fill = list(estimate = 0)) %>% 
-  filter(term != "(Intercept)") %>% 
-  ggplot(aes(x = log(lambda, 10), y = estimate, group = term, color = term)) + 
-  geom_path() + 
-  geom_vline(xintercept = log(lambda_opt, 10), color = "blue", size = 1.2) + 
-  theme(legend.position = "none")
-
-broom::tidy(lasso_cv) %>% 
-  ggplot(aes(x = log(lambda, 10), y = estimate)) + 
-  geom_point() + 
-  geom_line()
-
-lasso_fit = 
-  glmnet(x, y, lambda = lambda_opt)
-
-lasso_fit %>% broom::tidy()
-```
-
-```{r}
-
-risk.fit = predict(lasso_fit, x, s = lambda_opt)
-risk.cv = predict(lasso_cv, x)
-
-prediction_error_df = data.frame(y, risk.fit) %>% 
-  mutate(
-    predicted_class = factor(round(risk.fit)),
-    actual_class = factor(y)
-  )
-
-confusionMatrix(data = prediction_error_df$actual_class, reference = prediction_error_df$predicted_class)
-
-assess.glmnet(
-  object = lasso_fit,
-  newx = x,
-  newy = y,
-  family = "binomial"
-)
-```
-
-Looks like our penalized regression model is ~93% accurate in classification.
-
-Let's do the same as above, but train it on 40 randomly sampled data points (PUMAs) and test on the last 15:
-
-```{r}
-# Create train data set
-train_df = sample_n(logistic_df, 40)
-test_df = anti_join(logistic_df, train_df, by = "median_household_income")
-
-# Develop logistic regression model for low vax rate
-fit_logistic = 
-  glm(below_herd_vax ~ ., data = train_df, family = binomial())
-
-# Algorithm does not converge, so we should use some form of penalized regression instead
-x = model.matrix(below_herd_vax ~ ., train_df)[,-1]
-y = train_df$below_herd_vax
-
-lambda = 10 ^ seq(3, -2, -0.1)
-
-lasso_fit = glmnet(x, y, lambda = lambda)
-lasso_cv = cv.glmnet(x, y, lambda = lambda)
-lambda_opt = lasso_cv$lambda.min
-
-broom::tidy(lasso_fit) %>% 
-  select(term, lambda, estimate) %>% 
-  complete(term, lambda, fill = list(estimate = 0)) %>% 
-  filter(term != "(Intercept)") %>% 
-  ggplot(aes(x = log(lambda, 10), y = estimate, group = term, color = term)) + 
-  geom_path() + 
-  geom_vline(xintercept = log(lambda_opt, 10), color = "blue", size = 1.2) + 
-  theme(legend.position = "none")
-
-broom::tidy(lasso_cv) %>% 
-  ggplot(aes(x = log(lambda, 10), y = estimate)) + 
-  geom_point() + 
-  geom_line()
-
-lasso_fit = 
-  glmnet(x, y, lambda = lambda_opt)
-
-lasso_fit %>% broom::tidy()
-
-risk.fit = predict(lasso_fit, model.matrix(below_herd_vax ~ ., test_df)[,-1], s = lambda_opt)
-risk.cv = predict(lasso_cv, model.matrix(below_herd_vax ~ ., test_df)[,-1])
-
-prediction_error_df = data.frame(test_df$below_herd_vax, risk.fit) %>% 
-  mutate(
-    predicted_class = factor(round(risk.fit)),
-    actual_class = factor(test_df$below_herd_vax)
-  )
-
-confusionMatrix(data = prediction_error_df$actual_class, reference = prediction_error_df$predicted_class)
-```
-
-This time it's 80% accurate.
-
-Can we use more formal simulation / cross-validation methods?
-
-```{r}
-
-```
-
