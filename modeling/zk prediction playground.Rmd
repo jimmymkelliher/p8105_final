@@ -276,10 +276,126 @@ nyc_puma_summary = cleaned_data %>%
 Can we cluster our PUMAs according to predictors, and see how well the clustering predicts outcomes?
 
 ```{r}
+# K-Means Clustering using predictors
+
+predictors_only = nyc_puma_summary %>% 
+  select(-puma, -total_people, covid_hosp_rate, covid_vax_rate, covid_death_rate)
+
+outcomes_only_and_key = nyc_puma_summary %>% 
+  select(median_household_income, puma, covid_hosp_rate, covid_death_rate, covid_vax_rate)
+
+kmeans_fit = 
+  kmeans(x = predictors_only, centers = 3)
+
+predictors_only = 
+  broom::augment(kmeans_fit, predictors_only) 
+
+puma_clusters = predictors_only %>% 
+  left_join(outcomes_only_and_key, by = "median_household_income") %>% 
+  select(puma, covid_hosp_rate.x, covid_death_rate.x, covid_vax_rate.x, covid_death_rate.x, .cluster)
+
+puma_cluster_summary = puma_clusters %>% 
+  group_by(.cluster) %>% 
+  summarize(
+    median_hosp = median(covid_hosp_rate.x),
+    median_death = median(covid_death_rate.x),
+    median_vax = median(covid_vax_rate.x)
+  )
+
+ggplot(data = puma_cluster_summary, aes(x = median_hosp, y = median_death, color = median_vax)) + 
+  geom_point()
+
+ggplot(data = puma_clusters, aes(x = covid_hosp_rate.x, y=covid_vax_rate.x, color = .cluster)) + 
+  geom_point() + 
+  geom_point(aes(x = 1.06, y = 58.4), color = "red", size = 4) + 
+  geom_point(aes(x = 1.06, y = 49.4), color = "red", size = 4) + 
+  geom_point(aes(x = 0.493, y = 73.5), color = "red", size = 4)
+```
+
+How about with four clusters?
+
+```{r}
 # K-Means Clustering
 
 predictors_only = nyc_puma_summary %>% 
   select(-puma, -total_people, covid_hosp_rate, covid_vax_rate, covid_death_rate)
 
+outcomes_only_and_key = nyc_puma_summary %>% 
+  select(median_household_income, puma, covid_hosp_rate, covid_death_rate, covid_vax_rate)
+
 kmeans_fit = 
-  kmeans(x = predictors_only, centers = 3)
+  kmeans(x = predictors_only, centers = 4)
+
+predictors_only = 
+  broom::augment(kmeans_fit, predictors_only) 
+
+puma_clusters = predictors_only %>% 
+  left_join(outcomes_only_and_key, by = "median_household_income") %>% 
+  select(puma, covid_hosp_rate.x, covid_death_rate.x, covid_vax_rate.x, covid_death_rate.x, .cluster)
+
+puma_cluster_summary = puma_clusters %>% 
+  group_by(.cluster) %>% 
+  summarize(
+    median_hosp = median(covid_hosp_rate.x),
+    median_death = median(covid_death_rate.x),
+    median_vax = median(covid_vax_rate.x)
+  )
+
+ggplot(data = puma_cluster_summary, aes(x = median_hosp, y = median_death, color = median_vax)) + 
+  geom_point()
+
+ggplot(data = puma_clusters, aes(x = covid_hosp_rate.x, y=covid_vax_rate.x, color = .cluster)) + 
+  geom_point() + 
+  geom_point(aes(x = 0.961, y = 54.3), color = "red", size = 4) + 
+  geom_point(aes(x = 0.493, y = 73.5), color = "red", size = 4) + 
+  geom_point(aes(x = 1.13, y = 59.6), color = "red", size = 4) + 
+  geom_point(aes(x = 1.13, y = 50.2), color = "red", size = 4)
+```
+
+This is based only on using predictors to cluster the data. What if we clustered based solely on hospitalization, death, and vaccination rate? Let's try with three clusters:
+
+```{r}
+# K-Means Clustering on outcomes only
+# 3 clusters only
+
+outcomes_only = nyc_puma_summary %>% 
+  select(puma, covid_hosp_rate, covid_death_rate, covid_vax_rate)
+
+outcomes_without_puma = outcomes_only %>% 
+  select(-puma)
+
+kmeans_fit = 
+  kmeans(x = outcomes_without_puma, centers = 3)
+
+outcomes_without_puma = 
+  broom::augment(kmeans_fit, outcomes_without_puma)
+
+outcomes_without_puma %>% 
+  ggplot(aes(x = covid_hosp_rate, y = covid_vax_rate, color = .cluster)) + 
+  geom_point()
+```
+
+Then try with four clusters:
+
+```{r}
+# K-Means Clustering on outcomes only
+# 4 clusters only
+
+outcomes_only = nyc_puma_summary %>% 
+  select(puma, covid_hosp_rate, covid_death_rate, covid_vax_rate)
+
+outcomes_without_puma = outcomes_only %>% 
+  select(-puma)
+
+kmeans_fit = 
+  kmeans(x = outcomes_without_puma, centers = 4)
+
+outcomes_without_puma = 
+  broom::augment(kmeans_fit, outcomes_without_puma)
+
+outcomes_without_puma %>% 
+  ggplot(aes(x = covid_hosp_rate, y = covid_vax_rate, color = .cluster)) + 
+  geom_point()
+```
+
+(Not really better than three clusters.)
