@@ -22,6 +22,7 @@ library(spatstat)
 library(plotly)
 library(ggpubr)
 library(GGally)
+library(glmnet)
 
 # set knitr defaults
 knitr::opts_chunk$set(
@@ -271,7 +272,7 @@ nyc_puma_summary = cleaned_data %>%
 
 ## ZK Playground
 
-### K-Prototype Clustering
+### K-Means Clustering
 
 Can we cluster our PUMAs according to predictors, and see how well the clustering predicts outcomes?
 
@@ -399,3 +400,121 @@ outcomes_without_puma %>%
 ```
 
 (Not really better than three clusters.)
+
+Finally, let's try clustering on both predictors *and* on outcomes (start with 4 clusters).
+
+```{r}
+cluster_df = nyc_puma_summary %>% 
+  select(-puma, -total_people)
+
+kmeans_fit = 
+  kmeans(x = cluster_df, centers = 4)
+
+cluster_df = 
+  broom::augment(kmeans_fit, cluster_df)
+
+cluster_df %>% 
+  ggplot(aes(x = covid_hosp_rate, y = covid_vax_rate, color = .cluster)) + 
+  geom_point()
+```
+
+### Hierarchical clustering
+
+```{r}
+library(pvclust)
+
+predictors_only = predictors_only %>% 
+  select(-covid_hosp_rate, -covid_vax_rate, -covid_death_rate, -.cluster)
+
+fit = pvclust(predictors_only, method.hclust = "ward", method.dist = "euclidean")
+plot(fit)
+pvrect(fit, alpha = 0.95)
+```
+
+```{r}
+library(tidyverse)
+library(cluster)
+library(factoextra)
+
+for_clustering = nyc_puma_summary %>% 
+  na.omit() %>% 
+  select(-puma) %>% 
+  scale()
+
+distance = get_dist(for_clustering)
+fviz_dist(distance, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+
+k2 = kmeans(for_clustering, centers = 3, nstart = 25)
+
+fviz_cluster(k2, data = for_clustering)
+
+for_clustering %>% 
+  as_tibble() %>% 
+  mutate(
+    cluster = k2$cluster
+  ) %>% 
+  ggplot(aes(covid_hosp_rate, covid_vax_rate, color = factor(cluster))) + 
+  geom_point()
+```
+
+```{r}
+set.seed(123)
+
+fviz_nbclust(for_clustering, kmeans, method = "wss")
+fviz_nbclust(for_clustering, kmeans, method = "silhouette")
+gap_stat = clusGap(for_clustering, FUN = kmeans, nstart = 25, K.max = 10, B = 50)
+fviz_gap_stat(gap_stat)
+```
+
+### Risk scoring
+
+```{r}
+# Let's try on vax first
+# 1 represents low vaccination rate
+logistic_df = nyc_puma_summary %>% 
+  mutate(
+    below_vax_median = ifelse(covid_vax_rate > median(covid_vax_rate), 0, 1)
+  ) %>% 
+  select(-puma, -total_people, -covid_hosp_rate, -covid_death_rate, -covid_vax_rate)
+
+# Develop logistic regression model for low vax rate
+fit_logistic = 
+  glm(below_vax_median ~ ., data = logistic_df, family = binomial())
+
+# Algorithm does not converge, so we should use some form of penalized regression instead
+x = model.matrix(below_vax_median ~ ., logistic_df)[,-1]
+y = logistic_df$below_vax_median
+
+lambda = 10 ^ seq(3, -2, -0.1)
+
+lasso_fit = glmnet(x, y, lambda = lambda)
+lasso_cv = cv.glmnet(x, y, lambda = lambda)
+lambda_opt = lasso_cv$lambda.min
+
+broom::tidy(lasso_fit) %>% 
+  select(term, lambda, estimate) %>% 
+  complete(term, lambda, fill = list(estimate = 0)) %>% 
+  filter(term != "(Intercept)") %>% 
+  ggplot(aes(x = log(lambda, 10), y = estimate, group = term, color = term)) + 
+  geom_path() + 
+  geom_vline(xintercept = log(lambda_opt, 10), color = "blue", size = 1.2) + 
+  theme(legend.position = "none")
+
+broom::tidy(lasso_cv) %>% 
+  ggplot(aes(x = log(lambda, 10), y = estimate)) + 
+  geom_point()
+
+lasso_fit = 
+  glmnet(x, y, lambda = lambda_opt)
+
+lasso_fit %>% broom::tidy()
+```
+
+```{r}
+
+risk.fit = predict(lasso_fit, x, s = lambda_opt)
+risk.cv = predict(lasso_cv, x)
+```
+
+
+
