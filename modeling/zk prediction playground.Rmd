@@ -24,6 +24,7 @@ library(ggpubr)
 library(GGally)
 library(glmnet)
 library(modelr)
+library(verification)
 
 # set knitr defaults
 knitr::opts_chunk$set(
@@ -326,15 +327,18 @@ For raw risk scores, we can use the fitted probabilities for our binomial classi
 
 ```{r}
 # Fitted probabilities for binomial classifier, transformed into percentages
-predictions = round((predict(lasso_optimal, x, type = "response"))*100, 1)
+risk_predictions = round((predict(lasso_optimal, x, type = "response"))*100, 1)
 
 # List of PUMAS
 pumas = nyc_puma_summary %>% 
   select(puma)
 
 # Join with PUMA and create table
-puma_risk_score = cbind(pumas, predictions) %>% 
+puma_risk_score = cbind(pumas, risk_predictions) %>% 
   knitr::kable()
+
+# In-sample performance of model using ROC plot
+roc.plot(y == 1, risk_predictions/100)$roc.vol
 ```
 
 ## PLAYGROUND: PLEASE IGNORE FOR NOW
