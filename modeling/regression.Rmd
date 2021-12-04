@@ -277,3 +277,21 @@ example_validate_vax %>%broom::tidy() %>% knitr::kable()
 example_validate_vax %>%broom::glance() %>% knitr::kable()
 example_validate_puma %>%broom::glance() %>% knitr::kable()
 ```
+
+
+
+
+```{r}
+
+test <- cleaned_data %>% select(puma, perwt, personal_income, age)
+X    <- test %>% select(personal_income, age)
+
+wmean <- function(x, weights = rep(1, length(x)), remove_na = TRUE) {
+  sum(weights * x, na.rm = remove_na) / sum(weights, na.rm = remove_na)
+}
+
+xbar  <- map_dbl(X, wmean, pull(test, perwt))
+xbarg <- test %>% group_by(puma) %>% map_dbl(wmean, pull(test, perwt))
+
+#lmtest::coeftest(model, vcov = sandwich::vcovHC(model, type = "HC0"))
+```
