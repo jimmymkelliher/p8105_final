@@ -7,6 +7,7 @@ output: github_document
 ```{r message = FALSE, echo = FALSE}
 library(tidyverse)
 library(plotly)
+library(ggplot2)
 ```
 
 
@@ -355,25 +356,73 @@ PUMA_vax_lowest10 =
 
 
 
+# Welfare vs Vax
+```{r}
+vax_welfare = 
+  puma_level_data %>% 
+  ggplot(
+    aes(
+      x = perc_welfare,
+      y = covid_vax_rate
+    )
+  ) + 
+  geom_point(aes(color = borough)) + 
+  geom_smooth(se = FALSE, method = "lm", color = "red", aes(weight = total_people)) + 
+  labs(
+    x = "% on Welfare",
+    y = "% Vaccinated"
+  ) + 
+  xlim(0, 100)
+
+vax_welfare_plotly =
+  ggplotly(vax_welfare)
+```
 
 
 
+# Vax vs Foodstamps 
+```{r}
+vax_foodstamps = 
+  puma_level_data %>% 
+  ggplot(
+    aes(
+      x = perc_foodstamps,
+      y = covid_vax_rate
+    )
+  ) + 
+  geom_point(aes(color = borough)) + 
+  geom_smooth(se = FALSE, method = "lm", color = "red", aes(weight = total_people)) + 
+  labs(
+    x = "% on Food Stamps",
+    y = "% Vaccinated"
+  ) 
+
+vax_foodstmps_plotly = 
+  ggplotly(vax_foodstamps)
+```
 
 
 
+# Vax vs Income 
+```{r}
+vax_income = 
+  puma_level_data %>% 
+  ggplot(
+    aes(
+      x = median_personal_income,
+      y = covid_vax_rate
+    )
+  ) + 
+  geom_point(aes(color = borough)) + 
+  geom_smooth(se = FALSE, method = "lm", color = "red", aes(weight = total_people)) + 
+  labs(
+    x = "Median Personal Income ($)",
+    y = "% Vaccinated"
+  ) 
 
-
-
-
-
-
-
-
-
-
-
-
-
+vax_income_plotly = 
+  ggplotly(vax_income)
+```
 
 
 
