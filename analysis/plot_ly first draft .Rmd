@@ -426,6 +426,23 @@ vax_income_plotly =
 
 
 
+# Vax and Unemployment 
+```{r}
+vax_unemployment = 
+  puma_level_data %>% 
+  ggplot(
+    aes(
+      x = perc_unemployed,
+      y = covid_vax_rate
+    )
+  ) + 
+  geom_point(aes(color = borough)) + 
+  geom_smooth(se = FALSE, method = "lm", color = "red", aes(weight = total_people)) + 
+  labs(
+    x = "% Unemployed",
+    y = "% Vaccinated"
+  ) 
 
-
+vax_unemploy_plotly = ggplotly(vax_unemployment)
+```
 
