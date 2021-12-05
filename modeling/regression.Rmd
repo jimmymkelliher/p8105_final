@@ -282,16 +282,59 @@ example_validate_puma %>%broom::glance() %>% knitr::kable()
 
 
 ```{r}
-
 test <- cleaned_data %>% select(puma, perwt, personal_income, age)
-X    <- test %>% select(personal_income, age)
+X    <- test %>% select(-c(puma, perwt))
 
-wmean <- function(x, weights = rep(1, length(x)), remove_na = TRUE) {
-  sum(weights * x, na.rm = remove_na) / sum(weights, na.rm = remove_na)
+# function that computes a sum of weights
+wsum  <- function(w) {
+  sum(w, na.rm = TRUE)
 }
 
-xbar  <- map_dbl(X, wmean, pull(test, perwt))
-xbarg <- test %>% group_by(puma) %>% map_dbl(wmean, pull(test, perwt))
+# function that returns weighted mean
+wmean <- function(v, w = rep(1, length(v)), remove_na = TRUE) {
+  sum(w * v, na.rm = TRUE) / sum(w, na.rm = TRUE)
+}
+
+# function that returns (possibly weighted) product of vector with its transpose
+vvt <- function(v) {
+  u <- as.vector(v)
+  u %*% t(u)
+}
+
+# function that applies vvt to rows of a data frame
+vvt_map <- function(df) {
+  pmap(df, ~ vvt(c(...)))
+}
+
+# function that applies vvt to difference of data frames, then adds matrices
+pbyp <- function(df) {
+  Reduce("+", vvt_map(df))
+}
+
+n     <- wsum(pull(test, perwt))
+ng    <- test %>% group_by(puma) %>% summarize(ng = wsum(perwt))
+
+Xbar  <-
+  X %>%
+  mutate(across(
+      everything()
+    , ~ replace(.x, TRUE, wmean(.x, pull(test, perwt)))
+  ))
+
+w <- pull(test, perwt)
+
+Xbarg <-
+  test %>%
+  group_by(puma) %>%
+  mutate(across(
+      everything()
+    , ~ replace(.x, TRUE, wmean(.x, perwt))
+  )) %>%
+  ungroup() %>%
+  select(-c(puma, perwt))
+
+ssa <- pbyp(w^(0.5) * (Xbarg - Xbar))
+
 
 #lmtest::coeftest(model, vcov = sandwich::vcovHC(model, type = "HC0"))
 ```
