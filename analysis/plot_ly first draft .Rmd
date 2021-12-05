@@ -463,3 +463,61 @@ vax_unemployment =
 vax_unemploy_plotly = ggplotly(vax_unemployment)
 ```
 
+
+# Hospitalization Rate compared to Death Rate 
+```{r}
+hosp_vs_death = puma_level_data %>% 
+  ggplot(aes(x = covid_hosp_rate, y = covid_death_rate)) + 
+  geom_point(aes(color = borough, 
+                 size = total_people)) + 
+  geom_smooth(method = lm, 
+              se = FALSE, 
+              color = "red", 
+              aes(weight = total_people)) + 
+  labs(
+    x = "% Hospitalized",
+    y = "% Deceased")
+  
+
+hosp_vs_death_plotly = ggplotly(hosp_vs_death)
+```
+
+
+# Hospitalization Rate compared to Vaccination Rate 
+```{r}
+hosp_vs_vax = puma_level_data %>% 
+  ggplot(aes(x = covid_hosp_rate, 
+             y = covid_vax_rate)) + 
+  geom_point(aes(color = borough, 
+                 size = total_people)) + 
+  geom_smooth(method = lm, 
+              se = FALSE, 
+              color = "red", 
+              aes(weight = total_people)) + 
+  labs(
+    x = "% Hospitalized",
+    y = "% Vaccinated"
+  )
+
+hosp_vs_vax_plotly = ggplotly(hosp_vs_vax)
+```
+
+
+# Death Rate compared to Vaccination Rate 
+```{r}
+death_vs_vax = puma_level_data %>%
+  ggplot(aes(x = covid_death_rate, y = covid_vax_rate)) + 
+  geom_point(aes(color = borough, 
+                 size = total_people)) + 
+  geom_smooth(method = lm, 
+              se = FALSE, 
+              color = "red", 
+              aes(weight = total_people)) + 
+  labs(
+    x = "% Deceased",
+    y = "% Vaccinated"
+  )
+
+death_vax_plotly = ggplotly(death_vs_vax)
+```
+
