@@ -105,7 +105,7 @@ autoplot(vax_rs)
 ``` r
 final_penalty <-
   vax_rs %>%
-  select_best(metric ="roc_auc")
+  select_best(metric = "roc_auc")
 
 final_rs <-
   wf %>% 
@@ -163,17 +163,15 @@ collect_predictions(final_rs) %>%
 <img src="Hun_Predictiction_Modeling_files/figure-gfm/unnamed-chunk-9-1.png" width="90%" />
 
 ``` r
-library(vip)
-
 wf %>% 
-finalize_workflow(final_penalty) %>%
-fit(vax_train) %>%
-pull_workflow_fit() %>%
-vi() %>%
-mutate(Variable = fct_reorder(Variable, Importance)) %>%
-ggplot(aes(x = Importance, y = Variable, fill = Sign)) +
-geom_col() + 
-scale_fill_manual(values = c("orange", "skyblue"))
+  finalize_workflow(final_penalty) %>%
+  fit(vax_train) %>%
+  pull_workflow_fit() %>%
+  vi() %>%
+  mutate(Variable = fct_reorder(Variable, Importance)) %>%
+  ggplot(aes(x = Importance, y = Variable, fill = Sign)) +
+  geom_col() + 
+  scale_fill_manual(values = c("orange", "skyblue"))
 ```
 
     ## Warning: `pull_workflow_fit()` was deprecated in workflows 0.2.3.

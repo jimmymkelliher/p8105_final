@@ -23,6 +23,8 @@ library(pvclust)
 library(cluster)
 library(factoextra)
 library(tidymodels)
+library(vip)
+
 # set knitr defaults
 knitr::opts_chunk$set(
     echo      = TRUE
@@ -362,7 +364,7 @@ autoplot(vax_rs)
 ```{r}
 final_penalty <-
   vax_rs %>%
-  select_best(metric ="roc_auc")
+  select_best(metric = "roc_auc")
 
 final_rs <-
   wf %>% 
@@ -384,16 +386,14 @@ collect_predictions(final_rs) %>%
 ```
 
 ```{r}
-library(vip)
-
 wf %>% 
-finalize_workflow(final_penalty) %>%
-fit(vax_train) %>%
-pull_workflow_fit() %>%
-vi() %>%
-mutate(Variable = fct_reorder(Variable, Importance)) %>%
-ggplot(aes(x = Importance, y = Variable, fill = Sign)) +
-geom_col() + 
-scale_fill_manual(values = c("orange", "skyblue"))
+  finalize_workflow(final_penalty) %>%
+  fit(vax_train) %>%
+  pull_workflow_fit() %>%
+  vi() %>%
+  mutate(Variable = fct_reorder(Variable, Importance)) %>%
+  ggplot(aes(x = Importance, y = Variable, fill = Sign)) +
+  geom_col() + 
+  scale_fill_manual(values = c("orange", "skyblue"))
 ```
 
