@@ -441,7 +441,7 @@ borough_hosp_dist <-
 
 *Socioeconomic information compared with Vaccination Rate* 
 
-Income and Vaccination Rate 
+# Median Household Income and Vaccination Rate 
 ```{r}
 income_vax_relation <-
   borough_info %>% 
@@ -465,7 +465,27 @@ income_vax_relation <-
 
 
 
+# Median Household Income and Death Rate relation
+```{r}
+income_death_relation <-
+  borough_info %>% 
+  ggplot(aes(x = median_household_income,
+             y = covid_death_rate)) + 
+  geom_point() + 
+  geom_smooth(
+    method = "lm", 
+    color = 'red',
+    se = FALSE) +
+  labs(
+    title = "Median Household-Income VS.COVID Death Rate",
+    x = "Median household Income", 
+    y = "Covid Death Rate"
+  ) +
+  scale_x_continuous(
+    breaks = c(50000, 75000, 100000, 125000, 150000, 175000, 200000),
+    labels = c("$50,000", "$75,000", "$100,000", "$125,000", "$150,000", "$175,000", "$200,000")) 
 
+```
 
 
 
@@ -483,7 +503,6 @@ college_vax_rel <-
     y = "Covid Vaccination Rate"
   ) +
   theme(legend.position = "none")
-  
 ```
 
 
@@ -544,6 +563,39 @@ noncollege_hosp_rel <-
   theme(legend.position = "right")
 ```
 
+# Foodstamp and Vaccination Rate Relationship 
+```{r}
+foodstmp_vaccination <- 
+  borough_info %>% 
+  ggplot(aes(x = perc_foodstamps,
+             y = covid_vax_rate)) + 
+  geom_point(aes(color = Borough)) + 
+  geom_smooth(method = lm, formula = y ~ splines::bs(x, 3), se = FALSE) + 
+  labs(
+    title = "Foodstamp and Vaccination",
+    x = "Foodstamp percentage in that puma for that Borough", 
+    y = "Covid Vaccination Rate"
+  ) +
+  theme(legend.position = "right")
+```
+
+
+# Foodstamp and Death Rate Relationship 
+```{r}
+foodstmp_death <- 
+  borough_info %>% 
+  ggplot(aes(x = perc_foodstamps,
+             y = covid_death_rate)) + 
+  geom_point(aes(color = Borough)) + 
+  geom_smooth(method = lm, 
+              formula = y ~ splines::bs(x, 3), se = FALSE) + 
+  labs(
+    title = "Foodstamp and Death Rate",
+    x = "Foodstamp percentage in that puma for that Borough", 
+    y = "Covid Death Rate"
+  ) +
+  theme(legend.position = "none")
+```
 
 
 Insurance (Public and Private Insurance Included) and Vaccination Relationship 
@@ -969,6 +1021,26 @@ internet_hosp_rel <-
 ```
 
 
+# Internet (braodband) and Death rate relationship 
+```{r}
+internet_death_rel <- 
+  borough_info %>% 
+  ggplot(aes(x = perc_broadband,
+             y = covid_death_rate)) + 
+  geom_point(aes(color  = Borough)) + 
+  geom_smooth(
+    method = "lm", 
+    color = 'red',
+    se = FALSE) +
+  labs(
+    title = "Internet and Death Rate", 
+    subtitle = "By NYC Borough", 
+    x = "Internet Percentages for Each Puma in their associated Borough",
+    y = "COVID Death Rate") +
+  theme(legend.position = "right")
+```
+
+
 Median Personal Income and Covid Hospitalization Rate 
 ```{r}
 borough_info %>% 
@@ -1043,6 +1115,26 @@ borough_info %>%
     subtitle = "By NYC Borough", 
     x = "Median Personal Income in that Puma for that Borough",
     y = "COVID Death Rate") +
+  theme(legend.position = "right")
+```
+
+
+
+Median Personal Income and Vaccination Rate 
+```{r}
+borough_info %>% 
+  ggplot(aes(x = median_personal_income,
+             y = covid_vax_rate)) + 
+  geom_point(aes(color  = Borough)) + 
+  geom_smooth(
+    method = "lm", 
+    color = 'red',
+    se = FALSE) +
+  labs(
+    title = "Median Personal Income and Vaccination Rate", 
+    subtitle = "By NYC Borough", 
+    x = "Median Personal Income in that Puma for that Borough",
+    y = "COVID Vaccination Rate") +
   theme(legend.position = "right")
 ```
 

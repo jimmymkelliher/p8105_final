@@ -12,9 +12,6 @@ library(ggplot2)
 
 
 
-*CREATING THE PLOTLY WITH THE EXPLORATORY ANALYSIS FILE, NOT FINAL, STILL NEED TO ADD AND EDIT* 
-
-
 **General Trend for each PUMA in each borough: Vaccination Rate, Death Rate, Hospitalization Rate for each PUMA in each Borough**
 
 # Hospitalization rates across PUMAs, colored by borough
@@ -465,5 +462,4 @@ vax_unemployment =
 
 vax_unemploy_plotly = ggplotly(vax_unemployment)
 ```
-
 
