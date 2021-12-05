@@ -366,6 +366,80 @@ puma_risk_score = cbind(pumas, risk_predictions) %>%
 verification::roc.plot(y == 1, risk_predictions/100)$roc.vol
 ```
 
+Alternatively, we could do all of the above by training it on a random sample of 41 PUMAs, then test is on 14 hold-outs:
+
+```{r}
+# Randomly select 41 PUMAs for test and 14 for training
+train_df = sample_n(logistic_df, 41)
+test_df = anti_join(logistic_df, train_df, by = "median_household_income")
+
+# Define predictors and outcome
+x = model.matrix(below_herd_vax ~ ., train_df)[,-1]
+y = train_df$below_herd_vax
+
+# Build model
+lasso_fit_sample = cv.glmnet(x, y, lambda = lambda, family = "binomial")
+
+# Define minimal lambda
+lambda_opt_sample = lasso_fit_sample$lambda.min
+
+# Calculate model with optimal tuning parameter
+lasso_optimal_sample = glmnet(x, y, lambda = lambda_opt_sample, family = "binomial")
+
+# Define new x and y
+x_test = model.matrix(below_herd_vax ~ ., test_df)[,-1]
+y_test = test_df$below_herd_vax
+
+# Model predictions for each PUMA
+predictions_test = predict(lasso_optimal_sample, x_test, type = "class")
+
+# Confusion matrix
+caret::confusionMatrix(data = factor(predictions_test), reference = factor(y_test))
+
+# Define a function to do it once
+# Parameter n is number of samples to train on
+simulate_classifier = function(n){
+  
+    train_df = sample_n(logistic_df, n)
+    test_df = anti_join(logistic_df, train_df, by = "median_household_income")
+                        
+    x_train = model.matrix(below_herd_vax ~ ., train_df)[,-1]
+    y_train = train_df$below_herd_vax
+    x_test = model.matrix(below_herd_vax ~ ., test_df)[,-1]
+    y_test = test_df$below_herd_vax
+    
+    lasso_fit_train = cv.glmnet(x_train, y_train, lambda = lambda, family = "binomial")
+    lambda_opt_train = lasso_fit_train$lambda.min
+    
+    lasso_optimal_train = glmnet(x_train, y_train, lambda = lambda_opt_train, family = "binomial")
+    
+    predictions_test = predict(lasso_optimal_train, x_test, type = "class")
+    
+    data = factor(predictions_test)
+    reference = factor(y_test)
+    cm = caret::confusionMatrix(data, reference)
+    
+    kappa = cm$overall["Kappa"]
+    
+    return(kappa)
+    
+}
+
+
+# Let's simulate this
+# Why does it iterate inconsistently?
+output = vector("list", 1000)
+
+for (i in 1:1000){
+  
+  output[[i]] = simulate_classifier(41)
+    
+}
+
+round(unlist(output) %>% mean, 2)
+```
+
+
 ## Clustering
 
 We might try to see how our PUMAs cluster on predictors, and how those clusters are associated with distributions of particular outcomes. 
