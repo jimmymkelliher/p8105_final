@@ -178,3 +178,130 @@ wf %>%
     ## Please use `extract_fit_parsnip()` instead.
 
 <img src="Hun_Predictiction_Modeling_files/figure-gfm/unnamed-chunk-10-1.png" width="90%" />
+
+## Cross Validaiton Using Caret
+
+``` r
+library(caret)
+library(mlbench)
+```
+
+## Repeated Cross Validation
+
+``` r
+set.seed(777)
+vax_cv <- trainControl(method = "repeatedcv", number = 5, repeats = 100, 
+                       savePredictions = T
+                       )
+
+lasso_model <- train(below_herd_vax ~ ., data = logistic_df,
+                     method = "glmnet",
+                     trControl = vax_cv,
+                     tuneGrid = expand.grid(
+                       .alpha = 1,
+                       .lambda = 10^seq(-5, 5, length = 10)),
+                     family = "binomial")
+
+lasso_model
+```
+
+    ## glmnet 
+    ## 
+    ## 55 samples
+    ## 16 predictors
+    ##  2 classes: '0', '1' 
+    ## 
+    ## No pre-processing
+    ## Resampling: Cross-Validated (5 fold, repeated 100 times) 
+    ## Summary of sample sizes: 44, 44, 44, 44, 44, 44, ... 
+    ## Resampling results across tuning parameters:
+    ## 
+    ##   lambda        Accuracy   Kappa    
+    ##   1.000000e-05  0.8335121  0.5056866
+    ##   1.291550e-04  0.8351667  0.5076780
+    ##   1.668101e-03  0.8449424  0.5295549
+    ##   2.154435e-02  0.8807242  0.5557529
+    ##   2.782559e-01  0.8007727  0.0000000
+    ##   3.593814e+00  0.8007727  0.0000000
+    ##   4.641589e+01  0.8007727  0.0000000
+    ##   5.994843e+02  0.8007727  0.0000000
+    ##   7.742637e+03  0.8007727  0.0000000
+    ##   1.000000e+05  0.8007727  0.0000000
+    ## 
+    ## Tuning parameter 'alpha' was held constant at a value of 1
+    ## Accuracy was used to select the optimal model using the largest value.
+    ## The final values used for the model were alpha = 1 and lambda = 0.02154435.
+
+## Result
+
+``` r
+coef <- coef(lasso_model$finalModel, lasso_model$bestTune$lambda)
+
+sub_lasso <-
+  subset(lasso_model$pred, lasso_model$pred$lambda == lasso_model$bestTune$lambda)
+
+caret::confusionMatrix(table(sub_lasso$pred, sub_lasso$obs))
+```
+
+    ## Confusion Matrix and Statistics
+    ## 
+    ##    
+    ##        0    1
+    ##   0  638  195
+    ##   1  462 4205
+    ##                                          
+    ##                Accuracy : 0.8805         
+    ##                  95% CI : (0.8717, 0.889)
+    ##     No Information Rate : 0.8            
+    ##     P-Value [Acc > NIR] : < 2.2e-16      
+    ##                                          
+    ##                   Kappa : 0.5893         
+    ##                                          
+    ##  Mcnemar's Test P-Value : < 2.2e-16      
+    ##                                          
+    ##             Sensitivity : 0.5800         
+    ##             Specificity : 0.9557         
+    ##          Pos Pred Value : 0.7659         
+    ##          Neg Pred Value : 0.9010         
+    ##              Prevalence : 0.2000         
+    ##          Detection Rate : 0.1160         
+    ##    Detection Prevalence : 0.1515         
+    ##       Balanced Accuracy : 0.7678         
+    ##                                          
+    ##        'Positive' Class : 0              
+    ## 
+
+## Getting Risk Prediction for each puma
+
+``` r
+lambda <- lasso_model$bestTune$lambda
+lasso_fit = glmnet(x, y, lambda = lambda, family = "binomial")
+risk_predictions = (round((predict(lasso_fit, x, type = "response"))*100, 1))
+
+
+puma <- nyc_puma_summary %>% 
+  select(puma)
+
+vax <- logistic_df %>% 
+  select(below_herd_vax)
+
+
+
+bind_cols(puma, vax, as.vector(risk_predictions)) %>%
+  rename(risk_prediciton = ...3)
+```
+
+    ## # A tibble: 55 × 3
+    ##    puma  below_herd_vax risk_prediciton
+    ##    <fct> <fct>                    <dbl>
+    ##  1 3701  1                         98.2
+    ##  2 3702  1                         99.7
+    ##  3 3703  1                         99  
+    ##  4 3704  1                         99  
+    ##  5 3705  1                        100  
+    ##  6 3706  1                         99.8
+    ##  7 3707  1                        100  
+    ##  8 3708  1                         99.7
+    ##  9 3709  1                         99.7
+    ## 10 3710  1                        100  
+    ## # … with 45 more rows
