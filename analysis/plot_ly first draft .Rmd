@@ -19,7 +19,7 @@ library(ggplot2)
 
 # Hospitalization rates across PUMAs, colored by borough
 ```{r include = FALSE}
-puma_hosp <-
+puma_hosp_highest10 <-
   puma_level_data %>% 
   mutate(puma = fct_reorder(puma, covid_hosp_rate)) %>% 
   mutate(text_label = str_c("PUMA: ", puma, 
@@ -133,11 +133,23 @@ puma_vax <-
          legend = list(title = list(text = 'Borough')))
 ```
 
+
+```{r}
+general_trend <- subplot(puma_hosp, puma_death) %>% 
+  layout(title = 'Hospitalization vs Death Rate in each PUMA')
+
+general_trend
+```
+
+
+
+
 **Which PUMAs have the highest Hospitalization Rate, Death Rate, Vaccination Rate**
 
 # Puma with the highest hospitalization rate 
 ```{r include = FALSE}
-puma_level_data %>% 
+puma_hosp_top10 <- 
+  puma_level_data %>% 
   arrange(desc(covid_hosp_rate)) %>% 
   mutate(rank 
          = rank(desc(covid_hosp_rate))) %>% 
@@ -211,7 +223,8 @@ PUMA_hosp_lowest10 =
 
 # Puma with the highest Death rate 
 ```{r include = FALSE}
-puma_level_data %>% 
+puma_death_highest10 <-
+  puma_level_data %>% 
   arrange(desc(covid_death_rate)) %>% 
   mutate(rank 
          = rank(desc(covid_death_rate))) %>% 
@@ -353,6 +366,13 @@ PUMA_vax_lowest10 =
 ```
 
 
+*I know that both legend is shown twice, I can remove if we need these two plots side-by-side in plot_ly* 
+```{r}
+puma_trend_high <- 
+  subplot(puma_death_highest10, puma_hosp_top10 ) %>% 
+  layout(title = 'Highest Hospitalization Rate PUMA vs Highest Death Rate PUMA')
+  
+```
 
 
 
@@ -445,4 +465,5 @@ vax_unemployment =
 
 vax_unemploy_plotly = ggplotly(vax_unemployment)
 ```
+
 
