@@ -24,6 +24,11 @@ library(cluster)
 library(factoextra)
 library(tidymodels)
 library(vip)
+library(rsample)
+library(themis)
+library(parsnip)
+library(workflows)
+library(dials)
 
 # set knitr defaults
 knitr::opts_chunk$set(
@@ -306,27 +311,37 @@ logistic_df = nyc_puma_summary %>%
     below_herd_vax = as.factor(ifelse(covid_vax_rate >= 70, 0, 1))
   ) %>% 
   select(-puma, -total_people, -covid_hosp_rate, -covid_death_rate, -covid_vax_rate)
-# Define predictors and outcome
+
+# Define predictors matrix
 x = model.matrix(below_herd_vax ~ ., logistic_df)[,-1]
+
+# Define outcomes
 y = logistic_df$below_herd_vax
 ```
 
 
 ```{r}
+# Set seed for reproducibility
 set.seed(1234)
+
+# Split into training and testing data sets
+# 41 rows in training
+# 14 rows in testing
 vax_split <- initial_split(logistic_df, strata = below_herd_vax)
 vax_train <- training(vax_split)
 vax_test <- testing(vax_split)
 
-
+# Set another seed for reproducibility
 set.seed(123)
+
+# k-fold cross validation step repeated 30 times using stratification
 vax_folds <- vfold_cv(vax_train, strata = below_herd_vax, v = 10, repeats = 30)
 ```
 
 
 ```{r}
-library(themis)
-
+# Center and scale predictors
+# Down-sample based on outcome
 vax_rec <- recipe(below_herd_vax ~ ., data = vax_train) %>%
   step_normalize(all_numeric(), -all_outcomes()) %>%
   step_downsample(below_herd_vax)
@@ -342,14 +357,16 @@ lasso_spec <- logistic_reg(penalty = tune(), mixture = 1) %>%
 
 wf <- workflow(vax_rec, lasso_spec) 
 
+# Search penalty over grid
 vax_grid <- grid_regular(penalty(range = c(-5,0)), levels = 20) 
 ```
 
 ```{r}
 doParallel::registerDoParallel()
 set.seed(2021)
+# Compute a set of performance metrics for set of tuning parameters
 vax_rs <-
-  tune_grid(
+  tune::tune_grid(
     wf,
     resamples = vax_folds,
     grid = vax_grid
@@ -357,43 +374,49 @@ vax_rs <-
 ```
 
 ```{r}
+# Plot accuracy and ROC/AUC
 autoplot(vax_rs)
 ```
 
-
 ```{r}
+# Identify best ROC/AUC
 final_penalty <-
   vax_rs %>%
   select_best(metric = "roc_auc")
 
+# Perform final model fit using optimal ROC/AUC
 final_rs <-
   wf %>% 
   finalize_workflow(final_penalty) %>%
   last_fit(vax_split)
 
-
+# Determine performance metrics on final binary classifier: ~79% accuracy
 collect_metrics(final_rs)
+
+# Collect predictive performance metrics across splits
 collect_predictions(final_rs)
-``` 
 
-```{r}
-collect_metrics(final_rs)
-
+# Plot predictive performance measures across splits
 collect_predictions(final_rs) %>%
   roc_curve(below_herd_vax, .pred_0) %>%
   autoplot()
-  
-```
+``` 
+
 
 ```{r}
+# Extract most important variables for binary classification in final lasso model
 wf %>% 
   finalize_workflow(final_penalty) %>%
   fit(vax_train) %>%
-  pull_workflow_fit() %>%
+  extract_fit_parsnip() %>%
   vi() %>%
   mutate(Variable = fct_reorder(Variable, Importance)) %>%
   ggplot(aes(x = Importance, y = Variable, fill = Sign)) +
   geom_col() + 
   scale_fill_manual(values = c("orange", "skyblue"))
 ```
+
+## ZK additions
+
+
 
