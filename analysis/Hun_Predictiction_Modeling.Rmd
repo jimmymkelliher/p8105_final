@@ -418,5 +418,21 @@ wf %>%
 
 ## ZK additions
 
+Open questions:
 
+1. Beyond the final binary classification as 1 or 0 for each PUMA, is there a way to determine the probability of it being a 1 or 0? The way the classifier works, for example, is that if p(outcome == 1) > 0.5, it classifies it as 1, otherwise as 0 on the predicted outcome. But is there a way to extract the exact probabilities calculated, like 0.76, 0.24, 0.31, etc, for each predicted data point? This we can just use as a “risk score” out of 100.
 
+2. Given that we have imbalanced classes for the outcome — 44 data points vs 11 data points are above or below, rather than 50/50, we should not use accuracy as an appropriate measure for our classifier, since the probability of guessing “correctly” for any single data point is 0.8 (44 out of 55), not 0.5. I believe we should instead use AUC or kappa. Accuracy would really only represent the underlying class distribution more than anything. For instance, the reason we get 80% accuracy on an imbalanced data (with 80% of the instances as 1’s and 20% as 0’s) is because our models look at the data and cleverly decide that the best thing to do is to always predict 1 to achieve high accuracy.
+
+The literature says instead to use precision, recall, F1/F score, kappa, and/or ROC curves, so let's try that.
+
+```{r}
+predicted_vs_actual = final_rs %>% 
+  unnest(.predictions) %>% 
+  select(.pred_class, below_herd_vax)
+
+# Add confusion matrix
+caret::confusionMatrix(data = factor(predicted_vs_actual$.pred_class), reference = factor(predicted_vs_actual$below_herd_vax))
+```
+
+Our kappa value is 0.28. This is a measure of "how closely the instances classified by the machine learning classifier matched the data labeled as ground truth, controlling for the accuracy of a random classifier as measured by the expected accuracy." According to Landis and Koch, this is a "fair" or "poor" kappa statistic.
