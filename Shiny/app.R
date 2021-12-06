@@ -16,6 +16,7 @@ setwd("/Users/iseonghun/Desktop/DS Final Project/p8105_final/data")
 map_dataset <- readRDS("map_dataset.RDS")
 map_dataset_label <- readRDS("map_dataset_label.RDS")
 
+
 #variable_type <-
 #  tibble(variable_type = c("Hosp Rate 2020", "Death Rate 2020", "Hosp Rate 2021", "Death Rate 2021", "Vacc Rate"))
 
