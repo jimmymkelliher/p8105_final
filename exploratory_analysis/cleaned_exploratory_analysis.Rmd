@@ -5,7 +5,7 @@ date: "11/30/2021"
 output: github_document
 ---
 
-# Data Preparation
+# Data Preprocessing
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -20,7 +20,6 @@ library(rstatix)
 library(patchwork)
 library(ggridges)
 library(spatstat)
-library(plotly)
 library(ggpubr)
 library(GGally)
 
@@ -53,7 +52,9 @@ scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete   = scale_fill_viridis_d
 ```
 
-```{r unzip, echo = FALSE, message = FALSE, warning = FALSE}
+The following code chunks are replicated from our `cleaning_merged_data.Rmd` file to generate the data set from which exploratory analyses can be conducted.
+
+```{r unzipping census data}
 jimzip <- function(csv_file, path) {
   # create full path to csv file
   full_csv <- paste0(path, "/", csv_file)
@@ -69,25 +70,36 @@ jimzip <- function(csv_file, path) {
   data_extract
 }
 
+# Apply function to filtered census data CSV
 census_data <- jimzip("census_filtered.csv", "./data")
+
+# Observe first several rows of data frame
+head(census_data) %>%  knitr::kable()
 ```
 
-```{r merge, echo = FALSE, message = FALSE, warning = FALSE}
+```{r}
+# Read in PUMA outcomes data
 health_data <-
-  read_csv("./data/outcome_puma.csv") %>%
-  rename(puma = puma10)
+  read_csv("./data/outcome_puma.csv")
 
+# Merge census data with PUMA outcomes data
 merged_data <- merge(census_data, health_data, by = "puma")
+
+# Deprecate census data alone
 rm(census_data)
+
+# Observe first several rows of merged census and health outcomes data
+head(merged_data) %>% knitr::kable()
 ```
 
-```{r clean, echo = FALSE, message = FALSE, warning = FALSE}
+```{r}
 # Clean the merged census and outcomes data
+# Each row represents one 
 cleaned_data = 
   merged_data %>% 
-  # Remove variables less useful for analysis, including ones with high correlation with remaining variables
-  select(-multyear, -ancestr1, -ancestr2, -labforce, -occ, -ind, -incwage, -occscore, -pwpuma00, -ftotinc, -hcovpub) %>% 
-  # Remove duplicate rows
+  # Remove variables less useful for analysis or redundant (high probability of collinearity with remaining variables)
+  select(-serial, -cluster, -strata, -multyear, -ancestr1, -ancestr2, -labforce, -occ, -ind, -incwage, -occscore, -pwpuma00, -ftotinc, -hcovpub) %>% 
+  # Remove duplicate rows, if any
   distinct() %>% 
   # Rename variables
   rename(
@@ -172,8 +184,8 @@ cleaned_data =
     # Collapse multiple health insurance variables into single variable
     health_insurance = case_when(
       hcovany == 1 ~ "None",
-      hcovany == 2 & hcovpriv == 2 ~ "Private",
-      hcovany == 2 & hcovpriv == 1 ~ "Public"
+      hcovany == 2 && hcovpriv == 2 ~ "Private",
+      hcovany == 2 && hcovpriv == 1 ~ "Public"
     ),
     education = case_when(
       education %in% 2:61 ~ "Less Than HS Graduate",
@@ -214,28 +226,15 @@ cleaned_data =
       work_transport %in% c(0, 70) ~ "Other"
     )
   ) %>% 
-  # Convert hospitalization and death rates to pure percentages to match vax rate
-  mutate(
-    puma_hosp_rate = puma_hosp_rate / 1000,
-    puma_death_rate = puma_death_rate / 1000
-  ) %>% 
   # Eliminate columns no longer needed after transformation
   select(-hispan, -hcovany, -hcovpriv) %>% 
   # Relocate new columns
   relocate(health_insurance, .before = personal_income) %>% 
   relocate(poverty_threshold, .before = work_transport) %>% 
   relocate(on_welfare, .before = poverty_threshold) %>% 
-  relocate(perwt, .before = cluster) %>% 
+  relocate(perwt, .before = hhwt) %>% 
   # Create factor variables where applicable
-  mutate(across(.cols = c(puma, borough, on_foodstamps, has_broadband, sex, race, birthplace, US_citizen, language, health_insurance, education, employment, on_welfare, poverty_threshold, work_transport), as.factor)) %>% 
-  # Change levels of certain key factors for later analysis
-  mutate(
-    health_insurance = factor(health_insurance,
-                              levels = c("None", "Public", "Private")),
-    education = factor(education,
-                       levels = c("Less Than HS Graduate", "HS Graduate", "Some College", "Bachelor's Degree", "Post-Graduate Degree", "Unknown"))
-  )
-
+  mutate(across(.cols = c(puma, borough, on_foodstamps, has_broadband, sex, race, birthplace, US_citizen, language, health_insurance, education, employment, on_welfare, poverty_threshold, work_transport), as.factor))
 ```
 
 ```{r puma summary, echo = FALSE, message = FALSE, warning = FALSE}
@@ -268,6 +267,8 @@ nyc_puma_summary = cleaned_data %>%
 ```
 
 # Exploratory Analysis
+
+To accommodate our exploratory analysis, we develop a few particular kinds of data frames from the primary cleaned data frame, as well as functions to run quick, replicable analysis upon certain sets of variables from particular data frames.
 
 ```{r data set prep, echo = FALSE, message = FALSE, warning = FALSE}
 # Data sets
@@ -305,6 +306,11 @@ puma_level_data =
     above_death_median = as.factor(ifelse(covid_death_rate > median(covid_death_rate), 1, 0)),
     above_vax_median = as.factor(ifelse(covid_vax_rate > median(covid_vax_rate), 1, 0)),
     above_ratio_median = as.factor(ifelse(covid_ratio > median(covid_ratio), 1, 0))
+  ) %>% 
+  # Turn hospitalization and death data into percentages
+  mutate(
+    covid_hosp_rate = covid_hosp_rate / 100,
+    covid_death_rate = covid_death_rate / 100
   )
 
 # Generate data frame with outcomes for each combination of sex, age (class), and race
@@ -331,10 +337,9 @@ race_age_sex = interview_level_data %>%
     values_to = "outcome_rate"
   )
 
+# Pivot on outcomes data
+# Each row represents one unique PUMA-outcome pairing
 PUMA_outcomes = puma_level_data %>% 
-  mutate(
-    covid_ratio = covid_death_rate / covid_hosp_rate
-  ) %>%
   pivot_longer(
     cols = starts_with("covid"),
     values_to = 'outcome_rate'
@@ -346,6 +351,7 @@ PUMA_outcomes = puma_level_data %>%
 # Functions
 
 # Turn lower half of pairwise matrix scatters into correlation (r) statistic
+# Sourced from http://www.sthda.com/english/wiki/scatter-plot-matrices-r-base-graphs
 panel.cor <- function(x, y){
     usr <- par("usr"); on.exit(par(usr))
     par(usr = c(0, 1, 0, 1))
@@ -355,6 +361,7 @@ panel.cor <- function(x, y){
 }
 
 # Reorder function for correlation matrix
+# Sourced from http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization
 reorder_cormat <- function(cormat){
   # Use correlation between variables as distance
   dd = as.dist((1-cormat)/2)
@@ -469,112 +476,7 @@ two_var_summarize = function(predict1, predict2){
   }
 }
 
-# Same two factor summary as above, but further grouped by borough
-two_var_summarize_borough = function(predict1, predict2){
-  
-  if(is.factor(pull(interview_level_data, {{predict1}})) && is.factor(pull(interview_level_data, {{predict2}})) == TRUE) {
-    
-    a = interview_level_data %>% 
-      mutate(
-        weighted_vax = perwt * puma_vacc_rate,
-        weighted_hosp = perwt * puma_hosp_rate,
-        weighted_death = perwt * puma_death_rate,
-        predict1 = {{predict1}},
-        predict2 = {{predict2}}
-        ) %>% 
-      group_by(predict1, predict2, borough) %>% 
-      summarize(
-        vax_rate = sum(weighted_vax) / sum(perwt),
-        hosp_rate = sum(weighted_hosp) / sum(perwt),
-        death_rate = sum(weighted_death) / sum(perwt),
-        people = sum(perwt),
-        num_vaxxed = sum(weighted_vax) / 100,
-        num_hosp = sum(weighted_hosp) / 100,
-        num_dead = sum(weighted_death) / 100
-      )
-    
-    return(a)
-    
-  }
-  
-  if(is.factor(pull(interview_level_data, {{predict1}})) == FALSE | is.factor(pull(interview_level_data, {{predict2}})) == FALSE) {
-    
-    if(is.factor(pull(interview_level_data, {{predict1}})) == FALSE && is.factor(pull(interview_level_data, {{predict2}})) == TRUE) {
-      
-      a = interview_level_data %>% 
-        mutate(
-          weighted_vax = perwt * puma_vacc_rate,
-          weighted_hosp = perwt * puma_hosp_rate,
-          weighted_death = perwt * puma_death_rate,
-          predict1 = cut({{predict1}}, breaks = 6, include.lowest = TRUE),
-          predict2 = {{predict2}}
-          ) %>% 
-        group_by(predict1, predict2, borough) %>% 
-        summarize(
-          vax_rate = sum(weighted_vax) / sum(perwt),
-          hosp_rate = sum(weighted_hosp) / sum(perwt),
-          death_rate = sum(weighted_death) / sum(perwt),
-          people = sum(perwt),
-          num_vaxxed = sum(weighted_vax) / 100,
-          num_hosp = sum(weighted_hosp) / 100,
-          num_dead = sum(weighted_death) / 100
-        )
-      
-      return(a)
-      
-    }
-    
-    if(is.factor(pull(interview_level_data, {{predict1}})) == TRUE && is.factor(pull(interview_level_data, {{predict2}})) == FALSE) {
-      
-      a = interview_level_data %>% 
-        mutate(
-          weighted_vax = perwt * puma_vacc_rate,
-          weighted_hosp = perwt * puma_hosp_rate,
-          weighted_death = perwt * puma_death_rate,
-          predict2 = cut({{predict2}}, breaks = 6, include.lowest = TRUE),
-          predict1 = {{predict1}}
-          ) %>% 
-        group_by(predict1, predict2, borough) %>% 
-        summarize(
-          vax_rate = sum(weighted_vax) / sum(perwt),
-          hosp_rate = sum(weighted_hosp) / sum(perwt),
-          death_rate = sum(weighted_death) / sum(perwt),
-          people = sum(perwt),
-          num_vaxxed = sum(weighted_vax) / 100,
-          num_hosp = sum(weighted_hosp) / 100,
-          num_dead = sum(weighted_death) / 100
-        )
-      
-      return(a)
-      
-    }
-    
-    if(is.factor(pull(interview_level_data, {{predict1}})) == FALSE && is.factor(pull(interview_level_data, {{predict2}})) == FALSE) {
-      
-      a = interview_level_data %>% 
-        mutate(
-          weighted_vax = perwt * puma_vacc_rate,
-          weighted_hosp = perwt * puma_hosp_rate,
-          weighted_death = perwt * puma_death_rate,
-          predict1 = cut({{predict1}}, breaks = 6, include.lowest = TRUE),
-          predict2 = cut({{predict2}}, breaks = 6, include.lowest = TRUE)
-          ) %>% 
-        group_by(predict1, predict2, borough) %>% 
-        summarize(
-          vax_rate = sum(weighted_vax) / sum(perwt),
-          hosp_rate = sum(weighted_hosp) / sum(perwt),
-          death_rate = sum(weighted_death) / sum(perwt),
-          people = sum(perwt),
-          num_vaxxed = sum(weighted_vax) / 100,
-          num_hosp = sum(weighted_hosp) / 100,
-          num_dead = sum(weighted_death) / 100
-        )
-      
-      return(a)
-    }
-  }
-}
-
+# Function to disaggregate outcomes by input predictor variables across all census interviews
 one_var_summarize = function(predict){
   
   if(is.factor(pull(interview_level_data, {{predict}})) == TRUE) {
@@ -626,6 +528,7 @@ one_var_summarize = function(predict){
   }
 }
 
+# Function to disaggregate outcomes by input predictor variables at the borough level
 one_var_borough_summarize = function(predict){
   
   if(is.factor(pull(interview_level_data, {{predict}})) == TRUE) {
@@ -700,7 +603,7 @@ heatmap_two_var = function(predict1, predict2, outcome) {
         aes(
           x = predict1,
           y = predict2,
-          fill = hosp_rate
+          fill = hosp_rate / 100
         )
       ) + 
       geom_tile()
@@ -712,44 +615,11 @@ heatmap_two_var = function(predict1, predict2, outcome) {
           aes(
             x = predict1,
           y = predict2,
-            fill = death_rate
+            fill = death_rate / 100
           )
         ) + 
         geom_tile()
   }
-}
-
-# Basic function for predictor vs outcome on PUMA summary df
-demo_puma_graph = function(predict, outcome){
-  
-  x = puma_level_data[[predict]]
-  y = puma_level_data[[outcome]]
-  
-  one = puma_level_data %>% 
-    ggplot(aes(
-      x = x,
-      y = y
-    )) + 
-    geom_point() + 
-    geom_smooth(se = FALSE, method = "lm") + 
-    labs(
-      x = predict,
-      y = outcome
-    )
-  
-  two = ggscatter(
-    puma_level_data,
-    x = predict,
-    y = outcome,
-    cor.coef = TRUE,
-    cor.method = "pearson",
-    add = "reg.line"
-  ) + 
-    geom_point(aes(color = borough))
-  
-  combined = one + two
-  return(combined)
-  
 }
 
 # Function for bar graphs showing outcome rate by levels of predictor
@@ -772,7 +642,7 @@ outcome_vs_predictor = function(predict, outcome){
         data = b,
         aes(
           x = predict,
-          y = hosp_rate,
+          y = hosp_rate / 100,
           fill = predict
         )
       ) + 
@@ -782,7 +652,7 @@ outcome_vs_predictor = function(predict, outcome){
         data = b,
         aes(
           x = predict,
-          y = death_rate,
+          y = death_rate / 100,
           fill = predict
         )
       ) + 
@@ -889,7 +759,7 @@ borough_cat_comparisons = function(predict, outcome) {
         )
       
       vary1 = b %>%
-      ggplot(aes(x = borough, y = hosp_rate)) + 
+      ggplot(aes(x = borough, y = hosp_rate / 100)) + 
       geom_point(aes(color = predict)) + 
         labs(
           x = "Borough",
@@ -942,7 +812,7 @@ borough_cat_comparisons = function(predict, outcome) {
         )
       
       vary1 = b %>%
-      ggplot(aes(x = borough, y = death_rate)) + 
+      ggplot(aes(x = borough, y = death_rate / 100)) + 
       geom_point(aes(color = predict)) + 
         labs(
           x = "Borough",
@@ -955,364 +825,6 @@ borough_cat_comparisons = function(predict, outcome) {
   subtitle = "Categorized by Predictor Level" 
 )
   } 
-}
-  
-# Build a function to examine outcome breakdowns across 2 categorical variables
-outcome_by_two_vars = function(predict1, predict2, outcome) {
-  
-  b = two_var_summarize({{predict1}}, {{predict2}})
-  c = two_var_summarize_borough({{predict1}}, {{predict2}})
-  
-  if (outcome == "vax"){
-    
-    one = ggplot(data = b,
-           aes(
-             x = vax_rate, 
-             y = predict1,
-             fill = predict2,
-             color = predict2
-           )
-    ) + 
-      geom_point(alpha = 0.6) + 
-      coord_flip()
-    
-    two = ggplot(data = b,
-           aes(
-             x = vax_rate,
-             y = predict1,
-             fill = predict2,
-             color = predict2
-           )) + 
-      geom_bar(position = "dodge", stat = "identity")
-    
-    three = ggplot(data = c,
-          aes(
-            x = vax_rate,
-            y = predict1,
-           fill = predict2,
-           color = predict2
-        )) + 
-        geom_density_ridges(alpha = 0.3)
-  
-    four = c %>% 
-      ggplot(aes(x = vax_rate, y = predict2, color = predict1, fill = predict1)) + 
-      geom_density_ridges(alpha = 0.3, size = 0.5)
-    
-    five = ggplot(data = c,
-                  aes(x = vax_rate,
-                      y = borough,
-                      color = predict1,
-                      fill = predict1)) + 
-      geom_density_ridges(alpha = 0.3, size = 0.5)
-    
-    six = ggplot(data = c,
-                  aes(x = vax_rate,
-                      y = borough,
-                      color = predict2,
-                      fill = predict2)) + 
-      geom_density_ridges(alpha = 0.3, size = 0.5)
-    
-    (one + two) / (three + four) / (five + six)
-  } else if (outcome == "hosp") {
-    one = ggplot(data = b,
-           aes(
-             x = hosp_rate, 
-             y = predict1,
-             fill = predict2,
-             color = predict2
-           )
-    ) + 
-      geom_point(alpha = 0.6) + 
-      coord_flip()
-    
-    two = ggplot(data = b,
-           aes(
-             x = hosp_rate,
-             y = predict1,
-             fill = predict2,
-             color = predict2
-           )) + 
-      geom_bar(position = "dodge", stat = "identity")
-    
-    three = ggplot(data = c,
-          aes(
-            x = hosp_rate,
-            y = predict1,
-           fill = predict2,
-           color = predict2
-        )) + 
-        geom_density_ridges(alpha = 0.3)
-    
-    four = c %>% 
-      ggplot(aes(x = hosp_rate, y = predict2, color = predict1, fill = predict1)) + 
-      geom_density_ridges(alpha = 0.3, size = 0.5)
-    
-    five = ggplot(data = c,
-                  aes(x = hosp_rate,
-                      y = borough,
-                      color = predict1,
-                      fill = predict1)) + 
-      geom_density_ridges(alpha = 0.3, size = 0.5)
-    
-    six = ggplot(data = c,
-                  aes(x = hosp_rate,
-                      y = borough,
-                      color = predict2,
-                      fill = predict2)) + 
-      geom_density_ridges(alpha = 0.3, size = 0.5)
-    
-    (one + two) / (three + four) / (five + six)
-  } else if (outcome == "death") {
-    one = ggplot(data = b,
-           aes(
-             x = death_rate, 
-             y = predict1,
-             fill = predict2,
-             color = predict2
-           )
-    ) + 
-      geom_point(alpha = 0.6) + 
-      coord_flip()
-    
-    two = ggplot(data = b,
-           aes(
-             x = death_rate,
-             y = predict1,
-             fill = predict2,
-             color = predict2
-           )) + 
-      geom_bar(position = "dodge", stat = "identity")
-    
-    three = ggplot(data = c,
-          aes(
-            x = death_rate,
-            y = predict1,
-           fill = predict2,
-           color = predict2
-        )) + 
-        geom_density_ridges(alpha = 0.3)
-    
-    four = c %>% 
-      ggplot(aes(x = death_rate, y = predict2, color = predict1, fill = predict1)) + 
-      geom_density_ridges(alpha = 0.3, size = 0.5)
-    
-    five = ggplot(data = c,
-                  aes(x = death_rate,
-                      y = borough,
-                      color = predict1,
-                      fill = predict1)) + 
-      geom_density_ridges(alpha = 0.3, size = 0.5)
-    
-    six = ggplot(data = c,
-                  aes(x = death_rate,
-                      y = borough,
-                      color = predict2,
-                      fill = predict2)) + 
-      geom_density_ridges(alpha = 0.3, size = 0.5)
-    
-    (one + two) / (three + four) / (five + six)
-  }
-}
-
-# Function for scatterplots representing one predictor vs one outcome, colored by a second predictor, at the PUMA level
-predict_scatter = function(predict1, predict2, outcome){
-  
-  a = puma_level_data %>% 
-    mutate(
-      vax = covid_vax_rate,
-      hosp = covid_hosp_rate,
-      death = covid_death_rate
-    ) %>% 
-    ggplot(
-      aes(
-        x = {{predict1}},
-        y = {{outcome}}
-      )) + 
-    geom_point(aes(color = {{predict2}})) + 
-    geom_smooth(se = FALSE, method = "lm")
-  
-  b = puma_level_data %>% 
-    mutate(
-      vax = covid_vax_rate,
-      hosp = covid_hosp_rate,
-      death = covid_death_rate
-    ) %>% 
-    ggplot(
-      aes(
-        x = {{predict2}},
-        y = {{outcome}}
-      )) + 
-    geom_point(aes(color = {{predict1}})) + 
-    geom_smooth(se = FALSE, method = "lm")
-  
-  a + b
-  
-}
-
-# Function for density plot distribution for any predictor, factorized by above or below median outcome rate, at the level of the interview
-
-above_below_interview = function(predictor, outcome){
-  
-  if(is.factor(pull(interview_level_data, {{predictor}})) == FALSE) {
-    
-    if (outcome == "vax"){
-    
-      interview_level_data %>% 
-        ggplot(aes(
-          x = {{predictor}}
-        )) + 
-        geom_density(aes(fill = above_vax_median), alpha = 0.5)
-    
-  } else if (outcome == "hosp") {
-    
-    interview_level_data %>% 
-        ggplot(aes(
-          x = {{predictor}}
-        )) + 
-        geom_density(aes(fill = above_hosp_median), alpha = 0.5)
-    
-  } else if (outcome == "death") {
-    
-    interview_level_data %>% 
-        ggplot(aes(
-          x = {{predictor}}
-        )) + 
-        geom_density(aes(fill = above_death_median), alpha = 0.5)
-  } 
-  } else {
-    
-        if (outcome == "vax"){
-        
-          interview_level_data %>%
-            mutate(
-              predictor = {{predictor}}
-            ) %>% 
-            ggplot(aes(
-              x = predictor
-            )) + 
-            geom_density(aes(fill = above_vax_median), alpha = 0.5) + 
-            facet_wrap(.~predictor)
-        
-      } else if (outcome == "hosp") {
-        
-        interview_level_data %>%
-            mutate(
-              predictor = {{predictor}}
-            ) %>% 
-            ggplot(aes(
-              x = predictor
-            )) + 
-            geom_density(aes(fill = above_hosp_median), alpha = 0.5) + 
-            facet_wrap(.~predictor)
-        
-      } else if (outcome == "death") {
-        
-        interview_level_data %>%
-            mutate(
-              predictor = {{predictor}}
-            ) %>% 
-            ggplot(aes(
-              x = predictor
-            )) + 
-            geom_density(aes(fill = above_death_median), alpha = 0.5) + 
-            facet_wrap(.~predictor)
-      }
-  }
-}
-
-# Similar above_below function but at the level of the PUMA
-
-above_below_puma = function(predictor, outcome){
-  
-  a = puma_level_data %>% 
-    mutate(
-      above_predictor = as.factor(ifelse({{predictor}} > median({{predictor}}), 1, 0))
-    )
-    
-    if (outcome == "vax"){
-    
-      one = a %>% 
-        ggplot(aes(
-          x = {{predictor}}
-        )) + 
-        geom_density(aes(fill = above_vax_median), alpha = 0.5)
-    
-    two = a %>% 
-      ggplot(aes(
-        x = above_predictor,
-        fill = above_vax_median
-      )) + 
-      geom_bar(stat = "count")
-    
-   three = a %>% 
-     ggplot(aes(
-       x = above_predictor,
-       fill = above_vax_median
-     )) + 
-     geom_bar(position = "fill")
-   
-   four = a %>% 
-     ggplot(aes(x = borough, y = sum(above_vax_median == 1), fill = above_predictor)) + 
-     geom_bar(position = "fill", stat = "identity")
-    
-    (one + two)  / (three + four)
-    
-  } else if (outcome == "hosp") {
-    
-    one = a %>% 
-        ggplot(aes(
-          x = {{predictor}}
-        )) + 
-        geom_density(aes(fill = above_hosp_median), alpha = 0.5)
-    
-    two = a %>% 
-      ggplot(aes(
-        x = above_predictor,
-        fill = above_hosp_median
-      )) + 
-      geom_bar(stat = "count")
-    
-   three = a %>% 
-     ggplot(aes(
-       x = above_predictor,
-       fill = above_hosp_median
-     )) + 
-     geom_bar(position = "fill")
-   
-   four = a %>% 
-     ggplot(aes(x = borough, y = sum(above_hosp_median == 1), fill = above_predictor)) + 
-     geom_bar(position = "fill", stat = "identity")
-    
-    (one + two)  / (three + four)
-    
-  } else if (outcome == "death") {
-    
-    one = a %>% 
-        ggplot(aes(
-          x = {{predictor}}
-        )) + 
-        geom_density(aes(fill = above_death_median), alpha = 0.5)
-    
-    two = a %>% 
-      ggplot(aes(
-        x = above_predictor,
-        fill = above_death_median
-      )) + 
-      geom_bar(stat = "count")
-    
-   three = a %>% 
-     ggplot(aes(
-       x = above_predictor,
-       fill = above_death_median
-     )) + 
-     geom_bar(position = "fill")
-   
-   four = a %>% 
-     ggplot(aes(x = borough, y = sum(above_death_median == 1), fill = above_predictor)) + 
-     geom_bar(position = "fill", stat = "identity")
-    
-    (one + two)  / (three + four)
-  }
 }
 ```
 
@@ -1420,7 +932,6 @@ PUMA_vax_lowest10 = puma_level_data %>%
 # "Worst" PUMAs
 worst_pumas = (PUMA_hosp_highest10 + PUMA_death_highest10) / PUMA_vax_lowest10
 
-# TODO: FIGURE OUT HOW TO MERGE LEGENDS MORE EASILY
 worst_pumas + plot_annotation(
   title = "Worst PUMAs for Each COVID Outcome",
   subtitle = "Categorized by Borough" 
@@ -1478,7 +989,6 @@ PUMA_vax_highest10 = puma_level_data %>%
 # "Best" PUMAs
 best_pumas = (PUMA_hosp_lowest10 + PUMA_death_lowest10) / PUMA_vax_highest10
 
-# TODO: FIGURE OUT HOW TO MERGE LEGENDS MORE EASILY
 best_pumas + plot_annotation(
   title = "Best PUMAs for Each COVID Outcome",
   subtitle = "Categorized by Borough" 
@@ -1555,7 +1065,9 @@ hosp_vs_death = puma_level_data %>%
   geom_smooth(method = lm, se = FALSE, color = "red", aes(weight = total_people)) + 
   labs(
     x = "% Hospitalized",
-    y = "% Deceased"
+    y = "% Deceased",
+    size = "# of People",
+    col = "Borough"
   )
 
 # Hospitalizations and vaccinations
@@ -1565,7 +1077,9 @@ hosp_vs_vax = puma_level_data %>%
   geom_smooth(method = lm, se = FALSE, color = "red", aes(weight = total_people)) + 
   labs(
     x = "% Hospitalized",
-    y = "% Vaccinated"
+    y = "% Vaccinated",
+    size = "# of People",
+    col = "Borough"
   )
 
 # Deaths and vaccinations
@@ -1575,7 +1089,9 @@ death_vs_vax = puma_level_data %>%
   geom_smooth(method = lm, se = FALSE, color = "red", aes(weight = total_people)) + 
   labs(
     x = "% Deceased",
-    y = "% Vaccinated"
+    y = "% Vaccinated",
+    size = "# of People",
+    col = "Borough"
   )
 
 outcome_associations = hosp_vs_death + hosp_vs_vax + death_vs_vax
@@ -1593,6 +1109,10 @@ outcome_associations + plot_annotation(
 # ggpairs correlations between key pairs, not faceted by borough
 puma_level_data %>% 
   select(covid_hosp_rate, covid_death_rate, covid_vax_rate) %>% 
+  mutate(
+    covid_hosp_rate = covid_hosp_rate,
+    covid_death_rate = covid_death_rate
+  ) %>% 
   rename(
     "Hospitalized" = covid_hosp_rate,
     "Deceased" = covid_death_rate,
@@ -1606,6 +1126,10 @@ puma_level_data %>%
 # ggpairs correlations between key pairs, faceted by borough
 puma_level_data %>% 
   select(covid_hosp_rate, covid_death_rate, covid_vax_rate, borough) %>% 
+  mutate(
+    covid_hosp_rate = covid_hosp_rate,
+    covid_death_rate = covid_death_rate
+  ) %>% 
   rename(
     "Hospitalized" = covid_hosp_rate,
     "Deceased" = covid_death_rate,
@@ -2088,7 +1612,7 @@ first_predict = outcome_vs_predictor(race, "hosp") +
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(hosp_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 100, 2)), vjust = 1.5, color = "white")
 
 # Hospitalizations vs age
 # First create data frame for use later
@@ -2114,7 +1638,7 @@ second_predict = age_grouped %>%
   ggplot(
     aes(
       x = age,
-      y = hosp_rate,
+      y = hosp_rate / 100,
       fill = age
     )
   ) + 
@@ -2127,7 +1651,7 @@ second_predict = age_grouped %>%
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(hosp_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 100, 2)), vjust = 1.5, color = "white")
   
 # Hospitalizations vs sex
 third_predict = outcome_vs_predictor(sex, "hosp") + 
@@ -2139,7 +1663,7 @@ third_predict = outcome_vs_predictor(sex, "hosp") +
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(hosp_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 100, 2)), vjust = 1.5, color = "white")
 
 first_predict + second_predict + third_predict
 ```
@@ -2155,14 +1679,14 @@ first_predict = outcome_vs_predictor(race, "death") +
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(death_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 100, 2)), vjust = 1.5, color = "white")
 
 # Deaths vs age
 second_predict = age_grouped %>% 
   ggplot(
     aes(
       x = age,
-      y = death_rate,
+      y = death_rate / 100,
       fill = age
     )
   ) + 
@@ -2175,7 +1699,7 @@ second_predict = age_grouped %>%
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(death_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 100, 2)), vjust = 1.5, color = "white")
   
 # Deaths vs sex
 third_predict = outcome_vs_predictor(sex, "death") + 
@@ -2187,7 +1711,7 @@ third_predict = outcome_vs_predictor(sex, "death") +
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(death_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 100, 2)), vjust = 1.5, color = "white")
 
 first_predict + second_predict + third_predict
 ```
@@ -2270,7 +1794,7 @@ first_predict_ses = income_grouped %>%
   ggplot(
     aes(
       x = household_income,
-      y = hosp_rate,
+      y = hosp_rate / 100,
       fill = household_income
     )
   ) + 
@@ -2283,7 +1807,7 @@ first_predict_ses = income_grouped %>%
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(hosp_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 100, 2)), vjust = 1.5, color = "white")
 
 # Hospitalizations vs Education
 second_predict_ses = outcome_vs_predictor(education, "hosp") + 
@@ -2295,7 +1819,7 @@ second_predict_ses = outcome_vs_predictor(education, "hosp") +
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(hosp_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 100, 2)), vjust = 1.5, color = "white")
 
 # Hospitalizations vs Insurance
 third_predict_ses = outcome_vs_predictor(health_insurance, "hosp") + 
@@ -2307,7 +1831,7 @@ third_predict_ses = outcome_vs_predictor(health_insurance, "hosp") +
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(hosp_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 100, 2)), vjust = 1.5, color = "white")
 
 # Hospitalizations vs Birthplace
 fourth_predict_ses = outcome_vs_predictor(birthplace, "hosp") + 
@@ -2319,7 +1843,7 @@ fourth_predict_ses = outcome_vs_predictor(birthplace, "hosp") +
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(hosp_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 100, 2)), vjust = 1.5, color = "white")
 
 (first_predict_ses + second_predict_ses) / (third_predict_ses + fourth_predict_ses)
 ```
@@ -2331,7 +1855,7 @@ first_predict_ses = income_grouped %>%
   ggplot(
     aes(
       x = household_income,
-      y = death_rate,
+      y = death_rate / 100,
       fill = household_income
     )
   ) + 
@@ -2344,7 +1868,7 @@ first_predict_ses = income_grouped %>%
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(death_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 100, 2)), vjust = 1.5, color = "white")
 
 # Deaths vs Education
 second_predict_ses = outcome_vs_predictor(education, "death") + 
@@ -2356,7 +1880,7 @@ second_predict_ses = outcome_vs_predictor(education, "death") +
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(death_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 100, 2)), vjust = 1.5, color = "white")
 
 # Deaths vs Citizenship
 third_predict_ses = outcome_vs_predictor(US_citizen, "death") + 
@@ -2368,7 +1892,7 @@ third_predict_ses = outcome_vs_predictor(US_citizen, "death") +
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(death_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 100, 2)), vjust = 1.5, color = "white")
 
 # Deaths vs Birthplace
 fourth_predict_ses = outcome_vs_predictor(birthplace, "death") + 
@@ -2380,7 +1904,7 @@ fourth_predict_ses = outcome_vs_predictor(birthplace, "death") +
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(death_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 100, 2)), vjust = 1.5, color = "white")
 
 (first_predict_ses + second_predict_ses) / (third_predict_ses + fourth_predict_ses)
 ```
