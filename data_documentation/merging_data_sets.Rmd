@@ -5,7 +5,8 @@ date: "11/20/2021"
 output: github_document
 ---
 
-```{r}
+```{r setup, message=FALSE}
+# Load packages
 library(tidyverse)
 library(janitor)
 ```
@@ -13,16 +14,19 @@ library(janitor)
 Below, we read in monthly death rates and hospitalization rates due to COVID-19, as well as rates of vaccination against COVID-19, courtesy of DOHMH. Data are recorded for each Zip Code Tabulation Area (ZCTA) in NYC, and values denote rates per 100,000 residents of a given ZCTA. Next, we read in two crosswalks between geographies of NYC, courtesy of Baruch College. The `zcta_puma_cross.csv` crosswalk enables us to merge data between ZCTAs and PUMAs, neither of which is a strict sub-geography of the other.
 
 ```{r importing data sets, message = FALSE}
+# Import hospitalization, death, and vaccination ZCTA data
 death_data <- read_csv("./data/nyc_death_rate_zcta.csv")
 hosp_data <- read_csv("./data/nyc_hosp_rate_zcta.csv")
 vacc_data <- read_csv("./data/nyc_vacc_zcta.csv")
 
+# Read in ZCTA/PUMA crosswalk
 zcta_puma_cross <- read_csv("./data/zcta_puma_cross.csv")
 ```
 
 Below, we are calculating the sum of death rate and hospitalization rate for each ZCTA over the time interval from March 2020 to September 2021.
 
 ```{r cleaning death data}
+# Obtain death rate summed by ZCTA over the entire time interval
 death_data_clean <-
   death_data %>% 
   janitor::clean_names() %>%
@@ -36,10 +40,12 @@ death_data_clean <-
   summarise(death_rate_sum = 
               sum(death_rate))
 
+# Deprecate original death data frame
 rm(death_data)
 ```
 
 ```{r cleaning hospitalization data}
+# Obtain hospitalization rate summed by ZCTA over the entire time interval
 hosp_data_clean <- 
   hosp_data %>% 
   janitor::clean_names() %>%
@@ -53,11 +59,13 @@ hosp_data_clean <-
   summarise(hosp_rate_sum = 
               sum(hosp_rate))
 
+# Deprecate original hospitalization data frame
 rm(hosp_data)
 ```
 
 Below, we clean `vacc_data` and extract only the percentage of partially or fully vaccinated individuals in each ZCTA as of November 16, 2021.
 ```{r cleaning vaccination data}
+# Obtain vaccination rate summed by ZCTA over the entire time interval
 vacc_data_clean <- 
   vacc_data %>% 
   janitor::clean_names() %>% 
@@ -65,69 +73,85 @@ vacc_data_clean <-
   rename(zcta = modzcta) %>% 
   mutate(zcta = as.character(zcta))
 
+# Deprecate original vaccination data frame
 rm(vacc_data)
 ```
 
-The cleaned and merged data sets:
+Below, we merge our outcomes data:
+
 ```{r showing cleaned data sets}
-#hospitalization data 
+# Merge hospitalization and death data
 merged_outcomes <- 
   merge(death_data_clean, hosp_data_clean, by = "zcta")
 
-#vaccination data 
+# Merge vaccination data with hospitalization and death data
 merged_outcomes <- 
   merge(merged_outcomes, vacc_data_clean, by = "zcta")
 
-head(merged_outcomes) # One potential issue here is that vaccination rate exceeds 100% in some places
+# Observe first few rows of merged outcomes data
+# Some ZCTAs have vaccination rates exceeding 100%, but this has to do with migration between ZCTAs
+head(merged_outcomes)
 ```
 
-Below, the code shows the ZCTA and PUMA ID numbers, `per_in_puma` - the percentage of the ZCTA in the associated PUMA,  and `per_of_puma` - the percentage of the PUMA that is occupied by the specified ZCTA. 
+The data frame we construct below includes one row for each ZCTA, and the following variables besides ZCTA and PUMA identification number:
+
+* `per_in_puma`: percent of the ZCTA in the associated PUMA
+* `per_of_puma`: percentage of the associated PUMA that is occupied by the specified ZCTA
+
 ```{r cleaning ZCTA - PUMA crosswalk}
+# Clean the ZCTA to PUMA crosswalk
 zcta_puma_clean <-
   zcta_puma_cross %>% 
-  mutate(zcta10 = 
+  mutate(zcta = 
            as.character(zcta10)) %>%
-  select(zcta10 , puma10, per_in_puma, per_of_puma) %>%
-  rename(zcta = zcta10) 
+  rename(
+    puma = puma10
+  ) %>% 
+  select(zcta, puma, per_in_puma, per_of_puma)
 
+# Observe first few rows of crosswalk between ZCTAs and PUMAS
 head(zcta_puma_clean)
+
+# Remove unnecessary crosswalk data frame
 rm(zcta_puma_cross)
 ```
 
-Below, we calculate `weighted_death_rate`, `weighted_hosp_rate`, and `weighted_vacc_rate` for each PUMA by the following steps. 
+Below, we calculate `weighted_death_rate`, `weighted_hosp_rate`, and `weighted_vacc_rate` for each PUMA in the following way:
 
   1. The outcome rate from each ZCTA is multiplied by the percentage of the ZCTA that is in the corresponding PUMA (`per_in_puma`).
   
-  2. The resulting product is then multiplied by `per_in_puma` which represents the percentage of the total PUMA that the specified ZCTA occupies.
+  2. The resulting product is then multiplied by `per_in_puma`, which represents the percentage of the total PUMA that the specified ZCTA occupies.
   
   3. The resulting weighted products are summed for each PUMA to obtain the total `weighted_death_rate`, `weighted_hosp_rate`, and `weighted_vacc_rate` for each PUMA.
 
 ![Zcta Puma Map](zcta_puma_map.jpg)
 
-
-
 ```{r calculating PUMA rates}
+# Obtain final weighted outcomes data by PUMA
 outcome_puma <- 
-  merge(zcta_puma_clean, merged_outcomes, by = "zcta") %>%
+  merge(zcta_puma_clean, merged_outcomes, by = "zcta") %>% # Merge cleaned ZCTA/PUMA mappings with outcomes data
   mutate(weighted_death_rate =  
            death_rate_sum * per_in_puma * per_of_puma,
          weighted_hosp_rate =
            hosp_rate_sum * per_in_puma * per_of_puma,
          weighted_vacc_rate = 
-           perc_1plus * per_in_puma * per_of_puma) %>% 
+           perc_1plus * per_in_puma * per_of_puma) %>% # Calculate weighted outcomes
   select(weighted_death_rate,
          weighted_hosp_rate,
          weighted_vacc_rate,
-         puma10) %>%
-  group_by(puma10) %>%
+         puma) %>%
+  group_by(puma) %>%
   summarise(puma_death_rate = sum(weighted_death_rate),
             puma_hosp_rate = sum(weighted_hosp_rate),
-            puma_vacc_per = sum(weighted_vacc_rate)) 
-  
-outcome_puma %>% pull(puma10) %>% n_distinct() # merged result has the same number of puma as that of original number!
+            puma_vacc_per = sum(weighted_vacc_rate)) # Group by and sum over PUMAs
 
+# Confirm that merged result has correct number of PUMAS (55)
+outcome_puma %>% pull(puma) %>% n_distinct()
+
+# Observe first several rows of merged data farme
 head(outcome_puma)
 
+# Write merged data to a new CSV
 write_csv(outcome_puma, "./data/outcome_puma.csv")
 ```
 
