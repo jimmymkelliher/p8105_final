@@ -237,7 +237,12 @@ cleaned_data =
   relocate(on_welfare, .before = poverty_threshold) %>% 
   relocate(perwt, .before = hhwt) %>% 
   # Create factor variables where applicable
-  mutate(across(.cols = c(puma, borough, on_foodstamps, has_broadband, sex, race, birthplace, US_citizen, language, health_insurance, education, employment, on_welfare, poverty_threshold, work_transport), as.factor))
+  mutate(across(.cols = c(puma, borough, on_foodstamps, has_broadband, sex, race, birthplace, US_citizen, language, health_insurance, education, employment, on_welfare, poverty_threshold, work_transport), as.factor)) %>% 
+  # Ensure consistent use of percentages
+  mutate(
+    puma_death_rate = puma_death_rate / 100,
+    puma_hosp_rate = puma_hosp_rate / 100
+  )
 
 # View first few rows of full cleaned data frame
 cleaned_data %>% head()
@@ -260,6 +265,7 @@ nyc_hh_summary = cleaned_data %>%
   # Note: do we need to filter to one individual per household for household weightings?
   group_by(puma) %>%
   summarize(
+    total_people = sum(perwt),
     median_household_income = weighted.median(household_income, hhwt, na.rm = TRUE),
     perc_foodstamps = sum(hhwt[on_foodstamps == "Yes"]) * 100 / sum(hhwt),
     perc_broadband = sum(hhwt[has_broadband == "Yes"]) * 100 / sum(hhwt),

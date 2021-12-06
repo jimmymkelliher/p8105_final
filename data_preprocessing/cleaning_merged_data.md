@@ -214,7 +214,12 @@ cleaned_data =
   relocate(on_welfare, .before = poverty_threshold) %>% 
   relocate(perwt, .before = hhwt) %>% 
   # Create factor variables where applicable
-  mutate(across(.cols = c(puma, borough, on_foodstamps, has_broadband, sex, race, birthplace, US_citizen, language, health_insurance, education, employment, on_welfare, poverty_threshold, work_transport), as.factor))
+  mutate(across(.cols = c(puma, borough, on_foodstamps, has_broadband, sex, race, birthplace, US_citizen, language, health_insurance, education, employment, on_welfare, poverty_threshold, work_transport), as.factor)) %>% 
+  # Ensure consistent use of percentages
+  mutate(
+    puma_death_rate = puma_death_rate / 100,
+    puma_hosp_rate = puma_hosp_rate / 100
+  )
 
 # View first few rows of full cleaned data frame
 cleaned_data %>% head()
@@ -242,19 +247,19 @@ cleaned_data %>% head()
     ## 5        Yes  Spanish         Some College           Employed          Private
     ## 6    Unknown  English Post-Graduate Degree           Employed          Private
     ##   personal_income on_welfare poverty_threshold  work_transport puma_death_rate
-    ## 1           83435         No             Above  Public Transit        398.2366
-    ## 2          107920         No             Above Private Vehicle        398.2366
-    ## 3          125000         No             Above  Public Transit        398.2366
-    ## 4           11264         No             Above           Other        398.2366
-    ## 5           32373         No             Above  Public Transit        398.2366
-    ## 6           26101         No             Above Private Vehicle        398.2366
+    ## 1           83435         No             Above  Public Transit        3.982366
+    ## 2          107920         No             Above Private Vehicle        3.982366
+    ## 3          125000         No             Above  Public Transit        3.982366
+    ## 4           11264         No             Above           Other        3.982366
+    ## 5           32373         No             Above  Public Transit        3.982366
+    ## 6           26101         No             Above Private Vehicle        3.982366
     ##   puma_hosp_rate puma_vacc_rate
-    ## 1       1064.624       55.79213
-    ## 2       1064.624       55.79213
-    ## 3       1064.624       55.79213
-    ## 4       1064.624       55.79213
-    ## 5       1064.624       55.79213
-    ## 6       1064.624       55.79213
+    ## 1       10.64624       55.79213
+    ## 2       10.64624       55.79213
+    ## 3       10.64624       55.79213
+    ## 4       10.64624       55.79213
+    ## 5       10.64624       55.79213
+    ## 6       10.64624       55.79213
 
 ``` r
 # Examine structure of cleaned data frame to ensure proper variable types, distributions, and missingness
@@ -285,8 +290,8 @@ str(cleaned_data)
     ##  $ on_welfare       : Factor w/ 2 levels "No","Yes": 1 1 1 1 1 1 1 1 1 1 ...
     ##  $ poverty_threshold: Factor w/ 2 levels "Above","Below": 1 1 1 1 1 1 1 1 1 1 ...
     ##  $ work_transport   : Factor w/ 6 levels "Bicycle","Other",..: 4 3 4 2 4 3 2 4 4 2 ...
-    ##  $ puma_death_rate  : num  398 398 398 398 398 ...
-    ##  $ puma_hosp_rate   : num  1065 1065 1065 1065 1065 ...
+    ##  $ puma_death_rate  : num  3.98 3.98 3.98 3.98 3.98 ...
+    ##  $ puma_hosp_rate   : num  10.6 10.6 10.6 10.6 10.6 ...
     ##  $ puma_vacc_rate   : num  55.8 55.8 55.8 55.8 55.8 ...
 
 ``` r
@@ -339,8 +344,8 @@ Data summary
 | num\_children     |          0 |           1.00 |      0.52 |      0.98 |      0.00 |     0.00 |     0.00 |      1.00 |       9.00 | ▇▁▁▁▁ |
 | age               |          0 |           1.00 |     39.89 |     22.73 |      0.00 |    22.00 |    38.00 |     58.00 |      95.00 | ▆▇▇▆▂ |
 | personal\_income  |      55735 |           0.84 |  47056.34 |  81553.09 |  -7613.00 |  6109.00 | 23988.00 |  59351.00 | 1630109.00 | ▇▁▁▁▁ |
-| puma\_death\_rate |          0 |           1.00 |    283.37 |    103.82 |     56.65 |   210.30 |   274.78 |    345.96 |     628.34 | ▂▇▆▂▁ |
-| puma\_hosp\_rate  |          0 |           1.00 |   1017.75 |    318.06 |    394.54 |   772.39 |   987.23 |   1236.26 |    1707.95 | ▃▇▇▆▃ |
+| puma\_death\_rate |          0 |           1.00 |      2.83 |      1.04 |      0.57 |     2.10 |     2.75 |      3.46 |       6.28 | ▂▇▆▂▁ |
+| puma\_hosp\_rate  |          0 |           1.00 |     10.18 |      3.18 |      3.95 |     7.72 |     9.87 |     12.36 |      17.08 | ▃▇▇▆▃ |
 | puma\_vacc\_rate  |          0 |           1.00 |     57.09 |     15.51 |     28.98 |    46.76 |    56.37 |     69.29 |     103.77 | ▃▇▆▁▁ |
 
 The Census also doesn’t reach everyone; it samples the population. As a
@@ -363,6 +368,7 @@ nyc_hh_summary = cleaned_data %>%
   # Note: do we need to filter to one individual per household for household weightings?
   group_by(puma) %>%
   summarize(
+    total_people = sum(perwt),
     median_household_income = weighted.median(household_income, hhwt, na.rm = TRUE),
     perc_foodstamps = sum(hhwt[on_foodstamps == "Yes"]) * 100 / sum(hhwt),
     perc_broadband = sum(hhwt[has_broadband == "Yes"]) * 100 / sum(hhwt),
@@ -388,28 +394,30 @@ nyc_hh_summary = cleaned_data %>%
 nyc_hh_summary %>% head()
 ```
 
-    ## # A tibble: 6 × 20
-    ##   puma  median_household_in… perc_foodstamps perc_broadband perc_male median_age
-    ##   <fct>                <dbl>           <dbl>          <dbl>     <dbl>      <dbl>
-    ## 1 3701                 69000            24.5           89.5      46.9         39
-    ## 2 3702                 68610            28.2           82.9      45.1         36
-    ## 3 3703                 77588            15.9           86.6      46.7         43
-    ## 4 3704                 64662            23.9           81.6      47.7         37
-    ## 5 3705                 36500            50.7           87.6      46.2         30
-    ## 6 3706                 43490            46.2           82.2      48.3         32
-    ## # … with 14 more variables: perc_white <dbl>, perc_foreign_born <dbl>,
-    ## #   perc_citizen <dbl>, perc_english <dbl>, perc_college <dbl>,
-    ## #   perc_unemployed <dbl>, perc_insured <dbl>, median_personal_income <dbl>,
-    ## #   perc_welfare <dbl>, perc_poverty <dbl>, perc_public_transit <dbl>,
-    ## #   covid_hosp_rate <dbl>, covid_vax_rate <dbl>, covid_death_rate <dbl>
+    ## # A tibble: 6 × 21
+    ##   puma  total_people median_household_… perc_foodstamps perc_broadband perc_male
+    ##   <fct>        <dbl>              <dbl>           <dbl>          <dbl>     <dbl>
+    ## 1 3701        110016              69000            24.5           89.5      46.9
+    ## 2 3702        151067              68610            28.2           82.9      45.1
+    ## 3 3703        119529              77588            15.9           86.6      46.7
+    ## 4 3704        126664              64662            23.9           81.6      47.7
+    ## 5 3705        171016              36500            50.7           87.6      46.2
+    ## 6 3706        131986              43490            46.2           82.2      48.3
+    ## # … with 15 more variables: median_age <dbl>, perc_white <dbl>,
+    ## #   perc_foreign_born <dbl>, perc_citizen <dbl>, perc_english <dbl>,
+    ## #   perc_college <dbl>, perc_unemployed <dbl>, perc_insured <dbl>,
+    ## #   median_personal_income <dbl>, perc_welfare <dbl>, perc_poverty <dbl>,
+    ## #   perc_public_transit <dbl>, covid_hosp_rate <dbl>, covid_vax_rate <dbl>,
+    ## #   covid_death_rate <dbl>
 
 ``` r
 # Examine structure of summarized data frame to ensure proper variable types, distributions, and missingness
 str(nyc_hh_summary)
 ```
 
-    ## tibble [55 × 20] (S3: tbl_df/tbl/data.frame)
+    ## tibble [55 × 21] (S3: tbl_df/tbl/data.frame)
     ##  $ puma                   : Factor w/ 55 levels "3701","3702",..: 1 2 3 4 5 6 7 8 9 10 ...
+    ##  $ total_people           : num [1:55] 110016 151067 119529 126664 171016 ...
     ##  $ median_household_income: num [1:55] 69000 68610 77588 64662 36500 ...
     ##  $ perc_foodstamps        : num [1:55] 24.5 28.2 15.9 23.9 50.7 ...
     ##  $ perc_broadband         : num [1:55] 89.5 82.9 86.6 81.6 87.6 ...
@@ -426,9 +434,9 @@ str(nyc_hh_summary)
     ##  $ perc_welfare           : num [1:55] 20.2 22.1 16.7 20.2 29.2 ...
     ##  $ perc_poverty           : num [1:55] 22.7 18.6 16.3 19 39.3 ...
     ##  $ perc_public_transit    : num [1:55] 24.8 21.6 19.9 23.6 23 ...
-    ##  $ covid_hosp_rate        : num [1:55] 1065 1178 1304 686 826 ...
+    ##  $ covid_hosp_rate        : num [1:55] 10.65 11.78 13.04 6.86 8.26 ...
     ##  $ covid_vax_rate         : num [1:55] 55.8 47.2 58.3 29.4 33.2 ...
-    ##  $ covid_death_rate       : num [1:55] 398 269 405 209 202 ...
+    ##  $ covid_death_rate       : num [1:55] 3.98 2.69 4.05 2.09 2.02 ...
 
 ``` r
 skimr::skim(nyc_hh_summary)
@@ -438,11 +446,11 @@ skimr::skim(nyc_hh_summary)
 |:-------------------------------------------------|:-----------------|
 | Name                                             | nyc\_hh\_summary |
 | Number of rows                                   | 55               |
-| Number of columns                                | 20               |
+| Number of columns                                | 21               |
 | \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_   |                  |
 | Column type frequency:                           |                  |
 | factor                                           | 1                |
-| numeric                                          | 19               |
+| numeric                                          | 20               |
 | \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_ |                  |
 | Group variables                                  | None             |
 
@@ -456,24 +464,25 @@ Data summary
 
 **Variable type: numeric**
 
-| skim\_variable            | n\_missing | complete\_rate |     mean |       sd |       p0 |      p25 |      p50 |      p75 |      p100 | hist  |
-|:--------------------------|-----------:|---------------:|---------:|---------:|---------:|---------:|---------:|---------:|----------:|:------|
-| median\_household\_income |          0 |              1 | 80444.70 | 34782.11 | 34316.00 | 61043.50 | 71221.00 | 92067.00 | 183448.00 | ▆▇▂▁▂ |
-| perc\_foodstamps          |          0 |              1 |    22.51 |    12.72 |     2.44 |    13.14 |    20.96 |    29.90 |     52.88 | ▇▇▇▂▃ |
-| perc\_broadband           |          0 |              1 |    88.99 |     3.58 |    79.08 |    87.60 |    89.50 |    92.01 |     94.36 | ▁▂▆▇▇ |
-| perc\_male                |          0 |              1 |    47.69 |     1.91 |    43.29 |    46.41 |    47.45 |    48.84 |     52.56 | ▂▇▇▃▁ |
-| median\_age               |          0 |              1 |    36.56 |     3.92 |    28.00 |    34.00 |    36.00 |    39.00 |     45.00 | ▂▃▇▃▂ |
-| perc\_white               |          0 |              1 |    42.67 |    22.95 |     4.09 |    25.53 |    38.86 |    60.83 |     91.17 | ▆▇▅▃▅ |
-| perc\_foreign\_born       |          0 |              1 |    38.15 |    12.01 |    16.96 |    28.50 |    37.89 |    46.64 |     64.53 | ▇▇▇▆▃ |
-| perc\_citizen             |          0 |              1 |    22.18 |     7.76 |    10.26 |    15.75 |    20.59 |    28.23 |     38.26 | ▇▇▅▆▂ |
-| perc\_english             |          0 |              1 |    48.27 |    17.71 |    13.67 |    34.77 |    47.49 |    66.10 |     75.27 | ▃▆▆▃▇ |
-| perc\_college             |          0 |              1 |    46.24 |    13.67 |    26.43 |    39.64 |    45.13 |    51.34 |     82.98 | ▃▇▂▁▂ |
-| perc\_unemployed          |          0 |              1 |     3.30 |     1.00 |     1.70 |     2.54 |     3.06 |     3.91 |      5.73 | ▅▇▆▃▂ |
-| perc\_insured             |          0 |              1 |    92.45 |     3.16 |    82.31 |    91.28 |    92.58 |    94.08 |     97.76 | ▁▁▃▇▃ |
-| median\_personal\_income  |          0 |              1 | 27291.41 | 15870.98 | 10359.00 | 18975.00 | 22001.43 | 28048.67 |  75537.00 | ▇▅▁▁▁ |
-| perc\_welfare             |          0 |              1 |    19.75 |     4.76 |     8.86 |    17.03 |    19.62 |    21.82 |     33.36 | ▂▅▇▃▁ |
-| perc\_poverty             |          0 |              1 |    19.66 |     9.09 |     6.67 |    12.24 |    17.51 |    25.99 |     43.25 | ▇▆▅▃▁ |
-| perc\_public\_transit     |          0 |              1 |    26.71 |     7.03 |    11.39 |    22.07 |    26.30 |    32.67 |     38.03 | ▃▅▇▆▇ |
-| covid\_hosp\_rate         |          0 |              1 |  1001.35 |   334.77 |   394.54 |   761.66 |   977.86 |  1253.81 |   1707.95 | ▃▇▇▆▃ |
-| covid\_vax\_rate          |          0 |              1 |    56.70 |    15.87 |    28.98 |    46.70 |    56.37 |    68.63 |    103.77 | ▅▇▆▂▁ |
-| covid\_death\_rate        |          0 |              1 |   279.71 |   112.21 |    56.65 |   206.96 |   268.83 |   345.51 |    628.34 | ▂▇▆▂▁ |
+| skim\_variable            | n\_missing | complete\_rate |      mean |       sd |        p0 |       p25 |       p50 |       p75 |      p100 | hist  |
+|:--------------------------|-----------:|---------------:|----------:|---------:|----------:|----------:|----------:|----------:|----------:|:------|
+| total\_people             |          0 |              1 | 152879.02 | 31652.14 | 107679.00 | 131435.00 | 148686.00 | 164289.00 | 242420.00 | ▆▇▃▂▁ |
+| median\_household\_income |          0 |              1 |  80444.70 | 34782.11 |  34316.00 |  61043.50 |  71221.00 |  92067.00 | 183448.00 | ▆▇▂▁▂ |
+| perc\_foodstamps          |          0 |              1 |     22.51 |    12.72 |      2.44 |     13.14 |     20.96 |     29.90 |     52.88 | ▇▇▇▂▃ |
+| perc\_broadband           |          0 |              1 |     88.99 |     3.58 |     79.08 |     87.60 |     89.50 |     92.01 |     94.36 | ▁▂▆▇▇ |
+| perc\_male                |          0 |              1 |     47.69 |     1.91 |     43.29 |     46.41 |     47.45 |     48.84 |     52.56 | ▂▇▇▃▁ |
+| median\_age               |          0 |              1 |     36.56 |     3.92 |     28.00 |     34.00 |     36.00 |     39.00 |     45.00 | ▂▃▇▃▂ |
+| perc\_white               |          0 |              1 |     42.67 |    22.95 |      4.09 |     25.53 |     38.86 |     60.83 |     91.17 | ▆▇▅▃▅ |
+| perc\_foreign\_born       |          0 |              1 |     38.15 |    12.01 |     16.96 |     28.50 |     37.89 |     46.64 |     64.53 | ▇▇▇▆▃ |
+| perc\_citizen             |          0 |              1 |     22.18 |     7.76 |     10.26 |     15.75 |     20.59 |     28.23 |     38.26 | ▇▇▅▆▂ |
+| perc\_english             |          0 |              1 |     48.27 |    17.71 |     13.67 |     34.77 |     47.49 |     66.10 |     75.27 | ▃▆▆▃▇ |
+| perc\_college             |          0 |              1 |     46.24 |    13.67 |     26.43 |     39.64 |     45.13 |     51.34 |     82.98 | ▃▇▂▁▂ |
+| perc\_unemployed          |          0 |              1 |      3.30 |     1.00 |      1.70 |      2.54 |      3.06 |      3.91 |      5.73 | ▅▇▆▃▂ |
+| perc\_insured             |          0 |              1 |     92.45 |     3.16 |     82.31 |     91.28 |     92.58 |     94.08 |     97.76 | ▁▁▃▇▃ |
+| median\_personal\_income  |          0 |              1 |  27291.41 | 15870.98 |  10359.00 |  18975.00 |  22001.43 |  28048.67 |  75537.00 | ▇▅▁▁▁ |
+| perc\_welfare             |          0 |              1 |     19.75 |     4.76 |      8.86 |     17.03 |     19.62 |     21.82 |     33.36 | ▂▅▇▃▁ |
+| perc\_poverty             |          0 |              1 |     19.66 |     9.09 |      6.67 |     12.24 |     17.51 |     25.99 |     43.25 | ▇▆▅▃▁ |
+| perc\_public\_transit     |          0 |              1 |     26.71 |     7.03 |     11.39 |     22.07 |     26.30 |     32.67 |     38.03 | ▃▅▇▆▇ |
+| covid\_hosp\_rate         |          0 |              1 |     10.01 |     3.35 |      3.95 |      7.62 |      9.78 |     12.54 |     17.08 | ▃▇▇▆▃ |
+| covid\_vax\_rate          |          0 |              1 |     56.70 |    15.87 |     28.98 |     46.70 |     56.37 |     68.63 |    103.77 | ▅▇▆▂▁ |
+| covid\_death\_rate        |          0 |              1 |      2.80 |     1.12 |      0.57 |      2.07 |      2.69 |      3.46 |      6.28 | ▂▇▆▂▁ |
