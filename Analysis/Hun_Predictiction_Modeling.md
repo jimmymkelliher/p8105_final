@@ -73,7 +73,7 @@ vax_test <- testing(vax_split)
 set.seed(123)
 
 # k-fold cross validation step repeated 30 times using stratification
-vax_folds <- vfold_cv(vax_train, strata = below_herd_vax, v = 10, repeats = 30)
+vax_folds <- vfold_cv(vax_train, strata = below_herd_vax, v = 10, repeats = 1)
 ```
 
 ``` r
@@ -135,7 +135,7 @@ collect_metrics(final_rs)
     ##   .metric  .estimator .estimate .config             
     ##   <chr>    <chr>          <dbl> <chr>               
     ## 1 accuracy binary         0.786 Preprocessor1_Model1
-    ## 2 roc_auc  binary         0.879 Preprocessor1_Model1
+    ## 2 roc_auc  binary         0.848 Preprocessor1_Model1
 
 ``` r
 # Collect predictive performance metrics across splits
@@ -143,22 +143,22 @@ collect_predictions(final_rs)
 ```
 
     ## # A tibble: 14 × 7
-    ##    id                .pred_0 .pred_1  .row .pred_class below_herd_vax .config   
-    ##    <chr>               <dbl>   <dbl> <int> <fct>       <fct>          <chr>     
-    ##  1 train/test split 1.36e- 3 0.999       1 1           1              Preproces…
-    ##  2 train/test split 1.90e-11 1.00        7 1           1              Preproces…
-    ##  3 train/test split 4.22e- 5 1.00       11 1           1              Preproces…
-    ##  4 train/test split 2.82e- 5 1.00       13 1           1              Preproces…
-    ##  5 train/test split 2.63e- 1 0.737      17 1           0              Preproces…
-    ##  6 train/test split 2.53e- 1 0.747      21 1           1              Preproces…
-    ##  7 train/test split 1.74e- 2 0.983      23 1           1              Preproces…
-    ##  8 train/test split 1.97e- 2 0.980      27 1           1              Preproces…
-    ##  9 train/test split 4.61e- 2 0.954      29 1           1              Preproces…
-    ## 10 train/test split 5.12e- 1 0.488      33 0           1              Preproces…
-    ## 11 train/test split 1.93e- 1 0.807      36 1           1              Preproces…
-    ## 12 train/test split 6.90e- 2 0.931      39 1           1              Preproces…
-    ## 13 train/test split 9.91e- 1 0.00883    48 0           0              Preproces…
-    ## 14 train/test split 7.06e- 2 0.929      52 1           0              Preproces…
+    ##    id               .pred_0 .pred_1  .row .pred_class below_herd_vax .config    
+    ##    <chr>              <dbl>   <dbl> <int> <fct>       <fct>          <chr>      
+    ##  1 train/test split  0.362   0.638      1 1           1              Preprocess…
+    ##  2 train/test split  0.0281  0.972      7 1           1              Preprocess…
+    ##  3 train/test split  0.699   0.301     11 0           1              Preprocess…
+    ##  4 train/test split  0.225   0.775     13 1           1              Preprocess…
+    ##  5 train/test split  0.953   0.0474    17 0           0              Preprocess…
+    ##  6 train/test split  0.478   0.522     21 1           1              Preprocess…
+    ##  7 train/test split  0.214   0.786     23 1           1              Preprocess…
+    ##  8 train/test split  0.373   0.627     27 1           1              Preprocess…
+    ##  9 train/test split  0.366   0.634     29 1           1              Preprocess…
+    ## 10 train/test split  0.603   0.397     33 0           1              Preprocess…
+    ## 11 train/test split  0.611   0.389     36 0           1              Preprocess…
+    ## 12 train/test split  0.489   0.511     39 1           1              Preprocess…
+    ## 13 train/test split  0.555   0.445     48 0           0              Preprocess…
+    ## 14 train/test split  0.608   0.392     52 0           0              Preprocess…
 
 ``` r
 # Plot predictive performance measures across splits
@@ -199,12 +199,13 @@ vax_cv <- trainControl(method = "repeatedcv", number = 5, repeats = 100,
                        savePredictions = T
                        )
 
+# Goal is to find optimal lambda
 lasso_model <- train(below_herd_vax ~ ., data = logistic_df,
                      method = "glmnet",
                      trControl = vax_cv,
                      tuneGrid = expand.grid(
                        .alpha = 1,
-                       .lambda = 10^seq(-5, 5, length = 10)),
+                       .lambda = seq(0.0001, 1, length = 100)),
                      family = "binomial")
 
 lasso_model
@@ -221,23 +222,113 @@ lasso_model
     ## Summary of sample sizes: 44, 44, 44, 44, 44, 44, ... 
     ## Resampling results across tuning parameters:
     ## 
-    ##   lambda        Accuracy   Kappa    
-    ##   1.000000e-05  0.8335121  0.5056866
-    ##   1.291550e-04  0.8351667  0.5076780
-    ##   1.668101e-03  0.8449424  0.5295549
-    ##   2.154435e-02  0.8807242  0.5557529
-    ##   2.782559e-01  0.8007727  0.0000000
-    ##   3.593814e+00  0.8007727  0.0000000
-    ##   4.641589e+01  0.8007727  0.0000000
-    ##   5.994843e+02  0.8007727  0.0000000
-    ##   7.742637e+03  0.8007727  0.0000000
-    ##   1.000000e+05  0.8007727  0.0000000
+    ##   lambda  Accuracy   Kappa        
+    ##   0.0001  0.8350030   0.5069007776
+    ##   0.0102  0.8864303   0.6103143908
+    ##   0.0203  0.8813212   0.5595070063
+    ##   0.0304  0.8753758   0.5143561440
+    ##   0.0405  0.8641152   0.4434275908
+    ##   0.0506  0.8473879   0.3506936131
+    ##   0.0607  0.8278273   0.2375886941
+    ##   0.0708  0.8105848   0.1347184120
+    ##   0.0809  0.7995394   0.0689040837
+    ##   0.0910  0.7957758   0.0395333694
+    ##   0.1011  0.7935727   0.0196021570
+    ##   0.1112  0.7932697   0.0089344023
+    ##   0.1213  0.7938606   0.0008179452
+    ##   0.1314  0.7956364  -0.0015992933
+    ##   0.1415  0.7954879  -0.0066111743
+    ##   0.1516  0.7990818  -0.0008349543
+    ##   0.1617  0.7996455  -0.0017188329
+    ##   0.1718  0.8003909  -0.0005835544
+    ##   0.1819  0.8007727   0.0000000000
+    ##   0.1920  0.8007727   0.0000000000
+    ##   0.2021  0.8007727   0.0000000000
+    ##   0.2122  0.8007727   0.0000000000
+    ##   0.2223  0.8007727   0.0000000000
+    ##   0.2324  0.8007727   0.0000000000
+    ##   0.2425  0.8007727   0.0000000000
+    ##   0.2526  0.8007727   0.0000000000
+    ##   0.2627  0.8007727   0.0000000000
+    ##   0.2728  0.8007727   0.0000000000
+    ##   0.2829  0.8007727   0.0000000000
+    ##   0.2930  0.8007727   0.0000000000
+    ##   0.3031  0.8007727   0.0000000000
+    ##   0.3132  0.8007727   0.0000000000
+    ##   0.3233  0.8007727   0.0000000000
+    ##   0.3334  0.8007727   0.0000000000
+    ##   0.3435  0.8007727   0.0000000000
+    ##   0.3536  0.8007727   0.0000000000
+    ##   0.3637  0.8007727   0.0000000000
+    ##   0.3738  0.8007727   0.0000000000
+    ##   0.3839  0.8007727   0.0000000000
+    ##   0.3940  0.8007727   0.0000000000
+    ##   0.4041  0.8007727   0.0000000000
+    ##   0.4142  0.8007727   0.0000000000
+    ##   0.4243  0.8007727   0.0000000000
+    ##   0.4344  0.8007727   0.0000000000
+    ##   0.4445  0.8007727   0.0000000000
+    ##   0.4546  0.8007727   0.0000000000
+    ##   0.4647  0.8007727   0.0000000000
+    ##   0.4748  0.8007727   0.0000000000
+    ##   0.4849  0.8007727   0.0000000000
+    ##   0.4950  0.8007727   0.0000000000
+    ##   0.5051  0.8007727   0.0000000000
+    ##   0.5152  0.8007727   0.0000000000
+    ##   0.5253  0.8007727   0.0000000000
+    ##   0.5354  0.8007727   0.0000000000
+    ##   0.5455  0.8007727   0.0000000000
+    ##   0.5556  0.8007727   0.0000000000
+    ##   0.5657  0.8007727   0.0000000000
+    ##   0.5758  0.8007727   0.0000000000
+    ##   0.5859  0.8007727   0.0000000000
+    ##   0.5960  0.8007727   0.0000000000
+    ##   0.6061  0.8007727   0.0000000000
+    ##   0.6162  0.8007727   0.0000000000
+    ##   0.6263  0.8007727   0.0000000000
+    ##   0.6364  0.8007727   0.0000000000
+    ##   0.6465  0.8007727   0.0000000000
+    ##   0.6566  0.8007727   0.0000000000
+    ##   0.6667  0.8007727   0.0000000000
+    ##   0.6768  0.8007727   0.0000000000
+    ##   0.6869  0.8007727   0.0000000000
+    ##   0.6970  0.8007727   0.0000000000
+    ##   0.7071  0.8007727   0.0000000000
+    ##   0.7172  0.8007727   0.0000000000
+    ##   0.7273  0.8007727   0.0000000000
+    ##   0.7374  0.8007727   0.0000000000
+    ##   0.7475  0.8007727   0.0000000000
+    ##   0.7576  0.8007727   0.0000000000
+    ##   0.7677  0.8007727   0.0000000000
+    ##   0.7778  0.8007727   0.0000000000
+    ##   0.7879  0.8007727   0.0000000000
+    ##   0.7980  0.8007727   0.0000000000
+    ##   0.8081  0.8007727   0.0000000000
+    ##   0.8182  0.8007727   0.0000000000
+    ##   0.8283  0.8007727   0.0000000000
+    ##   0.8384  0.8007727   0.0000000000
+    ##   0.8485  0.8007727   0.0000000000
+    ##   0.8586  0.8007727   0.0000000000
+    ##   0.8687  0.8007727   0.0000000000
+    ##   0.8788  0.8007727   0.0000000000
+    ##   0.8889  0.8007727   0.0000000000
+    ##   0.8990  0.8007727   0.0000000000
+    ##   0.9091  0.8007727   0.0000000000
+    ##   0.9192  0.8007727   0.0000000000
+    ##   0.9293  0.8007727   0.0000000000
+    ##   0.9394  0.8007727   0.0000000000
+    ##   0.9495  0.8007727   0.0000000000
+    ##   0.9596  0.8007727   0.0000000000
+    ##   0.9697  0.8007727   0.0000000000
+    ##   0.9798  0.8007727   0.0000000000
+    ##   0.9899  0.8007727   0.0000000000
+    ##   1.0000  0.8007727   0.0000000000
     ## 
     ## Tuning parameter 'alpha' was held constant at a value of 1
     ## Accuracy was used to select the optimal model using the largest value.
-    ## The final values used for the model were alpha = 1 and lambda = 0.02154435.
+    ## The final values used for the model were alpha = 1 and lambda = 0.0102.
 
-## Result
+## Result from training data
 
 ``` r
 coef <- coef(lasso_model$finalModel, lasso_model$bestTune$lambda)
@@ -252,29 +343,49 @@ caret::confusionMatrix(table(sub_lasso$pred, sub_lasso$obs))
     ## 
     ##    
     ##        0    1
-    ##   0  638  195
-    ##   1  462 4205
-    ##                                          
-    ##                Accuracy : 0.8805         
-    ##                  95% CI : (0.8717, 0.889)
-    ##     No Information Rate : 0.8            
-    ##     P-Value [Acc > NIR] : < 2.2e-16      
-    ##                                          
-    ##                   Kappa : 0.5893         
-    ##                                          
-    ##  Mcnemar's Test P-Value : < 2.2e-16      
-    ##                                          
-    ##             Sensitivity : 0.5800         
-    ##             Specificity : 0.9557         
-    ##          Pos Pred Value : 0.7659         
-    ##          Neg Pred Value : 0.9010         
-    ##              Prevalence : 0.2000         
-    ##          Detection Rate : 0.1160         
-    ##    Detection Prevalence : 0.1515         
-    ##       Balanced Accuracy : 0.7678         
-    ##                                          
-    ##        'Positive' Class : 0              
+    ##   0  732  258
+    ##   1  368 4142
+    ##                                           
+    ##                Accuracy : 0.8862          
+    ##                  95% CI : (0.8775, 0.8945)
+    ##     No Information Rate : 0.8             
+    ##     P-Value [Acc > NIR] : < 2.2e-16       
+    ##                                           
+    ##                   Kappa : 0.6305          
+    ##                                           
+    ##  Mcnemar's Test P-Value : 1.321e-05       
+    ##                                           
+    ##             Sensitivity : 0.6655          
+    ##             Specificity : 0.9414          
+    ##          Pos Pred Value : 0.7394          
+    ##          Neg Pred Value : 0.9184          
+    ##              Prevalence : 0.2000          
+    ##          Detection Rate : 0.1331          
+    ##    Detection Prevalence : 0.1800          
+    ##       Balanced Accuracy : 0.8034          
+    ##                                           
+    ##        'Positive' Class : 0               
     ## 
+
+``` r
+#lambda <- 10^seq(-2, 3, length = 0.1)
+
+lambda  <- seq(0.0001, 1, length = 100)
+
+lambda_opt = lasso_model$bestTune$lambda
+
+
+broom::tidy(lasso_model$finalModel) %>% 
+select(term, lambda, estimate) %>% 
+complete(term, lambda, fill = list(estimate = 0) ) %>% 
+filter(term != "(Intercept)") %>% 
+ggplot(aes(x = log(lambda, 10), y = estimate, group = term, color = term)) + 
+geom_path() + 
+geom_vline(xintercept = log(lambda_opt, 10), color = "blue", size = 1.2) +
+theme(legend.position = "none")
+```
+
+<img src="Hun_Predictiction_Modeling_files/figure-gfm/unnamed-chunk-13-1.png" width="90%" />
 
 ## Getting Risk Prediction for each puma
 
@@ -292,91 +403,171 @@ vax <- logistic_df %>%
 
 
 
-bind_cols(puma, vax, as.vector(risk_predictions)) %>%
+risk_prediction <- 
+  bind_cols(puma, vax, as.vector(risk_predictions)) %>%
   rename(risk_prediciton = ...3)
+
+risk_prediction
 ```
 
     ## # A tibble: 55 × 3
     ##    puma  below_herd_vax risk_prediciton
     ##    <fct> <fct>                    <dbl>
-    ##  1 3701  1                         98.2
-    ##  2 3702  1                         99.7
-    ##  3 3703  1                         99  
-    ##  4 3704  1                         99  
+    ##  1 3701  1                         99.6
+    ##  2 3702  1                        100  
+    ##  3 3703  1                         99.6
+    ##  4 3704  1                         99.8
     ##  5 3705  1                        100  
-    ##  6 3706  1                         99.8
+    ##  6 3706  1                        100  
     ##  7 3707  1                        100  
-    ##  8 3708  1                         99.7
-    ##  9 3709  1                         99.7
+    ##  8 3708  1                        100  
+    ##  9 3709  1                        100  
     ## 10 3710  1                        100  
     ## # … with 45 more rows
 
-======= \#\# ZK additions
-
-Open questions:
-
-1.  Beyond the final binary classification as 1 or 0 for each PUMA, is
-    there a way to determine the probability of it being a 1 or 0? The
-    way the classifier works, for example, is that if p(outcome == 1)
-    &gt; 0.5, it classifies it as 1, otherwise as 0 on the predicted
-    outcome. But is there a way to extract the exact probabilities
-    calculated, like 0.76, 0.24, 0.31, etc, for each predicted data
-    point? This we can just use as a “risk score” out of 100.
-
-2.  Given that we have imbalanced classes for the outcome — 44 data
-    points vs 11 data points are above or below, rather than 50/50, we
-    should not use accuracy as an appropriate measure for our
-    classifier, since the probability of guessing “correctly” for any
-    single data point is 0.8 (44 out of 55), not 0.5. I believe we
-    should instead use AUC or kappa. Accuracy would really only
-    represent the underlying class distribution more than anything. For
-    instance, the reason we get 80% accuracy on an imbalanced data (with
-    80% of the instances as 1’s and 20% as 0’s) is because our models
-    look at the data and cleverly decide that the best thing to do is to
-    always predict 1 to achieve high accuracy.
-
-The literature says instead to use precision, recall, F1/F score, kappa,
-and/or ROC curves, so let’s try that.
-
 ``` r
-predicted_vs_actual = final_rs %>% 
-  unnest(.predictions) %>% 
-  select(.pred_class, below_herd_vax)
+library(nycgeo)
+library(sf)
+library(leaflet)
+library(htmlwidgets)
+library(shiny)
+library(stringi)
 
-# Add confusion matrix
-caret::confusionMatrix(data = factor(predicted_vs_actual$.pred_class), reference = factor(predicted_vs_actual$below_herd_vax))
+nyc_hh_summary <- read_csv("./data_for_regression.csv")
+
+risk_prediction_map_data <-
+  nyc_boundaries(geography = "puma") %>%
+  mutate(puma = puma_id) %>%
+  left_join(risk_prediction, by = "puma") 
 ```
 
-    ## Confusion Matrix and Statistics
-    ## 
-    ##           Reference
-    ## Prediction  0  1
-    ##          0  1  1
-    ##          1  2 10
-    ##                                          
-    ##                Accuracy : 0.7857         
-    ##                  95% CI : (0.492, 0.9534)
-    ##     No Information Rate : 0.7857         
-    ##     P-Value [Acc > NIR] : 0.6483         
-    ##                                          
-    ##                   Kappa : 0.2759         
-    ##                                          
-    ##  Mcnemar's Test P-Value : 1.0000         
-    ##                                          
-    ##             Sensitivity : 0.33333        
-    ##             Specificity : 0.90909        
-    ##          Pos Pred Value : 0.50000        
-    ##          Neg Pred Value : 0.83333        
-    ##              Prevalence : 0.21429        
-    ##          Detection Rate : 0.07143        
-    ##    Detection Prevalence : 0.14286        
-    ##       Balanced Accuracy : 0.62121        
-    ##                                          
-    ##        'Positive' Class : 0              
-    ## 
+``` r
+map_dataset <-
+  risk_prediction_map_data %>%
+  merge(nyc_hh_summary, by = "puma") %>%
+  mutate(median_household_income = round(median_household_income, digits = 0),
+         perc_insured = round(perc_insured, digits = 1),
+         perc_unemployed = round(perc_unemployed, digits = 1),
+         perc_poverty = round(perc_poverty, digits = 1)
+         ) %>% 
+  mutate(median_household_income = 
+           formatC(median_household_income,format = "d",big.mark = ",")) %>%
+  mutate(covid_vacc_rate = round(covid_vacc_rate, digits = 1),
+         covid_death_rate_2020 = round(covid_death_rate_2020, digits = 0),
+         covid_death_rate_2021 = round(covid_death_rate_2021, digits = 0),
+         covid_hosp_rate_2020 = round(covid_hosp_rate_2020, digits = 0),
+         covid_hosp_rate_2021 = round(covid_hosp_rate_2021, digits = 0)
+         ) 
+```
 
-Our kappa value is 0.28. This is a measure of “how closely the instances
-classified by the machine learning classifier matched the data labeled
-as ground truth, controlling for the accuracy of a random classifier as
-measured by the expected accuracy.” According to Landis and Koch, this
-is a “fair” or “poor” kappa statistic.
+``` r
+map_dataset_label <-
+  map_dataset %>% 
+  select(puma, perc_asian, perc_white, perc_black, perc_hispanic, perc_other) %>%
+  pivot_longer(perc_asian:perc_other, values_to = "value", names_to = "race") %>%
+  arrange(puma, desc(value)) %>% 
+  mutate(race = recode(race, 
+                       "perc_asian" = "Asian/Pacific Islander:",
+                       "perc_white" = "White:",
+                       "perc_black" = "Black:",
+                       "perc_hispanic" = "Hispanic:",
+                       "perc_other" = "Other:",
+                       )) %>%
+  mutate(value = round(value, digits = 1)) %>%
+  mutate(label = paste(race, value)) %>%
+  mutate(label = paste0(label, "%")) %>%
+  select(puma, label)
+
+first_race <-
+  map_dataset_label %>% 
+  group_by(puma) %>% 
+  filter(row_number() == 1) %>%
+  mutate(label1 = label) %>%
+  select(puma, label1)
+
+second_race <-
+  map_dataset_label %>% 
+  group_by(puma) %>% 
+  filter(row_number() == 2) %>%
+  mutate(label2 = label) %>%
+  select(puma, label2)
+
+third_race <-
+map_dataset_label %>% 
+  group_by(puma) %>% 
+  filter(row_number() == 3) %>%
+  mutate(label3 = label) %>%
+  select(puma, label3)
+
+fourth_race <-
+map_dataset_label %>% 
+  group_by(puma) %>% 
+  filter(row_number() == 4) %>%
+  mutate(label4 = label) %>%
+  select(puma, label4)
+
+fifth_race <-
+map_dataset_label %>% 
+  group_by(puma) %>% 
+  filter(row_number() == 5) %>%
+  mutate(label5 = label) %>%
+  select(puma, label5)
+
+map_dataset_label <-
+  bind_cols(first_race, second_race, third_race, fourth_race, fifth_race)
+```
+
+``` r
+labels <- sprintf("<strong>%s<strong> <br/> %s <br/> %s <br/> %s <br/> %s <br/> %s <br/>
+                  Insurance Rate: %s%% <br/> Median Household Income: $%s <br/> Vaccination
+                  Risk Score: %g%%", map_dataset$puma_name, map_dataset_label$label1,
+                  map_dataset_label$label2, map_dataset_label$label3,
+                  map_dataset_label$label4, map_dataset_label$label5,
+                  map_dataset$perc_insured, map_dataset$median_household_income,
+                  map_dataset$risk_prediciton) %>% lapply(htmltools::HTML)
+
+pal <- colorBin(palette = "OrRd", 9, domain = map_dataset$risk_prediciton)
+
+map_interactive <- map_dataset %>% st_transform(crs = "+init=epsg:4326") %>%
+  leaflet() %>%
+  addProviderTiles(provider = "CartoDB.Positron") %>%
+  addPolygons(label = labels,
+              labelOptions = labelOptions(
+    style = list("font-weight" = "normal", 
+                 padding = "1px 2px"),
+    textsize = "11px",  sticky = TRUE,
+    opacity = 0.55
+    ),
+              stroke = FALSE,
+              opacity = 0.01,
+              smoothFactor = .5,
+              fillOpacity = 0.7,
+              fillColor = ~pal(risk_prediciton),
+              highlightOptions = highlightOptions(weight = 5, 
+                                                  fillOpacity = 1,
+                                                  color = "black",
+                                                  opacity = 1,
+                                                  bringToFront = TRUE
+                                                  )) %>%
+  addLegend("bottomright",
+            pal = pal,
+            values = ~risk_prediciton,
+            title = "Vaccination Percentage Risk Prediction",
+            opacity = 0.7
+            )
+```
+
+    ## Warning in CPL_crs_from_input(x): GDAL Message 1: +init=epsg:XXXX syntax is
+    ## deprecated. It might return a CRS with a non-EPSG compliant axis order.
+
+    ## Warning in RColorBrewer::brewer.pal(max(3, n), palette): n too large, allowed maximum for palette OrRd is 9
+    ## Returning the palette you asked for with that many colors
+
+    ## Warning in RColorBrewer::brewer.pal(max(3, n), palette): n too large, allowed maximum for palette OrRd is 9
+    ## Returning the palette you asked for with that many colors
+
+``` r
+map_interactive
+```
+
+<img src="Hun_Predictiction_Modeling_files/figure-gfm/unnamed-chunk-18-1.png" width="90%" />
