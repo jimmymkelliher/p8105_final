@@ -1,58 +1,11 @@
----
-title: "Prediction Modeling"
-author: 'Zachary Katz'
-date: "12/4/2021"
-output: github_document
----
+Prediction Modeling
+================
+Zachary Katz
+12/4/2021
 
 # Data Preparation
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r defaults, echo = FALSE, message = FALSE, warning = FALSE}
-# load necessary packages
-library(tidyverse)
-library(spatstat)
-library(glmnet)
-library(plotly)
-library(ggpubr)
-library(GGally)
-library(pvclust)
-library(cluster)
-library(factoextra)
-
-# set knitr defaults
-knitr::opts_chunk$set(
-    echo      = TRUE
-  , message   = FALSE
-  , fig.width = 6
-  , fig.asp   = .6
-  , out.width = "90%"
-)
-
-# set theme defaults
-theme_set(
-  theme_bw() +
-  theme(
-    legend.position = "bottom"
-    , plot.title    = element_text(hjust = 0.5)
-    , plot.subtitle = element_text(hjust = 0.5)    
-    , plot.caption  = element_text(hjust = 0.0)
-  )
-)
-
-# set color scale defaults
-options(
-    ggplot2.continuous.colour = "viridis"
-  , ggplot2.continuous.fill   = "viridis"
-)
-scale_colour_discrete = scale_colour_viridis_d
-scale_fill_discrete   = scale_fill_viridis_d
-```
-
-```{r unzip, message = FALSE, warning = FALSE}
+``` r
 jimzip <- function(csv_file, path) {
   # create full path to csv file
   full_csv <- paste0(path, "/", csv_file)
@@ -71,7 +24,7 @@ jimzip <- function(csv_file, path) {
 census_data <- jimzip("census_filtered.csv", "./data")
 ```
 
-```{r merge, message = FALSE, warning = FALSE}
+``` r
 health_data <-
   read_csv("./data/outcome_puma.csv") %>%
   rename(puma = puma10)
@@ -80,7 +33,7 @@ merged_data <- merge(census_data, health_data, by = "puma")
 rm(census_data, health_data)
 ```
 
-```{r clean, message = FALSE, warning = FALSE}
+``` r
 # Clean the merged census and outcomes data
 cleaned_data = 
   merged_data %>% 
@@ -238,7 +191,7 @@ cleaned_data =
 rm(merged_data)
 ```
 
-```{r puma summary, message = FALSE, warning = FALSE}
+``` r
 # Example data frame with weightings for summary stats over each PUMA
 nyc_puma_summary = cleaned_data %>% 
   # Note: do we need to filter to one individual per household for household weightings?
@@ -271,9 +224,11 @@ nyc_puma_summary = cleaned_data %>%
 
 ### Risk scoring
 
-We want to develop a method to score PUMAs on risk of not achieving herd immunity from vaccination. Let's say that herd immunity occurs at 70% vaccination rate, for our purposes.
+We want to develop a method to score PUMAs on risk of not achieving herd
+immunity from vaccination. Let’s say that herd immunity occurs at 70%
+vaccination rate, for our purposes.
 
-```{r defining binary outcomes and predictors}
+``` r
 # 1 indicates BELOW 70% vaccination rate
 logistic_df = nyc_puma_summary %>% 
   mutate(
@@ -288,7 +243,7 @@ y = logistic_df$below_herd_vax
 
 Then, we want to develop the penalized (logistic) regression model.
 
-```{r finding optimal lambda}
+``` r
 # Define a grid of possible tuning parameters
 lambda = 10 ^ seq(3, -2, -0.1)
 
@@ -299,9 +254,9 @@ lasso_fit = cv.glmnet(x, y, lambda = lambda, family = "binomial")
 lambda_opt = lasso_fit$lambda.min
 ```
 
-Let's check out the coefficients from the optimal model:
+Let’s check out the coefficients from the optimal model:
 
-```{r optimal coefficients}
+``` r
 # Calculate model with optimal tuning parameter
 lasso_optimal = glmnet(x, y, lambda = lambda_opt, family = "binomial")
 
@@ -309,9 +264,24 @@ lasso_optimal = glmnet(x, y, lambda = lambda_opt, family = "binomial")
 lasso_optimal %>% broom::tidy()
 ```
 
-Now, let's see the predictions our model makes for each PUMA and assess fit.
+    ## # A tibble: 10 × 5
+    ##    term                    step    estimate lambda dev.ratio
+    ##    <chr>                  <dbl>       <dbl>  <dbl>     <dbl>
+    ##  1 (Intercept)                1 -10.3       0.0158     0.733
+    ##  2 median_age                 1  -0.0557    0.0158     0.733
+    ##  3 perc_foreign_born          1  -0.0749    0.0158     0.733
+    ##  4 perc_english               1   0.0185    0.0158     0.733
+    ##  5 perc_unemployed            1   1.33      0.0158     0.733
+    ##  6 perc_insured               1   0.114     0.0158     0.733
+    ##  7 median_personal_income     1  -0.0000249 0.0158     0.733
+    ##  8 perc_welfare               1   0.320     0.0158     0.733
+    ##  9 perc_poverty               1   0.0515    0.0158     0.733
+    ## 10 perc_public_transit        1  -0.145     0.0158     0.733
 
-```{r model predictions}
+Now, let’s see the predictions our model makes for each PUMA and assess
+fit.
+
+``` r
 # Model predictions for each PUMA
 predictions = predict(lasso_optimal, x, type = "class")
 
@@ -319,9 +289,38 @@ predictions = predict(lasso_optimal, x, type = "class")
 caret::confusionMatrix(data = factor(predictions), reference = factor(y))
 ```
 
-For raw risk scores, we can use the fitted probabilities for our binomial classifier.
+    ## Confusion Matrix and Statistics
+    ## 
+    ##           Reference
+    ## Prediction  0  1
+    ##          0 10  1
+    ##          1  1 43
+    ##                                           
+    ##                Accuracy : 0.9636          
+    ##                  95% CI : (0.8747, 0.9956)
+    ##     No Information Rate : 0.8             
+    ##     P-Value [Acc > NIR] : 0.000503        
+    ##                                           
+    ##                   Kappa : 0.8864          
+    ##                                           
+    ##  Mcnemar's Test P-Value : 1.000000        
+    ##                                           
+    ##             Sensitivity : 0.9091          
+    ##             Specificity : 0.9773          
+    ##          Pos Pred Value : 0.9091          
+    ##          Neg Pred Value : 0.9773          
+    ##              Prevalence : 0.2000          
+    ##          Detection Rate : 0.1818          
+    ##    Detection Prevalence : 0.2000          
+    ##       Balanced Accuracy : 0.9432          
+    ##                                           
+    ##        'Positive' Class : 0               
+    ## 
 
-```{r finding risk scores}
+For raw risk scores, we can use the fitted probabilities for our
+binomial classifier.
+
+``` r
 # Fitted probabilities for binomial classifier, transformed into percentages
 risk_predictions = round((predict(lasso_optimal, x, type = "response"))*100, 1)
 
@@ -337,9 +336,18 @@ puma_risk_score = cbind(pumas, risk_predictions) %>%
 verification::roc.plot(y == 1, risk_predictions/100)$roc.vol
 ```
 
-Alternatively, we could do all of the above by training it on a random sample of 41 PUMAs, then test is on 14 hold-outs:
+    ## Warning in wilcox.test.default(pred[obs == 1], pred[obs == 0], alternative =
+    ## "great"): cannot compute exact p-value with ties
 
-```{r}
+<img src="zk-prediction-modeling_files/figure-gfm/finding risk scores-1.png" width="90%" />
+
+    ##      Model      Area      p.value binorm.area
+    ## 1 Model  1 0.9917355 2.826035e-07          NA
+
+Alternatively, we could do all of the above by training it on a random
+sample of 41 PUMAs, then test is on 14 hold-outs:
+
+``` r
 # Randomly select 41 PUMAs for test and 14 for training
 train_df = sample_n(logistic_df, 41)
 test_df = anti_join(logistic_df, train_df, by = "median_household_income")
@@ -350,7 +358,12 @@ y = train_df$below_herd_vax
 
 # Build model
 lasso_fit_sample = cv.glmnet(x, y, lambda = lambda, family = "binomial")
+```
 
+    ## Warning in lognet(xd, is.sparse, ix, jx, y, weights, offset, alpha, nobs, : one
+    ## multinomial or binomial class has fewer than 8 observations; dangerous ground
+
+``` r
 # Define minimal lambda
 lambda_opt_sample = lasso_fit_sample$lambda.min
 
@@ -366,7 +379,37 @@ predictions_test = predict(lasso_optimal_sample, x_test, type = "class")
 
 # Confusion matrix
 caret::confusionMatrix(data = factor(predictions_test), reference = factor(y_test))
+```
 
+    ## Confusion Matrix and Statistics
+    ## 
+    ##           Reference
+    ## Prediction  0  1
+    ##          0  1  0
+    ##          1  0 13
+    ##                                      
+    ##                Accuracy : 1          
+    ##                  95% CI : (0.7684, 1)
+    ##     No Information Rate : 0.9286     
+    ##     P-Value [Acc > NIR] : 0.3543     
+    ##                                      
+    ##                   Kappa : 1          
+    ##                                      
+    ##  Mcnemar's Test P-Value : NA         
+    ##                                      
+    ##             Sensitivity : 1.00000    
+    ##             Specificity : 1.00000    
+    ##          Pos Pred Value : 1.00000    
+    ##          Neg Pred Value : 1.00000    
+    ##              Prevalence : 0.07143    
+    ##          Detection Rate : 0.07143    
+    ##    Detection Prevalence : 0.07143    
+    ##       Balanced Accuracy : 1.00000    
+    ##                                      
+    ##        'Positive' Class : 0          
+    ## 
+
+``` r
 # Define a function to do it once
 # Parameter n is number of samples to train on
 simulate_classifier = function(n){
@@ -410,14 +453,14 @@ simulate_classifier = function(n){
 # round(unlist(output) %>% mean, 2)
 ```
 
-
 ## Clustering
 
-We might try to see how our PUMAs cluster on predictors, and how those clusters are associated with distributions of particular outcomes. 
+We might try to see how our PUMAs cluster on predictors, and how those
+clusters are associated with distributions of particular outcomes.
 
-Let's start with K-means clustering.
+Let’s start with K-means clustering.
 
-```{r initial clustering}
+``` r
 # Define tibble of predictors only
 predictors = nyc_puma_summary %>% 
   select(-puma, -total_people, -covid_hosp_rate, -covid_vax_rate, -covid_death_rate)
@@ -458,9 +501,11 @@ ggplot(data = full_df, aes(x = covid_hosp_rate, y = covid_vax_rate, color = .clu
   geom_point(data = summary_df, aes(x = median_hosp, y = median_vax, color = .cluster), size = 2.75)
 ```
 
+<img src="zk-prediction-modeling_files/figure-gfm/initial clustering-1.png" width="90%" />
+
 We could also scale predictors and omit NAs.
 
-```{r scaled clustering}
+``` r
 # Scale predictors
 for_clustering = predictors %>% 
   select(-.cluster) %>% 
@@ -470,13 +515,21 @@ for_clustering = predictors %>%
 # Evaluate Euclidean distances between observations
 distance = get_dist(for_clustering)
 fviz_dist(distance, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+```
 
+<img src="zk-prediction-modeling_files/figure-gfm/scaled clustering-1.png" width="90%" />
+
+``` r
 # Cluster with three centers
 k_scaled = kmeans(for_clustering, centers = 3)
 
 # Visualize cluster plot with reduction to two dimensions
 fviz_cluster(k_scaled, data = for_clustering)
+```
 
+<img src="zk-prediction-modeling_files/figure-gfm/scaled clustering-2.png" width="90%" />
+
+``` r
 # Bind with outcomes and color clusters
 full_df = for_clustering %>% 
   as_tibble() %>% 
@@ -499,23 +552,36 @@ ggplot(data = full_df, aes(x = covid_hosp_rate, y = covid_vax_rate, color = fact
   geom_point(data = summary_df, aes(x = median_hosp, y = median_vax, color = factor(cluster)), size = 2.75)
 ```
 
-We may want to evaluate this method's clustering quality as follows:
+<img src="zk-prediction-modeling_files/figure-gfm/scaled clustering-3.png" width="90%" />
 
-```{r}
+We may want to evaluate this method’s clustering quality as follows:
+
+``` r
 # Check where elbow occurs using WSS method
 fviz_nbclust(for_clustering, kmeans, method = "wss")
+```
 
+<img src="zk-prediction-modeling_files/figure-gfm/unnamed-chunk-2-1.png" width="90%" />
+
+``` r
 # Check for optimal number of clusters using silhouette method
 fviz_nbclust(for_clustering, kmeans, method = "silhouette")
+```
 
+<img src="zk-prediction-modeling_files/figure-gfm/unnamed-chunk-2-2.png" width="90%" />
+
+``` r
 # Check fnumber of clusters that minimize gap statistic
 gap_stat = clusGap(for_clustering, FUN = kmeans, nstart = 25, K.max = 20, B = 50)
 fviz_gap_stat(gap_stat)
 ```
 
-It seems that two clusters may actually work better than three, when clustering on predictors.
+<img src="zk-prediction-modeling_files/figure-gfm/unnamed-chunk-2-3.png" width="90%" />
 
-```{r scaled - two clusters}
+It seems that two clusters may actually work better than three, when
+clustering on predictors.
+
+``` r
 # Scale predictors
 for_clustering = predictors %>% 
   select(-.cluster) %>% 
@@ -525,13 +591,21 @@ for_clustering = predictors %>%
 # Evaluate Euclidean distances between observations
 distance = get_dist(for_clustering)
 fviz_dist(distance, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+```
 
+<img src="zk-prediction-modeling_files/figure-gfm/scaled - two clusters-1.png" width="90%" />
+
+``` r
 # Cluster with three centers
 k_scaled2 = kmeans(for_clustering, centers = 2)
 
 # Visualize cluster plot with reduction to two dimensions
 fviz_cluster(k_scaled2, data = for_clustering)
+```
 
+<img src="zk-prediction-modeling_files/figure-gfm/scaled - two clusters-2.png" width="90%" />
+
+``` r
 # Bind with outcomes and color clusters
 full_df = for_clustering %>% 
   as_tibble() %>% 
@@ -553,3 +627,5 @@ ggplot(data = full_df, aes(x = covid_hosp_rate, y = covid_vax_rate, color = fact
   geom_point(data = summary_df, aes(x = median_hosp, y = median_vax), color = "black", size = 4) +
   geom_point(data = summary_df, aes(x = median_hosp, y = median_vax, color = factor(cluster)), size = 2.75)
 ```
+
+<img src="zk-prediction-modeling_files/figure-gfm/scaled - two clusters-3.png" width="90%" />
