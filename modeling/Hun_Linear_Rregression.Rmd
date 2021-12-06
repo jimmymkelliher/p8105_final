@@ -25,16 +25,16 @@ library(sandwich)
 
 
 ```{r}
-nyc_hh_summary <- read_csv("./data/data_for_regression.csv")
+nyc_hh_summary <- read_csv("./modeing/data_for_regression.csv")
 
 outcome_by_year <- 
-  read_csv("./data/outcome_puma_by_year.csv") %>%
+  read_csv("./modeling/outcome_puma_by_year.csv") %>%
   rename(puma = puma10)
 ```
 
 
 ```{r}
-unbiased_data <- full_join(unbiased_group_means, outcome_by_year)
+unbiased_data <- read_csv(".data/unibased_group_means.csv")
 ```
 
 
