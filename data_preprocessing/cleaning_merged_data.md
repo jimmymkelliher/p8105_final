@@ -348,6 +348,54 @@ Data summary
 | puma\_hosp\_rate  |          0 |           1.00 |     10.18 |      3.18 |      3.95 |     7.72 |     9.87 |     12.36 |      17.08 | ▃▇▇▆▃ |
 | puma\_vacc\_rate  |          0 |           1.00 |     57.09 |     15.51 |     28.98 |    46.76 |    56.37 |     69.29 |     103.77 | ▃▇▆▁▁ |
 
+## Key variables
+
+In this data set, we have 356073 census observations (interviews) and 26
+variables. Each observation is associated with a particular `puma` and
+`borough` for geographic location. In addition `perwt` describes the
+number of expected individuals in the census for whom this person
+interviewed is representative, and `hhwt` operates similarly on the
+household level. Our data set includes the following key predictor
+variables:
+
+-   `rent`: monthly rent (numeric)
+-   `household_income`: annual household income (numeric)
+-   `on_foodstamps`: whether a person is on food stamps (binary)
+-   `has_broadband`: whether a person has broadband internet (binary)
+-   `family_size`: number of individuals in family, including this
+    individual (numeric)
+-   `num_children`: number of children in family (numeric)
+-   `sex`: sex of individual (binary)
+-   `age`: age of individual (numeric)
+-   `race`: race of individual (categorical factor)
+-   `birthplace`: whether this person was born in US or elsewhere
+    (categorical factor)
+-   `US_citizen`: whether this person is a US citizen (categorical
+    factor)
+-   `language`: primary language spoken at home (categorical factor)
+-   `education`: highest level of education obtained (categorical
+    factor)
+-   `employment`: current employment status (categorical factor)
+-   `health_insurance`: type of insurance (public or private), if any
+    (categorical factor)
+-   `personal_income`: annual personal income (numeric)
+-   `on_welfare`: whether person is on welfare (binary)
+-   `poverty_threshold`: whether the person is above or below the
+    poverty line (binary)
+-   `work_transport`: most commonly used method of transportation to
+    work (categorical factor)
+
+It also includes the following key outcome variables:
+
+-   `puma_death_rate`: death rate per 100 people in PUMA where
+    interviewee resides (numeric)
+-   `puma_hosp_rate`: death rate per 100 people in PUMA where
+    interviewee resides (numeric)
+-   `puma_vacc_rate`: death rate per 100 people in PUMA where
+    interviewee resides (numeric)
+
+## Summarizing the data over PUMAS
+
 The Census also doesn’t reach everyone; it samples the population. As a
 result, we need to weight our statistics by how many households look
 like a particular household observed, or how many persons look like a
