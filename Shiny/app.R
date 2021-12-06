@@ -11,7 +11,7 @@ library(htmlwidgets)
 library(sf)
 library(shinyWidgets)
 
-setwd("/Users/iseonghun/Desktop/DS Final Project/p8105_final")
+setwd("/Users/iseonghun/Desktop/DS Final Project/p8105_final/data")
 
 map_dataset <- readRDS("map_dataset.RDS")
 map_dataset_label <- readRDS("map_dataset_label.RDS")
