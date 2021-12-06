@@ -1,0 +1,431 @@
+---
+title: "Linear Regression"
+author: "Hun"
+date: "12/5/2021"
+output: html_document
+---
+
+# Modeling
+```{r}
+library(tidyverse)
+library(spatstat)
+library(glmnet)
+library(workflows)
+library(dials)
+library(janitor)
+library(rstatix)
+library(egg)
+library(modelr)
+library(PerformanceAnalytics)
+library(robmed)
+library(tidymodels)
+library(lmtest)
+library(sandwich)
+```
+
+
+```{r}
+nyc_hh_summary <- read_csv("./data/data_for_regression.csv")
+
+outcome_by_year <- 
+  read_csv("./data/outcome_puma_by_year.csv") %>%
+  rename(puma = puma10)
+```
+
+
+```{r}
+unbiased_data <- full_join(unbiased_group_means, outcome_by_year)
+```
+
+
+```{r}
+unbiased_data %>% 
+  select(-puma_hosp_rate_2020, -puma_hosp_rate_2021, 
+         -puma_death_rate_2021, -puma_death_rate_2020,
+         -puma, -group_pop) %>%
+  cor_mat() %>%
+  cor_gather() %>%
+  filter(var1 %in% "puma_vacc_per") %>%
+  filter(!var2 %in% "puma_vacc_per") %>%
+  mutate(
+    sig_p = ifelse(p < 0.01, T, F),
+    cor_if_sig = ifelse(p < 0.01, cor, NA)
+    ) %>% 
+  ggplot(aes(
+    x = var1, 
+    y = var2, 
+    fill = cor,
+    label = round(cor_if_sig, 2))) + 
+  geom_tile(color = "white") +   
+  geom_text(
+    color = "white",
+    size = 4
+  ) + 
+  scale_x_discrete(
+    labels = c("Birth Weight")
+  ) + 
+  labs(
+    x = "Outcome Variable",
+    y = "Predictor Variables",
+    title = "Correlation Matrix between Predictors and Outcome",
+    subtitle = "significant predictors at significance level 0.01",
+    fill = "Correlation"
+  )
+```
+
+
+
+```{r}
+selected_variables <-
+  unbiased_data %>%
+  select(years_in_usa, language_spanish, education_hs_graduate, 
+         education_bachelors_degree, birthplace_us, education_post_graduate_degree, 
+         family_size, health_insurance_private, health_insurance_public, household_income,
+         language_english, race_white, work_transport_walking, 
+         employment_not_in_labor_force, personal_income, 
+         work_transport_worked_from_home, puma_hosp_rate_2020, age)
+```
+
+
+```{r}
+selected_variables_2 <-
+  unbiased_data %>%
+  select(health_insurance_private, health_insurance_public,
+    race_asian_and_pacific_islander, education_bachelors_degree,
+    on_foodstamps_yes, race_black, household_income, personal_income,
+    on_welfare_yes, puma_vacc_per)
+chart.Correlation(selected_variables_2)
+```
+
+
+```{r}
+detach("package:MASS", unload = T)
+```
+
+# 2020 Hosp Model
+```{r}
+fit1 <- lm(puma_hosp_rate_2020  ~ language_spanish + education_bachelors_degree +
+             birthplace_us + health_insurance_public + language_english + 
+             personal_income + employment_not_in_labor_force +
+             health_insurance_public:personal_income +
+             education_bachelors_degree:employment_not_in_labor_force +
+             birthplace_us:language_english, data = selected_variables)
+
+
+
+stepAIC(fit1, trace = TRUE, direciton = "both")
+```
+
+```{r}
+library(MASS)
+```
+
+```{r}
+summary(fit1)
+```
+
+```{r}
+lm_spec <- linear_reg() %>%
+  set_mode("regression") %>%
+  set_engine("lm")
+
+fit_1 <- fit(lm_spec, puma_hosp_rate_2020  ~ language_spanish + education_bachelors_degree +
+    birthplace_us + health_insurance_public + language_english + 
+    personal_income + employment_not_in_labor_force + health_insurance_public:personal_income + 
+    education_bachelors_degree:employment_not_in_labor_force + 
+    birthplace_us:health_insurance_public + birthplace_us:language_english,
+                data = selected_variables)
+
+check_model(fit_1)
+```
+```{r}
+lmtest::coeftest(fit1, vcov = sandwich::vcovHC(fit1, type = "HC0"))
+```
+
+
+```{r}
+lmtest::coeftest(fit2, vcov = sandwich::vcovHC(fit2, type = "HC0"))
+```
+
+
+```{r}
+lmtest::coeftest(fit2, vcov = sandwich::vcovHC(fit2, type = "HC0"))
+```
+
+
+# Vax Model
+```{r}
+selected_variables_3 <-
+  unbiased_data %>%
+  select(language_spanish, education_bachelors_degree, personal_income,
+         birthplace_us, health_insurance_public, language_english, 
+         employment_not_in_labor_force, puma_hosp_rate_2020, personal_income)
+chart.Correlation(selected_variables_2)
+```
+
+
+```{r}
+detach("package:MASS", unload = T)
+```
+
+
+```{r}
+selected_variables_3 <-
+  unbiased_data %>%
+  select(race_asian_and_pacific_islander,education_bachelors_degree,
+    race_black, on_welfare_yes, employment_not_in_labor_force, 
+    age, health_insurance_public, puma_vacc_per, household_income, on_foodstamps_yes)
+chart.Correlation(selected_variables_3, method = "pearson")
+```
+
+
+ race_asian_and_pacific_islander + education_bachelors_degree + 
+    race_black + on_welfare_yes + employment_not_in_labor_force + 
+    age + health_insurance_public + race_asian_and_pacific_islander:education_bachelors_degree + 
+    race_black:employment_not_in_labor_force + on_welfare_yes:employment_not_in_labor_force + 
+    on_welfare_yes:health_insurance_public + age:health_insurance_public
+
+# Fitting 
+```{r}
+fit2 <- lm(puma_vacc_per  ~   race_asian_and_pacific_islander + education_bachelors_degree + 
+    race_black + on_welfare_yes + employment_not_in_labor_force + 
+    age + health_insurance_public + race_asian_and_pacific_islander:education_bachelors_degree + 
+    race_black:employment_not_in_labor_force + on_welfare_yes:employment_not_in_labor_force + 
+    on_welfare_yes:health_insurance_public + age:health_insurance_public
+    , data = unbiased_data)
+
+
+
+stepAIC(fit2, trace = TRUE, direciton = "both")
+```
+
+```{r}
+summary(fit2)
+```
+
+```{r}
+library(MASS)
+```
+
+```{r}
+summary(fit1)
+```
+
+```{r}
+lm_spec <- linear_reg() %>%
+  set_mode("regression") %>%
+  set_engine("lm")
+
+fit_2 <- fit(lm_spec, puma_vacc_per  ~ 
+                race_asian_and_pacific_islander + education_bachelors_degree + 
+    race_black + on_welfare_yes + employment_not_in_labor_force + 
+    age + health_insurance_public + race_asian_and_pacific_islander:education_bachelors_degree + 
+    race_black:employment_not_in_labor_force + on_welfare_yes:employment_not_in_labor_force + 
+    on_welfare_yes:health_insurance_public + age:health_insurance_public
+               , data = unbiased_data)
+
+check_model(fit_2)
+```
+
+
+
+
+
+
+
+# Based on the data before Zimmy's work
+
+# Hosp_2020
+
+
+```{r}
+model_hosp_2020_data <- 
+  nyc_hh_summary %>% 
+  select(-covid_death_rate_2020, -covid_hosp_rate_2021, -covid_death_rate_2021, -covid_vacc_rate, -puma, -median_years_in_usa)
+```
+
+
+```{r}
+model_result_hosp_2020 <-
+  model_hosp_2020_data %>%
+    select(covid_hosp_rate_2020, median_household_income,
+    perc_foreign_born, perc_insured, perc_public_transit, perc_college, perc_english)
+```
+
+```{r}
+chart.Correlation(model_result_hosp_2020, method = "pearson")
+```
+
+```{r}
+library(MASS)
+```
+
+```{r}
+detach("package:MASS", unload = T)
+```
+
+
+```{r}
+lm_spec <- linear_reg() %>%
+  set_mode("regression") %>%
+  set_engine("lm")
+
+lm_fit <- fit(lm_spec, covid_hosp_rate_2020 ~ median_household_income + 
+                perc_foreign_born + perc_insured + perc_public_transit + 
+                perc_college + perc_english + 
+                median_household_income:perc_foreign_born + 
+                median_household_income:perc_english + 
+                perc_foreign_born:perc_english + 
+                perc_public_transit:perc_college + 
+                perc_public_transit:perc_english +
+                perc_college:perc_english, 
+                data = model_result_hosp_2020)
+
+check_model(lm_fit)
+```
+
+```{r}
+hosp_2020_model <- lm(covid_hosp_rate_2020 ~ covid_hosp_rate_2020 +
+                median_household_income + 
+                perc_foreign_born +   perc_insured + perc_public_transit + 
+                perc_college + perc_english + 
+                median_household_income:perc_foreign_born + 
+                median_household_income:perc_english + 
+                perc_foreign_born:perc_english + 
+                perc_public_transit:perc_college + 
+                perc_public_transit:perc_english +
+                perc_college:perc_english, 
+                data = model_result_hosp_2020)
+
+summary(hosp_2020_model)
+```
+
+
+```{r}
+stepAIC(hosp_2020_model, trace = TRUE, direciton = "both")
+```
+
+
+
+# Vax_2020
+
+```{r}
+model_vacc_2020_data <- 
+  nyc_hh_summary %>% 
+  select(-covid_death_rate_2020, -covid_hosp_rate_2021, -covid_death_rate_2021, -covid_hosp_rate_2020, -puma, -median_years_in_usa)
+```
+
+```{r}
+detach("package:MASS", unload = T)
+```
+
+```{r}
+model_result_vacc_data <-
+  model_vacc_2020_data %>%
+    select(covid_vacc_rate, perc_black, perc_asian, perc_welfare, perc_unemployed, perc_poverty, perc_college, median_personal_income, median_age)
+```
+
+```{r}
+chart.Correlation(model_result_vacc_data, method = "pearson")
+```
+
+
+
+```{r}
+lm_spec <- linear_reg() %>%
+  set_mode("regression") %>%
+  set_engine("lm")
+
+lm_fit2 <- fit(lm_spec, covid_vacc_rate ~ perc_black + perc_asian + perc_welfare +
+    perc_unemployed + 
+    perc_poverty + perc_college + median_personal_income + median_age + 
+    perc_black:perc_unemployed + 
+    perc_black:median_age + 
+    perc_asian:perc_unemployed + perc_asian:perc_poverty + perc_asian:median_age + 
+    perc_welfare:perc_unemployed + perc_welfare:median_age + 
+    perc_unemployed:perc_college + perc_poverty:perc_college + 
+    perc_poverty:median_age + perc_college:median_personal_income + 
+    median_personal_income:median_age, data = model_result_vacc_data)
+
+check_model(lm_fit2, panel = TRUE)
+
+car::vif(vacc_model)
+```
+
+```{r}
+summary(fit2)
+```
+
+
+
+```{r}
+library(MASS)
+```
+
+```{r}
+vacc_model <- lm(covid_vacc_rate ~ perc_black + perc_asian + perc_welfare +
+    perc_unemployed + 
+    perc_poverty + perc_college + median_personal_income + median_age + 
+    perc_black:perc_unemployed + 
+    perc_black:median_age + 
+    perc_asian:perc_unemployed + perc_asian:perc_poverty + perc_asian:median_age + 
+    perc_welfare:perc_unemployed + perc_welfare:median_age + 
+    perc_unemployed:perc_college + perc_poverty:perc_college + 
+    perc_poverty:median_age + perc_college:median_personal_income + 
+    median_personal_income:median_age, data = model_result_vacc_data)
+```
+
+
+```{r}
+stepAIC(vacc_model , direciton = "both")
+```
+
+
+# Death_2020
+
+```{r}
+model_hosp_2020_data <- 
+  nyc_hh_summary %>% 
+  select(-covid_hosp_rate_2020, -covid_hosp_rate_2021, -covid_death_rate_2021, -covid_vacc_rate, -puma, -median_years_in_usa)
+```
+
+
+```{r}
+model_result_death_2020 <-
+  model_hosp_2020_data %>%
+    select(covid_death_rate_2020, median_household_income, 
+    perc_citizen, perc_foreign_born, perc_insured)
+```
+
+```{r}
+chart.Correlation(model_result_death_2020, method = "pearson")
+```
+
+```{r}
+library(MASS)
+```
+
+```{r}
+detach("package:MASS", unload = T)
+```
+
+
+```{r}
+lm_spec <- linear_reg() %>%
+  set_mode("regression") %>%
+  set_engine("lm")
+
+lm_fit <- fit(lm_spec, covid_death_rate_2020 ~ ., data = model_result_death_2020)
+
+check_model(lm_fit, panel = FALSE)
+```
+
+```{r}
+death_2020_model <- lm(covid_death_rate_2020 ~ ., data = model_result_death_2020)
+```
+
+
+```{r}
+stepAIC(death_2020_model, trace = TRUE, direciton = "both")
+```
+
