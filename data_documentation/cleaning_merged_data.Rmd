@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Preamble
 ------------------------------------------------------------------------------->
 
-```{r, echo = FALSE, message = FALSE, warning = FALSE}
+```{r libraries and defaults, echo = FALSE, message = FALSE, warning = FALSE}
 # load necessary packages
 library(tidyverse)
 library(spatstat)
@@ -51,7 +51,7 @@ scale_fill_discrete   = scale_fill_viridis_d
 Overview
 ------------------------------------------------------------------------------->
 
-# Unzipping the Census Data
+## Unzipping the Census Data
 
 ```{r unzipping census data}
 jimzip <- function(csv_file, path) {
@@ -76,9 +76,9 @@ census_data <- jimzip("census_filtered.csv", "./data")
 head(census_data) %>%  knitr::kable()
 ```
 
-# Merging the Outcome Data
+## Merging the Outcome and Census Data
 
-```{r}
+```{r merging outcome and census data}
 # Read in PUMA outcomes data
 health_data <-
   read_csv("./data/outcome_puma.csv")
@@ -93,9 +93,9 @@ rm(census_data)
 head(merged_data) %>% knitr::kable()
 ```
 
-## Cleaning the Data
+## Cleaning the Merged Data
 
-```{r}
+```{r cleaning merged data}
 # Clean the merged census and outcomes data
 # Each row represents one 
 cleaned_data = 
@@ -249,7 +249,7 @@ skimr::skim(cleaned_data)
 
 The Census also doesn't reach everyone; it samples the population. As a result, we need to weight our statistics by how many households look like a particular household observed, or how many persons look like a particular person observed. We also want to group by PUMA.
 
-```{r}
+```{r weighting census data}
 # Check total people in NYC by summing over person-weight column
 cleaned_data %>% 
   select(perwt) %>% 
