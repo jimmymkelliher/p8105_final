@@ -6,6 +6,7 @@ output: github_document
 ---
 
 ```{r setup, message = FALSE}
+# Load packages
 library(tidyverse)
 library(httr)
 library(gdata)
@@ -31,41 +32,57 @@ The predictor variables in our analysis will come from United States Census data
   * Poverty status
 
 Below, we bring in monthly health outcomes from [NYC Department of Health and Mental Hygiene](https://github.com/nychealth/coronavirus-data) (DOHMH) as of 11/18/2021. We will primarily analyze data related to COVID-19 hospitalizations and deaths.
+
 ```{r health outcomes import, message = FALSE}
+# Save URL with hospitalization rate data by ZCTA
 hosp_rate_url = "https://raw.githubusercontent.com/nychealth/coronavirus-data/master/trends/hosprate-by-modzcta.csv"
 
+# Read in URL with hospitalization rate data by ZCTA
 hosp_rate_zcta <- read_csv(hosp_rate_url)
 
+# Save URL with death rate data by ZCTA
 death_rate_url = "https://raw.githubusercontent.com/nychealth/coronavirus-data/master/trends/deathrate-by-modzcta.csv"
 
+# Read in URL with death rate data by ZCTA
 death_rate_zcta <- read_csv(death_rate_url)
 ```
 
 ```{r writing outcome data, eval = FALSE}
+# Write hospitalization and death outcomes data to new CSV files
 write_csv(hosp_rate_zcta, "./data/nyc_hosp_rate_zcta.csv")
 write_csv(death_rate_zcta, "./data/nyc_death_rate_zcta.csv")
 ```
 
-Below, we import vaccination data from [nyc.gov](https://www1.nyc.gov/site/doh/covid/covid-19-data-vaccines.page) containing information on the number and estimated percentage of NYC residents who are fully or partially vaccinated by Modified ZCTA (MODZCTA) as of 11/17/2021.
+Below, we also import vaccination data from [nyc.gov](https://www1.nyc.gov/site/doh/covid/covid-19-data-vaccines.page), particularly the number and estimated percentage of NYC residents who are fully or partially vaccinated by Modified ZCTA (MODZCTA) as of 11/17/2021.
+
 ```{r importing nyc.gov vaccination data, message = FALSE}
+# Save URL with vaccination rate data by ZCTA
 vacc_url = "https://raw.githubusercontent.com/nychealth/covid-vaccine-data/main/people/coverage-by-modzcta-allages.csv"
 
+# Read in URL with vaccination rate data by ZCTA
 nyc_vacc_zcta <- read_csv(vacc_url)
+
+# Observe first few rows of data frame
 head(nyc_vacc_zcta)
 ```
 
 ```{r writing vaccination data to csv, eval = FALSE}
+# Write vaccination data to new CSV file
 write_csv(nyc_vacc_zcta, "./data/nyc_vacc_zcta.csv")
 ```
 
 Finally, we will import a crosswalk data set from [Baruch College](https://www.baruch.cuny.edu/confluence/display/geoportal/NYC+Geographies) to be utilized in relating ZCTAs and PUMAs.
+
 ```{r crosswalks for ZCTAs and PUMAs, message = FALSE}
+# Save URL with ZCTA to PUMA mappings
 zcta_puma_url = "http://faculty.baruch.cuny.edu/geoportal/resources/nyc_geog/nyc_zcta10_to_puma10.xls"
 
+# Read in excel data from URL regarding ZCTA/PUMA relationship
 zcta_puma_cross <- read.xls(zcta_puma_url)
 ```
 
 ```{r writing crosswalks, eval = FALSE}
+# Write crosswalks to CSV
 write_csv(zcta_puma_cross, "./data/zcta_puma_cross.csv")
 ```
 
