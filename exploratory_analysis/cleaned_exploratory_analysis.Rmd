@@ -184,8 +184,8 @@ cleaned_data =
     # Collapse multiple health insurance variables into single variable
     health_insurance = case_when(
       hcovany == 1 ~ "None",
-      hcovany == 2 && hcovpriv == 2 ~ "Private",
-      hcovany == 2 && hcovpriv == 1 ~ "Public"
+      hcovany == 2 & hcovpriv == 2 ~ "Private",
+      hcovany == 2 & hcovpriv == 1 ~ "Public"
     ),
     education = case_when(
       education %in% 2:61 ~ "Less Than HS Graduate",
@@ -947,7 +947,7 @@ PUMA_hosp_lowest10 = puma_level_data %>%
   mutate(
     rank = rank(desc(covid_hosp_rate))
   ) %>% 
-  filter(rank < 11) %>% 
+  filter(rank > 44) %>% 
   ggplot(aes(x = fct_reorder(puma, covid_hosp_rate), y = covid_hosp_rate)) + 
   geom_bar(stat = "identity", aes(fill = borough)) +
   labs(
@@ -962,7 +962,7 @@ PUMA_death_lowest10 = puma_level_data %>%
   mutate(
     rank = rank(desc(covid_death_rate))
   ) %>% 
-  filter(rank < 11) %>% 
+  filter(rank > 44) %>% 
   ggplot(aes(x = fct_reorder(puma, covid_death_rate), y = covid_death_rate)) + 
   geom_bar(stat = "identity", aes(fill = borough)) + 
   labs(
@@ -2024,19 +2024,19 @@ And finally, vaccinations:
 
 ```{r vax borough disparities, echo = FALSE, message = FALSE, warning = FALSE}
 
-# Deaths by race
+# Vax by race
 borough_cat_comparisons(race, "vax")  + plot_annotation(
   title = "Vaccinations Across Boroughs",
   subtitle = "Categorized by Race" 
 )
 
-# Deaths by sex
+# Vax by sex
 borough_cat_comparisons(sex, "vax")  + plot_annotation(
   title = "Vaccinations Across Boroughs",
   subtitle = "Categorized by Sex" 
 )
 
-# Deaths by age
+# Vax by age
 borough_cat_comparisons(age_class, "vax") + plot_annotation(
   title = "Vaccinations Across Boroughs",
   subtitle = "Categorized by Age Group" 
