@@ -244,18 +244,21 @@ library(caret) # Note: new libraries are loaded here due to potential function m
 library(mlbench)
 ```
 
+## Repeated Cross Validation
+
 ``` r
 set.seed(777)
 vax_cv <- trainControl(method = "repeatedcv", number = 5, repeats = 100, 
                        savePredictions = T
                        )
 
+# Goal is to find optimal lambda
 lasso_model <- train(below_herd_vax ~ ., data = logistic_df,
                      method = "glmnet",
                      trControl = vax_cv,
                      tuneGrid = expand.grid(
                        .alpha = 1,
-                       .lambda = 10^seq(-5, 5, length = 10)),
+                       .lambda = seq(0.0001, 1, length = 100)),
                      family = "binomial")
 
 lasso_model
@@ -272,26 +275,119 @@ lasso_model
     ## Summary of sample sizes: 44, 44, 44, 44, 44, 44, ... 
     ## Resampling results across tuning parameters:
     ## 
-    ##   lambda        Accuracy   Kappa    
-    ##   1.000000e-05  0.8335121  0.5056866
-    ##   1.291550e-04  0.8351667  0.5076780
-    ##   1.668101e-03  0.8449424  0.5295549
-    ##   2.154435e-02  0.8807242  0.5557529
-    ##   2.782559e-01  0.8007727  0.0000000
-    ##   3.593814e+00  0.8007727  0.0000000
-    ##   4.641589e+01  0.8007727  0.0000000
-    ##   5.994843e+02  0.8007727  0.0000000
-    ##   7.742637e+03  0.8007727  0.0000000
-    ##   1.000000e+05  0.8007727  0.0000000
+    ##   lambda  Accuracy   Kappa        
+    ##   0.0001  0.8353667   0.5096925018
+    ##   0.0102  0.8864485   0.6093962831
+    ##   0.0203  0.8815030   0.5605606462
+    ##   0.0304  0.8755576   0.5151147647
+    ##   0.0405  0.8642970   0.4441862115
+    ##   0.0506  0.8472061   0.3500473463
+    ##   0.0607  0.8278273   0.2375886941
+    ##   0.0708  0.8106000   0.1354709024
+    ##   0.0809  0.7995394   0.0689040837
+    ##   0.0910  0.7957758   0.0395333694
+    ##   0.1011  0.7935727   0.0196021570
+    ##   0.1112  0.7932697   0.0089344023
+    ##   0.1213  0.7938606   0.0008179452
+    ##   0.1314  0.7956364  -0.0015992933
+    ##   0.1415  0.7954879  -0.0066111743
+    ##   0.1516  0.7990818  -0.0008349543
+    ##   0.1617  0.7996455  -0.0017188329
+    ##   0.1718  0.8003909  -0.0005835544
+    ##   0.1819  0.8007727   0.0000000000
+    ##   0.1920  0.8007727   0.0000000000
+    ##   0.2021  0.8007727   0.0000000000
+    ##   0.2122  0.8007727   0.0000000000
+    ##   0.2223  0.8007727   0.0000000000
+    ##   0.2324  0.8007727   0.0000000000
+    ##   0.2425  0.8007727   0.0000000000
+    ##   0.2526  0.8007727   0.0000000000
+    ##   0.2627  0.8007727   0.0000000000
+    ##   0.2728  0.8007727   0.0000000000
+    ##   0.2829  0.8007727   0.0000000000
+    ##   0.2930  0.8007727   0.0000000000
+    ##   0.3031  0.8007727   0.0000000000
+    ##   0.3132  0.8007727   0.0000000000
+    ##   0.3233  0.8007727   0.0000000000
+    ##   0.3334  0.8007727   0.0000000000
+    ##   0.3435  0.8007727   0.0000000000
+    ##   0.3536  0.8007727   0.0000000000
+    ##   0.3637  0.8007727   0.0000000000
+    ##   0.3738  0.8007727   0.0000000000
+    ##   0.3839  0.8007727   0.0000000000
+    ##   0.3940  0.8007727   0.0000000000
+    ##   0.4041  0.8007727   0.0000000000
+    ##   0.4142  0.8007727   0.0000000000
+    ##   0.4243  0.8007727   0.0000000000
+    ##   0.4344  0.8007727   0.0000000000
+    ##   0.4445  0.8007727   0.0000000000
+    ##   0.4546  0.8007727   0.0000000000
+    ##   0.4647  0.8007727   0.0000000000
+    ##   0.4748  0.8007727   0.0000000000
+    ##   0.4849  0.8007727   0.0000000000
+    ##   0.4950  0.8007727   0.0000000000
+    ##   0.5051  0.8007727   0.0000000000
+    ##   0.5152  0.8007727   0.0000000000
+    ##   0.5253  0.8007727   0.0000000000
+    ##   0.5354  0.8007727   0.0000000000
+    ##   0.5455  0.8007727   0.0000000000
+    ##   0.5556  0.8007727   0.0000000000
+    ##   0.5657  0.8007727   0.0000000000
+    ##   0.5758  0.8007727   0.0000000000
+    ##   0.5859  0.8007727   0.0000000000
+    ##   0.5960  0.8007727   0.0000000000
+    ##   0.6061  0.8007727   0.0000000000
+    ##   0.6162  0.8007727   0.0000000000
+    ##   0.6263  0.8007727   0.0000000000
+    ##   0.6364  0.8007727   0.0000000000
+    ##   0.6465  0.8007727   0.0000000000
+    ##   0.6566  0.8007727   0.0000000000
+    ##   0.6667  0.8007727   0.0000000000
+    ##   0.6768  0.8007727   0.0000000000
+    ##   0.6869  0.8007727   0.0000000000
+    ##   0.6970  0.8007727   0.0000000000
+    ##   0.7071  0.8007727   0.0000000000
+    ##   0.7172  0.8007727   0.0000000000
+    ##   0.7273  0.8007727   0.0000000000
+    ##   0.7374  0.8007727   0.0000000000
+    ##   0.7475  0.8007727   0.0000000000
+    ##   0.7576  0.8007727   0.0000000000
+    ##   0.7677  0.8007727   0.0000000000
+    ##   0.7778  0.8007727   0.0000000000
+    ##   0.7879  0.8007727   0.0000000000
+    ##   0.7980  0.8007727   0.0000000000
+    ##   0.8081  0.8007727   0.0000000000
+    ##   0.8182  0.8007727   0.0000000000
+    ##   0.8283  0.8007727   0.0000000000
+    ##   0.8384  0.8007727   0.0000000000
+    ##   0.8485  0.8007727   0.0000000000
+    ##   0.8586  0.8007727   0.0000000000
+    ##   0.8687  0.8007727   0.0000000000
+    ##   0.8788  0.8007727   0.0000000000
+    ##   0.8889  0.8007727   0.0000000000
+    ##   0.8990  0.8007727   0.0000000000
+    ##   0.9091  0.8007727   0.0000000000
+    ##   0.9192  0.8007727   0.0000000000
+    ##   0.9293  0.8007727   0.0000000000
+    ##   0.9394  0.8007727   0.0000000000
+    ##   0.9495  0.8007727   0.0000000000
+    ##   0.9596  0.8007727   0.0000000000
+    ##   0.9697  0.8007727   0.0000000000
+    ##   0.9798  0.8007727   0.0000000000
+    ##   0.9899  0.8007727   0.0000000000
+    ##   1.0000  0.8007727   0.0000000000
     ## 
     ## Tuning parameter 'alpha' was held constant at a value of 1
     ## Accuracy was used to select the optimal model using the largest value.
-    ## The final values used for the model were alpha = 1 and lambda = 0.02154435.
+    ## The final values used for the model were alpha = 1 and lambda = 0.0102.
+
+## Result from training data
 
 ``` r
 coef <- coef(lasso_model$finalModel, lasso_model$bestTune$lambda)
 
-sub_lasso <- subset(lasso_model$pred, lasso_model$pred$lambda == lasso_model$bestTune$lambda)
+sub_lasso <-
+  subset(lasso_model$pred, lasso_model$pred$lambda == lasso_model$bestTune$lambda)
 
 caret::confusionMatrix(table(sub_lasso$pred, sub_lasso$obs))
 ```
@@ -300,36 +396,59 @@ caret::confusionMatrix(table(sub_lasso$pred, sub_lasso$obs))
     ## 
     ##    
     ##        0    1
-    ##   0  638  195
-    ##   1  462 4205
-    ##                                          
-    ##                Accuracy : 0.8805         
-    ##                  95% CI : (0.8717, 0.889)
-    ##     No Information Rate : 0.8            
-    ##     P-Value [Acc > NIR] : < 2.2e-16      
-    ##                                          
-    ##                   Kappa : 0.5893         
-    ##                                          
-    ##  Mcnemar's Test P-Value : < 2.2e-16      
-    ##                                          
-    ##             Sensitivity : 0.5800         
-    ##             Specificity : 0.9557         
-    ##          Pos Pred Value : 0.7659         
-    ##          Neg Pred Value : 0.9010         
-    ##              Prevalence : 0.2000         
-    ##          Detection Rate : 0.1160         
-    ##    Detection Prevalence : 0.1515         
-    ##       Balanced Accuracy : 0.7678         
-    ##                                          
-    ##        'Positive' Class : 0              
+    ##   0  731  257
+    ##   1  369 4143
+    ##                                           
+    ##                Accuracy : 0.8862          
+    ##                  95% CI : (0.8775, 0.8945)
+    ##     No Information Rate : 0.8             
+    ##     P-Value [Acc > NIR] : < 2.2e-16       
+    ##                                           
+    ##                   Kappa : 0.6302          
+    ##                                           
+    ##  Mcnemar's Test P-Value : 9.145e-06       
+    ##                                           
+    ##             Sensitivity : 0.6645          
+    ##             Specificity : 0.9416          
+    ##          Pos Pred Value : 0.7399          
+    ##          Neg Pred Value : 0.9182          
+    ##              Prevalence : 0.2000          
+    ##          Detection Rate : 0.1329          
+    ##    Detection Prevalence : 0.1796          
+    ##       Balanced Accuracy : 0.8031          
+    ##                                           
+    ##        'Positive' Class : 0               
     ## 
 
-### Getting risk prediction for each PUMA
+## The plot below shows coefficient estimates corresponding to a subset of the predictors in the dataset
+
+``` r
+#lambda <- 10^seq(-2, 3, length = 0.1)
+
+lambda  <- seq(0.0001, 1, length = 100)
+
+lambda_opt = lasso_model$bestTune$lambda
+
+
+broom::tidy(lasso_model$finalModel) %>% 
+select(term, lambda, estimate) %>% 
+complete(term, lambda, fill = list(estimate = 0) ) %>% 
+filter(term != "(Intercept)") %>% 
+ggplot(aes(x = log(lambda, 10), y = estimate, group = term, color = term)) + 
+geom_path() + 
+geom_vline(xintercept = log(lambda_opt, 10), color = "blue", size = 1.2) +
+theme(legend.position = "none")
+```
+
+<img src="risk_scores_and_clustering_files/figure-gfm/unnamed-chunk-3-1.png" width="90%" />
+
+## Getting Risk Prediction for each puma and visualize them.
 
 ``` r
 lambda <- lasso_model$bestTune$lambda
 lasso_fit = glmnet(x, y, lambda = lambda, family = "binomial")
 risk_predictions = (round((predict(lasso_fit, x, type = "response"))*100, 1))
+
 
 puma <- nyc_puma_summary %>% 
   select(puma)
@@ -337,27 +456,24 @@ puma <- nyc_puma_summary %>%
 vax <- logistic_df %>% 
   select(below_herd_vax)
 
-puma_risk_scores <- 
+
+
+risk_prediction <- 
   bind_cols(puma, vax, as.vector(risk_predictions)) %>%
   rename(risk_prediciton = ...3)
 
-puma_risk_scores
+risk_prediction %>%
+  mutate(puma = fct_reorder(puma, risk_prediciton, .desc = TRUE)) %>%
+  ggplot(aes(x = puma, y = risk_prediciton, fill = below_herd_vax)) + 
+  geom_bar(stat  = "identity") + 
+  geom_hline(yintercept = 50, linetype="dashed", color = "red") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  labs(title = "Predicting Risk Score of Vaccination across Puma",
+       x = "Puma", y = "Risk Score") + 
+  scale_fill_manual(values = c("yellow", "purple"))
 ```
 
-    ## # A tibble: 55 × 3
-    ##    puma  below_herd_vax risk_prediciton
-    ##    <fct> <fct>                    <dbl>
-    ##  1 3701  1                         98.2
-    ##  2 3702  1                         99.7
-    ##  3 3703  1                         99  
-    ##  4 3704  1                         99  
-    ##  5 3705  1                        100  
-    ##  6 3706  1                         99.8
-    ##  7 3707  1                        100  
-    ##  8 3708  1                         99.7
-    ##  9 3709  1                         99.7
-    ## 10 3710  1                        100  
-    ## # … with 45 more rows
+<img src="risk_scores_and_clustering_files/figure-gfm/unnamed-chunk-4-1.png" width="90%" />
 
 ## Clustering
 
@@ -467,14 +583,14 @@ We may want to evaluate this method’s clustering quality as follows:
 fviz_nbclust(for_clustering, kmeans, method = "wss")
 ```
 
-<img src="risk_scores_and_clustering_files/figure-gfm/unnamed-chunk-2-1.png" width="90%" />
+<img src="risk_scores_and_clustering_files/figure-gfm/unnamed-chunk-5-1.png" width="90%" />
 
 ``` r
 # Check for optimal number of clusters using silhouette method
 fviz_nbclust(for_clustering, kmeans, method = "silhouette")
 ```
 
-<img src="risk_scores_and_clustering_files/figure-gfm/unnamed-chunk-2-2.png" width="90%" />
+<img src="risk_scores_and_clustering_files/figure-gfm/unnamed-chunk-5-2.png" width="90%" />
 
 ``` r
 # Check fnumber of clusters that minimize gap statistic
@@ -482,7 +598,7 @@ gap_stat = clusGap(for_clustering, FUN = kmeans, nstart = 25, K.max = 20, B = 50
 fviz_gap_stat(gap_stat)
 ```
 
-<img src="risk_scores_and_clustering_files/figure-gfm/unnamed-chunk-2-3.png" width="90%" />
+<img src="risk_scores_and_clustering_files/figure-gfm/unnamed-chunk-5-3.png" width="90%" />
 
 It seems that two clusters may actually work better than three, when
 clustering on predictors.
