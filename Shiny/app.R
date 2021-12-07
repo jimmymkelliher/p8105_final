@@ -3,7 +3,6 @@
 #NYC Map
 
 
-
 library(shiny)
 library(tidyverse)
 library(leaflet)
