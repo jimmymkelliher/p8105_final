@@ -295,36 +295,66 @@ library(caret) # Note: new libraries are loaded here due to potential function m
 library(mlbench)
 ```
 
-```{r repeated cross validation}
+
+## Repeated Cross Validation
+```{r}
 set.seed(777)
 vax_cv <- trainControl(method = "repeatedcv", number = 5, repeats = 100, 
                        savePredictions = T
                        )
 
+# Goal is to find optimal lambda
 lasso_model <- train(below_herd_vax ~ ., data = logistic_df,
                      method = "glmnet",
                      trControl = vax_cv,
                      tuneGrid = expand.grid(
                        .alpha = 1,
-                       .lambda = 10^seq(-5, 5, length = 10)),
+                       .lambda = seq(0.0001, 1, length = 100)),
                      family = "binomial")
 
 lasso_model
 ```
 
-```{r prediction model results}
+## Result from training data
+```{r}
 coef <- coef(lasso_model$finalModel, lasso_model$bestTune$lambda)
 
-sub_lasso <- subset(lasso_model$pred, lasso_model$pred$lambda == lasso_model$bestTune$lambda)
+sub_lasso <-
+  subset(lasso_model$pred, lasso_model$pred$lambda == lasso_model$bestTune$lambda)
 
 caret::confusionMatrix(table(sub_lasso$pred, sub_lasso$obs))
+
 ```
 
-### Getting risk prediction for each PUMA
+
+## The plot below shows coefficient estimates corresponding to a subset of the predictors in the dataset 
+```{r}
+
+#lambda <- 10^seq(-2, 3, length = 0.1)
+
+lambda  <- seq(0.0001, 1, length = 100)
+
+lambda_opt = lasso_model$bestTune$lambda
+
+
+broom::tidy(lasso_model$finalModel) %>% 
+select(term, lambda, estimate) %>% 
+complete(term, lambda, fill = list(estimate = 0) ) %>% 
+filter(term != "(Intercept)") %>% 
+ggplot(aes(x = log(lambda, 10), y = estimate, group = term, color = term)) + 
+geom_path() + 
+geom_vline(xintercept = log(lambda_opt, 10), color = "blue", size = 1.2) +
+theme(legend.position = "none")
+
+
+```
+
+## Getting Risk Prediction for each puma and visualize them.
 ```{r, message = FALSE, warning = FALSE}
 lambda <- lasso_model$bestTune$lambda
 lasso_fit = glmnet(x, y, lambda = lambda, family = "binomial")
 risk_predictions = (round((predict(lasso_fit, x, type = "response"))*100, 1))
+
 
 puma <- nyc_puma_summary %>% 
   select(puma)
@@ -332,11 +362,154 @@ puma <- nyc_puma_summary %>%
 vax <- logistic_df %>% 
   select(below_herd_vax)
 
-puma_risk_scores <- 
+
+
+risk_prediction <- 
   bind_cols(puma, vax, as.vector(risk_predictions)) %>%
   rename(risk_prediciton = ...3)
 
-puma_risk_scores
+risk_prediction %>%
+  ggplot(aes(x = puma, y = risk_prediciton, fill = puma)) + 
+  geom_bar(stat  = "identity") +
+  facet_wrap(~below_herd_vax) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  labs(title = "Predicting Risk Score of Vaccination across Puma",
+       x = "Puma", y = "Risk Score")
+```
+
+## Mapping Risk Score
+```{r, message = FALSE, warning = FALSE}
+library(nycgeo)
+library(sf)
+library(leaflet)
+library(htmlwidgets)
+library(shiny)
+library(stringi)
+
+nyc_hh_summary <- read_csv("./data/data_for_regression.csv") %>%
+  mutate(puma = as.character(puma)) %>%
+  merge(risk_prediction) 
+```
+
+
+```{r}
+map_dataset <-
+  nyc_boundaries(geography = "puma") %>%
+  mutate(puma = puma_id) %>%
+  merge(nyc_hh_summary, by = "puma") %>%
+  mutate(median_household_income = round(median_household_income, digits = 0),
+         perc_insured = round(perc_insured, digits = 1),
+         perc_unemployed = round(perc_unemployed, digits = 1),
+         perc_poverty = round(perc_poverty, digits = 1)
+         ) %>% 
+  mutate(median_household_income = 
+           formatC(median_household_income,format = "d",big.mark = ",")) %>%
+  mutate(covid_vacc_rate = round(covid_vacc_rate, digits = 1),
+         covid_death_rate_2020 = round(covid_death_rate_2020, digits = 0),
+         covid_death_rate_2021 = round(covid_death_rate_2021, digits = 0),
+         covid_hosp_rate_2020 = round(covid_hosp_rate_2020, digits = 0),
+         covid_hosp_rate_2021 = round(covid_hosp_rate_2021, digits = 0)
+         ) 
+```
+
+```{r}
+map_dataset_label <-
+  map_dataset %>% 
+  select(puma, perc_asian, perc_white, perc_black, perc_hispanic, perc_other) %>%
+  pivot_longer(perc_asian:perc_other, values_to = "value", names_to = "race") %>%
+  arrange(puma, desc(value)) %>% 
+  mutate(race = recode(race, 
+                       "perc_asian" = "Asian/Pacific Islander:",
+                       "perc_white" = "White:",
+                       "perc_black" = "Black:",
+                       "perc_hispanic" = "Hispanic:",
+                       "perc_other" = "Other:",
+                       )) %>%
+  mutate(value = round(value, digits = 1)) %>%
+  mutate(label = paste(race, value)) %>%
+  mutate(label = paste0(label, "%")) %>%
+  select(puma, label)
+
+first_race <-
+  map_dataset_label %>% 
+  group_by(puma) %>% 
+  filter(row_number() == 1) %>%
+  mutate(label1 = label) %>%
+  select(puma, label1)
+
+second_race <-
+  map_dataset_label %>% 
+  group_by(puma) %>% 
+  filter(row_number() == 2) %>%
+  mutate(label2 = label) %>%
+  select(puma, label2)
+
+third_race <-
+map_dataset_label %>% 
+  group_by(puma) %>% 
+  filter(row_number() == 3) %>%
+  mutate(label3 = label) %>%
+  select(puma, label3)
+
+fourth_race <-
+map_dataset_label %>% 
+  group_by(puma) %>% 
+  filter(row_number() == 4) %>%
+  mutate(label4 = label) %>%
+  select(puma, label4)
+
+fifth_race <-
+map_dataset_label %>% 
+  group_by(puma) %>% 
+  filter(row_number() == 5) %>%
+  mutate(label5 = label) %>%
+  select(puma, label5)
+
+map_dataset_label <-
+  bind_cols(first_race, second_race, third_race, fourth_race, fifth_race)
+```
+
+## Mapping Risk Score
+```{r}
+labels <- sprintf("<strong>%s<strong> <br/> %s <br/> %s <br/> %s <br/> %s <br/> %s <br/>
+                  Insurance Rate: %s%% <br/> Median Household Income: $%s <br/> Vaccination
+                  Risk Score: %g%%", map_dataset$puma_name, map_dataset_label$label1,
+                  map_dataset_label$label2, map_dataset_label$label3,
+                  map_dataset_label$label4, map_dataset_label$label5,
+                  map_dataset$perc_insured, map_dataset$median_household_income,
+                  map_dataset$risk_prediciton) %>% lapply(htmltools::HTML)
+
+pal <- colorBin(palette = "OrRd", 9, domain = map_dataset$risk_prediciton)
+
+map_interactive <- map_dataset %>% st_transform(crs = "+init=epsg:4326") %>%
+  leaflet() %>%
+  addProviderTiles(provider = "CartoDB.Positron") %>%
+  addPolygons(label = labels,
+              labelOptions = labelOptions(
+    style = list("font-weight" = "normal", 
+                 padding = "1px 2px"),
+    textsize = "11px",  sticky = TRUE,
+    opacity = 0.55
+    ),
+              stroke = FALSE,
+              opacity = 0.01,
+              smoothFactor = .5,
+              fillOpacity = 0.7,
+              fillColor = ~pal(risk_prediciton),
+              highlightOptions = highlightOptions(weight = 5, 
+                                                  fillOpacity = 1,
+                                                  color = "black",
+                                                  opacity = 1,
+                                                  bringToFront = TRUE
+                                                  )) %>%
+  addLegend("bottomright",
+            pal = pal,
+            values = ~risk_prediciton,
+            title = "Vaccination Percentage Risk Prediction",
+            opacity = 0.7
+            )
+
+map_interactive
 ```
 
 ## Clustering
