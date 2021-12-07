@@ -372,7 +372,7 @@ risk_prediction %>%
   mutate(puma = fct_reorder(puma, risk_prediciton, .desc = TRUE)) %>%
   ggplot(aes(x = puma, y = risk_prediciton, fill = below_herd_vax)) + 
   geom_bar(stat  = "identity") + 
-  geom_hline(yintercept = 50, linetype="dashed", color = "red") +
+  geom_hline(yintercept = 50, linetype = "dashed", color = "red") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
   labs(title = "Predicting Risk Score of Vaccination across Puma",
        x = "Puma", y = "Risk Score") + 
