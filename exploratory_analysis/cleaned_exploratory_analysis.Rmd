@@ -339,13 +339,16 @@ race_age_sex = interview_level_data %>%
     age_class = cut(age, breaks = c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100), include.lowest = TRUE)
   ) %>% 
   mutate(age_class = fct_recode(age_class, 
-                              "<16" = "[0,15]", 
-                              "16-30" = "(15,30]", 
-                              "31-45" = "(30,45]", 
-                              "46-60" = "(45,60]", 
-                              "61-75" = "(60,75]", 
-                              "76-90" = "(75,90]", 
-                              "91-105" = "(90,105]")) %>% 
+                                "<11" = "[0,10]", 
+                                "11-20" = "(10,20]", 
+                                "21-30" = "(20,30]", 
+                                "31-40" = "(30,40]", 
+                                "41-50" = "(40,50]", 
+                                "51-60" = "(50,60]", 
+                                "61-70" = "(60,70]",
+                                "71-80" = "(70,80]",
+                                "81-90" = "(80,90]",
+                                "91-100" = "(90,100]")) %>% 
   group_by(race, age_class, sex) %>% 
   summarize(
     total_hosp = sum(weighted_hosp),
@@ -1335,7 +1338,7 @@ puma_level_data %>%
 
 Can we determine which age/sex/race combos perform best and worst on each outcome?
 
-```{r}
+```{r outcomes by demographic combos}
 # Lowest hospitalization rates
 race_age_sex %>% 
   filter(outcome == "hosp_rate") %>% 
@@ -1401,7 +1404,6 @@ race_age_sex %>%
   select(race, age_class, sex, outcome, outcome_rate) %>% 
   head() %>% 
   knitr::kable()
-
 ```
 
 ## Associations between Predictors and Outcomes
