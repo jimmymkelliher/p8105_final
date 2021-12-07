@@ -3,7 +3,6 @@
 #NYC Map
 
 
-
 library(shiny)
 library(tidyverse)
 library(leaflet)
@@ -11,10 +10,11 @@ library(htmlwidgets)
 library(sf)
 library(shinyWidgets)
 
-setwd("/Users/iseonghun/Desktop/DS Final Project/p8105_final")
 
 map_dataset <- readRDS("map_dataset.RDS")
 map_dataset_label <- readRDS("map_dataset_label.RDS")
+
+
 
 #variable_type <-
 #  tibble(variable_type = c("Hosp Rate 2020", "Death Rate 2020", "Hosp Rate 2021", "Death Rate 2021", "Vacc Rate"))
@@ -28,14 +28,13 @@ map_dataset_label <- readRDS("map_dataset_label.RDS")
 #                choices = variable_type, 
 #                selected = "None")),
 
-variable_type <- ("None")
+#variable_type <- ("None")
 
 # Define UI for application that draws a histogram
 ui = fluidPage(
-    
-        tags$h2("Add a shiny app background image"),
+        tags$h2(""),
         setBackgroundImage(
-          src = "https://upload.wikimedia.org/wikipedia/commons/b/b0/Empire_State_Building_during_sunset.jpg"
+          src = "https://picstatio.com/download/3840x2160/-qdq-h/new-york-rockefeller-center-sky-sunrise-wallpaper.jpg"
         ),
     
     titlePanel("COVID-19 Trend in NYC"), 
@@ -61,7 +60,7 @@ server <- function(input, output) {
         
     labels <- sprintf("<strong>%s</strong> <br/> %s <br/> %s <br/> %s <br/> %s <br/> %s <br/> Median Household Income: $%s <br/> Hospitalization Rate: %g per 100,000 people", 
                       map_dataset$puma_name, map_dataset_label$label1, map_dataset_label$label2, map_dataset_label$label3, map_dataset_label$label4, map_dataset_label$label5, 
-                      map_dataset$median_household_income,map_dataset$covid_hosp_rate_2020) %>% lapply(htmltools::HTML)
+                      map_dataset$median_household_income, map_dataset$covid_hosp_rate_2020) %>% lapply(htmltools::HTML)
 
     pal <- colorBin(palette = "OrRd", 9, domain = map_dataset$covid_hosp_rate_2020)
     

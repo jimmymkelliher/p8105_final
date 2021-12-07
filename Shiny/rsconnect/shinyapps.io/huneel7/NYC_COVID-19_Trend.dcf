@@ -1,0 +1,13 @@
+name: NYC_COVID-19_Trend
+title: NYC_COVID-19_Trend
+username:
+account: huneel7
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 5281940
+bundleId: 5338096
+url: https://huneel7.shinyapps.io/NYC_COVID-19_Trend/
+when: 1638858997.43014
+lastSyncTime: 1638858997.43016
+asMultiple: FALSE
+asStatic: FALSE

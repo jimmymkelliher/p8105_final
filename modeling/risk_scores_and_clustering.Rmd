@@ -295,36 +295,66 @@ library(caret) # Note: new libraries are loaded here due to potential function m
 library(mlbench)
 ```
 
-```{r repeated cross validation}
+
+## Repeated Cross Validation
+```{r}
 set.seed(777)
 vax_cv <- trainControl(method = "repeatedcv", number = 5, repeats = 100, 
                        savePredictions = T
                        )
 
+# Goal is to find optimal lambda
 lasso_model <- train(below_herd_vax ~ ., data = logistic_df,
                      method = "glmnet",
                      trControl = vax_cv,
                      tuneGrid = expand.grid(
                        .alpha = 1,
-                       .lambda = 10^seq(-5, 5, length = 10)),
+                       .lambda = seq(0.0001, 1, length = 100)),
                      family = "binomial")
 
 lasso_model
 ```
 
-```{r prediction model results}
+## Result from training data
+```{r}
 coef <- coef(lasso_model$finalModel, lasso_model$bestTune$lambda)
 
-sub_lasso <- subset(lasso_model$pred, lasso_model$pred$lambda == lasso_model$bestTune$lambda)
+sub_lasso <-
+  subset(lasso_model$pred, lasso_model$pred$lambda == lasso_model$bestTune$lambda)
 
 caret::confusionMatrix(table(sub_lasso$pred, sub_lasso$obs))
+
 ```
 
-### Getting risk prediction for each PUMA
+
+## The plot below shows coefficient estimates corresponding to a subset of the predictors in the dataset 
+```{r}
+
+#lambda <- 10^seq(-2, 3, length = 0.1)
+
+lambda  <- seq(0.0001, 1, length = 100)
+
+lambda_opt = lasso_model$bestTune$lambda
+
+
+broom::tidy(lasso_model$finalModel) %>% 
+select(term, lambda, estimate) %>% 
+complete(term, lambda, fill = list(estimate = 0) ) %>% 
+filter(term != "(Intercept)") %>% 
+ggplot(aes(x = log(lambda, 10), y = estimate, group = term, color = term)) + 
+geom_path() + 
+geom_vline(xintercept = log(lambda_opt, 10), color = "blue", size = 1.2) +
+theme(legend.position = "none")
+
+
+```
+
+## Getting Risk Prediction for each puma and visualize them.
 ```{r, message = FALSE, warning = FALSE}
 lambda <- lasso_model$bestTune$lambda
 lasso_fit = glmnet(x, y, lambda = lambda, family = "binomial")
 risk_predictions = (round((predict(lasso_fit, x, type = "response"))*100, 1))
+
 
 puma <- nyc_puma_summary %>% 
   select(puma)
@@ -332,12 +362,24 @@ puma <- nyc_puma_summary %>%
 vax <- logistic_df %>% 
   select(below_herd_vax)
 
-puma_risk_scores <- 
+
+
+risk_prediction <- 
   bind_cols(puma, vax, as.vector(risk_predictions)) %>%
   rename(risk_prediciton = ...3)
 
-puma_risk_scores
+risk_prediction %>%
+  mutate(puma = fct_reorder(puma, risk_prediciton, .desc = TRUE)) %>%
+  ggplot(aes(x = puma, y = risk_prediciton, fill = below_herd_vax)) + 
+  geom_bar(stat  = "identity") + 
+  geom_hline(yintercept = 50, linetype = "dashed", color = "red") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  labs(title = "Predicting Risk Score of Vaccination across Puma",
+       x = "Puma", y = "Risk Score") + 
+  scale_fill_manual(values = c("yellow", "purple"))
+  
 ```
+
 
 ## Clustering
 
