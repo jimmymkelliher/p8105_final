@@ -71,15 +71,15 @@ jimzip <- function(csv_file, path) {
   # output data
   data_extract
 }
+
 census_data <- jimzip("census_filtered.csv", "./data")
 ```
 
 ```{r merge, echo = FALSE, message = FALSE, warning = FALSE}
-health_data <-
-  read_csv("./data/outcome_puma.csv") %>%
-  rename(puma = puma10)
+health_data <- read_csv("./data/outcome_puma.csv") 
+
 merged_data <- merge(census_data, health_data, by = "puma")
-rm(census_data)
+
 ```
 
 ```{r clean, echo = FALSE, message = FALSE, warning = FALSE}
@@ -477,7 +477,7 @@ theme(legend.position = "none")
 ```
 
 
-## Getting Risk Prediction for each puma
+## Getting Risk Prediction for each puma and visualize them.
 ```{r, message = FALSE, warning = FALSE}
 lambda <- lasso_model$bestTune$lambda
 lasso_fit = glmnet(x, y, lambda = lambda, family = "binomial")
@@ -496,7 +496,13 @@ risk_prediction <-
   bind_cols(puma, vax, as.vector(risk_predictions)) %>%
   rename(risk_prediciton = ...3)
 
-risk_prediction
+risk_prediction %>%
+  ggplot(aes(x = puma, y = risk_prediciton, fill = puma)) + 
+  geom_bar(stat  = "identity") +
+  facet_wrap(~below_herd_vax) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  labs(title = "Predicting Risk Score of Vaccination across Puma",
+       x = "Puma", y = "Risk Score")
 ```
 
 
@@ -508,16 +514,16 @@ library(htmlwidgets)
 library(shiny)
 library(stringi)
 
-nyc_hh_summary <- read_csv("./data_for_regression.csv")
-
-risk_prediction_map_data <-
-  nyc_boundaries(geography = "puma") %>%
-  mutate(puma = puma_id) %>%
-  left_join(risk_prediction, by = "puma") 
+nyc_hh_summary <- read_csv("./data/data_for_regression.csv") %>%
+  mutate(puma = as.character(puma)) %>%
+  merge(risk_prediction) 
 ```
+
+
 ```{r}
 map_dataset <-
-  risk_prediction_map_data %>%
+  nyc_boundaries(geography = "puma") %>%
+  mutate(puma = puma_id) %>%
   merge(nyc_hh_summary, by = "puma") %>%
   mutate(median_household_income = round(median_household_income, digits = 0),
          perc_insured = round(perc_insured, digits = 1),

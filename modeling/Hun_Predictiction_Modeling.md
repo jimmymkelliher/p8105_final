@@ -158,7 +158,7 @@ collect_predictions(final_rs)
     ## 11 train/test split  0.611   0.389     36 0           1              Preprocess…
     ## 12 train/test split  0.489   0.511     39 1           1              Preprocess…
     ## 13 train/test split  0.555   0.445     48 0           0              Preprocess…
-    ## 14 train/test split  0.608   0.392     52 0           0              Preprocess…
+    ## 14 train/test split  0.607   0.393     52 0           0              Preprocess…
 
 ``` r
 # Plot predictive performance measures across splits
@@ -223,14 +223,14 @@ lasso_model
     ## Resampling results across tuning parameters:
     ## 
     ##   lambda  Accuracy   Kappa        
-    ##   0.0001  0.8350030   0.5069007776
-    ##   0.0102  0.8864303   0.6103143908
-    ##   0.0203  0.8813212   0.5595070063
-    ##   0.0304  0.8753758   0.5143561440
-    ##   0.0405  0.8641152   0.4434275908
-    ##   0.0506  0.8473879   0.3506936131
+    ##   0.0001  0.8353667   0.5096925018
+    ##   0.0102  0.8864485   0.6093962831
+    ##   0.0203  0.8815030   0.5605606462
+    ##   0.0304  0.8755576   0.5151147647
+    ##   0.0405  0.8642970   0.4441862115
+    ##   0.0506  0.8472061   0.3500473463
     ##   0.0607  0.8278273   0.2375886941
-    ##   0.0708  0.8105848   0.1347184120
+    ##   0.0708  0.8106000   0.1354709024
     ##   0.0809  0.7995394   0.0689040837
     ##   0.0910  0.7957758   0.0395333694
     ##   0.1011  0.7935727   0.0196021570
@@ -343,26 +343,26 @@ caret::confusionMatrix(table(sub_lasso$pred, sub_lasso$obs))
     ## 
     ##    
     ##        0    1
-    ##   0  732  258
-    ##   1  368 4142
+    ##   0  731  257
+    ##   1  369 4143
     ##                                           
     ##                Accuracy : 0.8862          
     ##                  95% CI : (0.8775, 0.8945)
     ##     No Information Rate : 0.8             
     ##     P-Value [Acc > NIR] : < 2.2e-16       
     ##                                           
-    ##                   Kappa : 0.6305          
+    ##                   Kappa : 0.6302          
     ##                                           
-    ##  Mcnemar's Test P-Value : 1.321e-05       
+    ##  Mcnemar's Test P-Value : 9.145e-06       
     ##                                           
-    ##             Sensitivity : 0.6655          
-    ##             Specificity : 0.9414          
-    ##          Pos Pred Value : 0.7394          
-    ##          Neg Pred Value : 0.9184          
+    ##             Sensitivity : 0.6645          
+    ##             Specificity : 0.9416          
+    ##          Pos Pred Value : 0.7399          
+    ##          Neg Pred Value : 0.9182          
     ##              Prevalence : 0.2000          
-    ##          Detection Rate : 0.1331          
-    ##    Detection Prevalence : 0.1800          
-    ##       Balanced Accuracy : 0.8034          
+    ##          Detection Rate : 0.1329          
+    ##    Detection Prevalence : 0.1796          
+    ##       Balanced Accuracy : 0.8031          
     ##                                           
     ##        'Positive' Class : 0               
     ## 
@@ -387,7 +387,7 @@ theme(legend.position = "none")
 
 <img src="Hun_Predictiction_Modeling_files/figure-gfm/unnamed-chunk-13-1.png" width="90%" />
 
-## Getting Risk Prediction for each puma
+## Getting Risk Prediction for each puma and visualize them.
 
 ``` r
 lambda <- lasso_model$bestTune$lambda
@@ -407,23 +407,16 @@ risk_prediction <-
   bind_cols(puma, vax, as.vector(risk_predictions)) %>%
   rename(risk_prediciton = ...3)
 
-risk_prediction
+risk_prediction %>%
+  ggplot(aes(x = puma, y = risk_prediciton, fill = puma)) + 
+  geom_bar(stat  = "identity") +
+  facet_wrap(~below_herd_vax) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  labs(title = "Predicting Risk Score of Vaccination across Puma",
+       x = "Puma", y = "Risk Score")
 ```
 
-    ## # A tibble: 55 × 3
-    ##    puma  below_herd_vax risk_prediciton
-    ##    <fct> <fct>                    <dbl>
-    ##  1 3701  1                         99.6
-    ##  2 3702  1                        100  
-    ##  3 3703  1                         99.6
-    ##  4 3704  1                         99.8
-    ##  5 3705  1                        100  
-    ##  6 3706  1                        100  
-    ##  7 3707  1                        100  
-    ##  8 3708  1                        100  
-    ##  9 3709  1                        100  
-    ## 10 3710  1                        100  
-    ## # … with 45 more rows
+<img src="Hun_Predictiction_Modeling_files/figure-gfm/unnamed-chunk-14-1.png" width="90%" />
 
 ``` r
 library(nycgeo)
@@ -433,17 +426,15 @@ library(htmlwidgets)
 library(shiny)
 library(stringi)
 
-nyc_hh_summary <- read_csv("./data_for_regression.csv")
-
-risk_prediction_map_data <-
-  nyc_boundaries(geography = "puma") %>%
-  mutate(puma = puma_id) %>%
-  left_join(risk_prediction, by = "puma") 
+nyc_hh_summary <- read_csv("./data/data_for_regression.csv") %>%
+  mutate(puma = as.character(puma)) %>%
+  merge(risk_prediction) 
 ```
 
 ``` r
 map_dataset <-
-  risk_prediction_map_data %>%
+  nyc_boundaries(geography = "puma") %>%
+  mutate(puma = puma_id) %>%
   merge(nyc_hh_summary, by = "puma") %>%
   mutate(median_household_income = round(median_household_income, digits = 0),
          perc_insured = round(perc_insured, digits = 1),
