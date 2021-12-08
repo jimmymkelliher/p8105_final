@@ -157,8 +157,8 @@ cleaned_data =
     # Collapse multiple health insurance variables into single variable
     health_insurance = case_when(
       hcovany == 1 ~ "None",
-      hcovany == 2 && hcovpriv == 2 ~ "Private",
-      hcovany == 2 && hcovpriv == 1 ~ "Public"
+      hcovany == 2 & hcovpriv == 2 ~ "Private",
+      hcovany == 2 & hcovpriv == 1 ~ "Public"
     ),
     education = case_when(
       education %in% 2:61 ~ "Less Than HS Graduate",
@@ -263,6 +263,143 @@ citywide median on a given outcome?
 | Staten Island |           3 |                33.3 |                 33.3 |               66.7 |
 
 % of PUMAs in Each Borough Above Citywide PUMA Median
+
+### Outcomes by Demographic Combos
+
+Can we determine which age/sex/race combos perform best and worst on
+each outcome?
+
+``` r
+# Lowest hospitalization rates
+race_age_sex %>% 
+  filter(outcome == "hosp_rate") %>% 
+  mutate(
+    outcome_rate = outcome_rate / 100
+  ) %>% 
+  arrange(outcome_rate) %>% 
+  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  head() %>% 
+  knitr::kable()
+```
+
+| race  | age\_class | sex    | outcome    | outcome\_rate |
+|:------|:-----------|:-------|:-----------|--------------:|
+| White | 21-30      | Female | hosp\_rate |      8.761509 |
+| White | 31-40      | Male   | hosp\_rate |      8.859089 |
+| White | 31-40      | Female | hosp\_rate |      8.908691 |
+| White | 21-30      | Male   | hosp\_rate |      8.963492 |
+| White | 41-50      | Male   | hosp\_rate |      9.275372 |
+| White | 41-50      | Female | hosp\_rate |      9.347574 |
+
+``` r
+# Highest hospitalization rates
+race_age_sex %>% 
+  filter(outcome == "hosp_rate") %>% 
+  mutate(
+    outcome_rate = outcome_rate / 100
+  ) %>% 
+  arrange(desc(outcome_rate)) %>% 
+  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  head() %>% 
+  knitr::kable()
+```
+
+| race                       | age\_class | sex    | outcome    | outcome\_rate |
+|:---------------------------|:-----------|:-------|:-----------|--------------:|
+| American Indian            | 81-90      | Male   | hosp\_rate |      12.72494 |
+| Other                      | 61-70      | Male   | hosp\_rate |      12.16952 |
+| Other                      | 11-20      | Male   | hosp\_rate |      12.11757 |
+| Other                      | 41-50      | Male   | hosp\_rate |      12.00270 |
+| Other                      | 61-70      | Female | hosp\_rate |      11.85198 |
+| Asian and Pacific Islander | 91-100     | Male   | hosp\_rate |      11.73874 |
+
+``` r
+# Lowest death rates
+race_age_sex %>% 
+  filter(outcome == "death_rate") %>% 
+  mutate(
+    outcome_rate = outcome_rate / 100
+  ) %>% 
+  arrange(outcome_rate) %>% 
+  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  head() %>% 
+  knitr::kable()
+```
+
+| race  | age\_class | sex    | outcome     | outcome\_rate |
+|:------|:-----------|:-------|:------------|--------------:|
+| White | 21-30      | Female | death\_rate |      2.376629 |
+| White | 31-40      | Male   | death\_rate |      2.424339 |
+| White | 21-30      | Male   | death\_rate |      2.435737 |
+| White | 31-40      | Female | death\_rate |      2.455473 |
+| Other | 81-90      | Male   | death\_rate |      2.541018 |
+| White | 41-50      | Male   | death\_rate |      2.564677 |
+
+``` r
+# Highest death rates
+race_age_sex %>% 
+  filter(outcome == "death_rate") %>% 
+  mutate(
+    outcome_rate = outcome_rate / 100
+  ) %>% 
+  arrange(desc(outcome_rate)) %>% 
+  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  head() %>% 
+  knitr::kable()
+```
+
+| race                       | age\_class | sex  | outcome     | outcome\_rate |
+|:---------------------------|:-----------|:-----|:------------|--------------:|
+| 2+ races                   | 91-100     | Male | death\_rate |      3.525028 |
+| Asian and Pacific Islander | 91-100     | Male | death\_rate |      3.386789 |
+| American Indian            | 81-90      | Male | death\_rate |      3.246158 |
+| Other                      | 11-20      | Male | death\_rate |      3.228600 |
+| Other                      | 41-50      | Male | death\_rate |      3.220782 |
+| Other                      | 71-80      | Male | death\_rate |      3.202419 |
+
+``` r
+# Lowest vax rates
+race_age_sex %>% 
+  filter(outcome == "vax_rate") %>% 
+  mutate(
+    outcome_rate = outcome_rate
+  ) %>% 
+  arrange(outcome_rate) %>% 
+  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  head() %>% 
+  knitr::kable()
+```
+
+| race            | age\_class | sex    | outcome   | outcome\_rate |
+|:----------------|:-----------|:-------|:----------|--------------:|
+| American Indian | 71-80      | Male   | vax\_rate |      49.32433 |
+| Black           | 11-20      | Female | vax\_rate |      49.35445 |
+| Black           | &lt;11     | Male   | vax\_rate |      49.47578 |
+| Black           | 11-20      | Male   | vax\_rate |      49.48017 |
+| Black           | 31-40      | Female | vax\_rate |      49.49496 |
+| Black           | &lt;11     | Female | vax\_rate |      49.51926 |
+
+``` r
+# Highest vax rates
+race_age_sex %>% 
+  filter(outcome == "vax_rate") %>% 
+  mutate(
+    outcome_rate = outcome_rate
+  ) %>% 
+  arrange(desc(outcome_rate)) %>% 
+  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  head() %>% 
+  knitr::kable()
+```
+
+| race                       | age\_class | sex    | outcome   | outcome\_rate |
+|:---------------------------|:-----------|:-------|:----------|--------------:|
+| Asian and Pacific Islander | 91-100     | Female | vax\_rate |      66.13596 |
+| Asian and Pacific Islander | 71-80      | Female | vax\_rate |      65.89982 |
+| Asian and Pacific Islander | 71-80      | Male   | vax\_rate |      65.73426 |
+| Asian and Pacific Islander | 31-40      | Male   | vax\_rate |      65.61553 |
+| Asian and Pacific Islander | 31-40      | Female | vax\_rate |      65.57662 |
+| 2+ races                   | 81-90      | Male   | vax\_rate |      65.47910 |
 
 ## Associations between Predictors and Outcomes
 
