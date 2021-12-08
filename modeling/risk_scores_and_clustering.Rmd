@@ -337,7 +337,7 @@ lambda  <- seq(0.0001, 1, length = 100)
 lambda_opt = lasso_model$bestTune$lambda
 
 
-broom::tidy(lasso_model$finalModel) %>% 
+result_plot <- broom::tidy(lasso_model$finalModel) %>% 
 select(term, lambda, estimate) %>% 
 complete(term, lambda, fill = list(estimate = 0) ) %>% 
 filter(term != "(Intercept)") %>% 
@@ -346,7 +346,8 @@ geom_path() +
 geom_vline(xintercept = log(lambda_opt, 10), color = "blue", size = 1.2) +
 theme(legend.position = "none")
 
-
+library(plotly)
+ggplotly(result_plot)
 ```
 
 ## Getting Risk Prediction for each puma and visualize them.
@@ -374,9 +375,9 @@ risk_prediction %>%
   geom_bar(stat  = "identity") + 
   geom_hline(yintercept = 50, linetype = "dashed", color = "red") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
-  labs(title = "Predicting Risk Score of Vaccination across Puma",
+  labs(title = "Predicting Risk Score of Vaccination Rate across Puma",
        x = "Puma", y = "Risk Score") + 
-  scale_fill_manual(values = c("yellow", "purple"))
+  scale_fill_manual(values = c("yellow", "purple"), labels = c("Below 70%", "Above 70%")) 
   
 ```
 

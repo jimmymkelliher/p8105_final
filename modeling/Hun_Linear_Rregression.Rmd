@@ -21,22 +21,19 @@ library(robmed)
 library(tidymodels)
 library(lmtest)
 library(sandwich)
+library(performance)
 ```
 
 
 ```{r}
-setwd("/Users/iseonghun/Desktop/DS Final Project/p8105_final/data")
 
-nyc_hh_summary <- read_csv("./data_for_regression.csv")
+nyc_hh_summary <- read_csv("data_for_regression.csv")
 
 outcome_by_year <- 
-  read_csv("./outcome_puma_by_year.csv") %>%
+  read_csv("outcome_puma_by_year.csv") %>%
   rename(puma = puma10)
-```
 
-
-```{r}
-unbiased_data <- read_csv("./unbiased_group_means.csv") %>%
+unbiased_data <- read_csv("unbiased_group_means.csv") %>%
   merge(outcome_by_year, by = "puma")
 ```
 
@@ -93,23 +90,12 @@ selected_variables <-
 ```
 
 
+
+
 ```{r}
-selected_variables_2 <-
-  unbiased_data %>%
-  select(health_insurance_private, health_insurance_public,
-    race_asian_and_pacific_islander, education_bachelors_degree,
-    on_foodstamps_yes, race_black, household_income, personal_income,
-    on_welfare_yes, puma_vacc_per)
 chart.Correlation(selected_variables_2)
 ```
 
-```{r}
-detach("package:MASS", unload = T)
-```
-
-```{r}
-library(MASS)
-```
 
 # 2020 Hosp Model
 ```{r}
@@ -118,13 +104,54 @@ fit1 <- lm(puma_hosp_rate_2020  ~ language_spanish + education_bachelors_degree 
              personal_income + employment_not_in_labor_force +
              health_insurance_public:personal_income +
              education_bachelors_degree:employment_not_in_labor_force +
-             birthplace_us:language_english, data = selected_variables)
-
-
-
-stepAIC(fit1, trace = TRUE, direciton = "both")
+             language_english:birthplace_us, data = selected_variables)
 ```
 
+```{r}
+detach("package:MASS", unload = T)
+```
+
+```{r}
+selected_variables_2 <-
+  unbiased_data %>%
+  select( health_insurance_public,
+    race_asian_and_pacific_islander, education_bachelors_degree,
+    on_foodstamps_yes, race_black, personal_income, employment_not_in_labor_force,
+    on_welfare_yes, 
+    employment_unemployed, puma_hosp_rate_2020)
+```
+
+
+```{r}
+fit0 <- lm(puma_hosp_rate_2020 ~language_spanish + education_bachelors_degree + 
+    birthplace_us + health_insurance_public + language_english + 
+    personal_income + employment_not_in_labor_force + language_spanish:health_insurance_public + 
+    education_bachelors_degree:health_insurance_public + education_bachelors_degree:language_english + 
+    education_bachelors_degree:personal_income + birthplace_us:health_insurance_public + 
+    birthplace_us:language_english + health_insurance_public:personal_income + 
+    health_insurance_public:employment_not_in_labor_force + language_english:personal_income + 
+    personal_income:employment_not_in_labor_force,
+           data = unbiased_data)
+```
+
+```{r}
+
+stepAIC(fit1, trace = TRUE, direciton = "both")
+
+```
+
+```{r}
+summary(fit0)
+```
+```{r}
+summary(fit1)
+```
+
+
+
+```{r}
+library(MASS)
+```
 
 
 ```{r}
@@ -145,6 +172,7 @@ fit_1 <- fit(lm_spec, puma_hosp_rate_2020  ~ language_spanish + education_bachel
 
 check_model(fit_1)
 ```
+
 ```{r}
 lmtest::coeftest(fit1, vcov = sandwich::vcovHC(fit1, type = "HC0"))
 ```
@@ -359,11 +387,6 @@ check_model(lm_fit2, panel = TRUE)
 car::vif(vacc_model)
 ```
 
-```{r}
-summary(fit2)
-```
-
-
 
 ```{r}
 library(MASS)
@@ -381,6 +404,12 @@ vacc_model <- lm(covid_vacc_rate ~ perc_black + perc_asian + perc_welfare +
     perc_poverty:median_age + perc_college:median_personal_income + 
     median_personal_income:median_age, data = model_result_vacc_data)
 ```
+
+```{r}
+summary(vacc_model)
+
+```
+
 
 
 ```{r}
@@ -435,4 +464,6 @@ death_2020_model <- lm(covid_death_rate_2020 ~ ., data = model_result_death_2020
 ```{r}
 stepAIC(death_2020_model, trace = TRUE, direciton = "both")
 ```
+
+
 

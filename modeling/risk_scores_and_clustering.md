@@ -430,7 +430,7 @@ lambda  <- seq(0.0001, 1, length = 100)
 lambda_opt = lasso_model$bestTune$lambda
 
 
-broom::tidy(lasso_model$finalModel) %>% 
+result_plot <- broom::tidy(lasso_model$finalModel) %>% 
 select(term, lambda, estimate) %>% 
 complete(term, lambda, fill = list(estimate = 0) ) %>% 
 filter(term != "(Intercept)") %>% 
@@ -438,6 +438,9 @@ ggplot(aes(x = log(lambda, 10), y = estimate, group = term, color = term)) +
 geom_path() + 
 geom_vline(xintercept = log(lambda_opt, 10), color = "blue", size = 1.2) +
 theme(legend.position = "none")
+
+library(plotly)
+ggplotly(result_plot)
 ```
 
 <img src="risk_scores_and_clustering_files/figure-gfm/unnamed-chunk-3-1.png" width="90%" />
@@ -466,11 +469,11 @@ risk_prediction %>%
   mutate(puma = fct_reorder(puma, risk_prediciton, .desc = TRUE)) %>%
   ggplot(aes(x = puma, y = risk_prediciton, fill = below_herd_vax)) + 
   geom_bar(stat  = "identity") + 
-  geom_hline(yintercept = 50, linetype="dashed", color = "red") +
+  geom_hline(yintercept = 50, linetype = "dashed", color = "red") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
-  labs(title = "Predicting Risk Score of Vaccination across Puma",
+  labs(title = "Predicting Risk Score of Vaccination Rate across Puma",
        x = "Puma", y = "Risk Score") + 
-  scale_fill_manual(values = c("yellow", "purple"))
+  scale_fill_manual(values = c("yellow", "purple"), labels = c("Below 70%", "Above 70%")) 
 ```
 
 <img src="risk_scores_and_clustering_files/figure-gfm/unnamed-chunk-4-1.png" width="90%" />
