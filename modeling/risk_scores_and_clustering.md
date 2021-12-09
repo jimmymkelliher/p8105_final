@@ -420,46 +420,38 @@ caret::confusionMatrix(table(sub_lasso$pred, sub_lasso$obs))
     ##        'Positive' Class : 0               
     ## 
 
-## The plot below shows coefficient estimates corresponding to a subset of the predictors in the dataset
+The plot below shows coefficient estimates corresponding to a subset of
+the predictors in the data set.
 
 ``` r
-#lambda <- 10^seq(-2, 3, length = 0.1)
-
 lambda  <- seq(0.0001, 1, length = 100)
 
 lambda_opt = lasso_model$bestTune$lambda
 
-
 result_plot <- broom::tidy(lasso_model$finalModel) %>% 
-select(term, lambda, estimate) %>% 
-complete(term, lambda, fill = list(estimate = 0) ) %>% 
-filter(term != "(Intercept)") %>% 
-ggplot(aes(x = log(lambda, 10), y = estimate, group = term, color = term)) + 
-geom_path() + 
-geom_vline(xintercept = log(lambda_opt, 10), color = "blue", size = 1.2) +
-theme(legend.position = "none")
-
-library(plotly)
-ggplotly(result_plot)
+  select(term, lambda, estimate) %>% 
+  complete(term, lambda, fill = list(estimate = 0) ) %>% 
+  filter(term != "(Intercept)") %>% 
+  ggplot(aes(x = log(lambda, 10), y = estimate, group = term, color = term)) + 
+  geom_path() + 
+  geom_vline(xintercept = log(lambda_opt, 10), color = "blue", size = 1.2) +
+  theme(legend.position = "none") +
+  labs(y = "Coefficient Estimate", title = "Coefficient Estimates for Varying Values of Lambda")
 ```
 
-<img src="risk_scores_and_clustering_files/figure-gfm/unnamed-chunk-3-1.png" width="90%" />
-
-## Getting Risk Prediction for each puma and visualize them.
+Below, we will obtain a risk prediction for each PUMA and visualize
+them.
 
 ``` r
 lambda <- lasso_model$bestTune$lambda
 lasso_fit = glmnet(x, y, lambda = lambda, family = "binomial")
 risk_predictions = (round((predict(lasso_fit, x, type = "response"))*100, 1))
 
-
 puma <- nyc_puma_summary %>% 
   select(puma)
 
 vax <- logistic_df %>% 
   select(below_herd_vax)
-
-
 
 risk_prediction <- 
   bind_cols(puma, vax, as.vector(risk_predictions)) %>%
@@ -471,12 +463,12 @@ risk_prediction %>%
   geom_bar(stat  = "identity") + 
   geom_hline(yintercept = 50, linetype = "dashed", color = "red") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
-  labs(title = "Predicting Risk Score of Vaccination Rate across Puma",
-       x = "Puma", y = "Risk Score") + 
-  scale_fill_manual(values = c("yellow", "purple"), labels = c("Below 70%", "Above 70%")) 
+  labs(title = "Predicting Risk Score of Vaccination Rate across PUMA",
+       x = "PUMA", y = "Risk Score") + 
+  scale_fill_manual(values = c("yellow", "purple"), labels = c("Below 70%", "Above 70%"))
 ```
 
-<img src="risk_scores_and_clustering_files/figure-gfm/unnamed-chunk-4-1.png" width="90%" />
+<img src="risk_scores_and_clustering_files/figure-gfm/visualizing risk scores by PUMA-1.png" width="90%" />
 
 ## Clustering
 
@@ -523,7 +515,8 @@ summary_df = full_df %>%
 ggplot(data = full_df, aes(x = covid_hosp_rate, y = covid_vax_rate, color = .cluster)) + 
   geom_point() + 
   geom_point(data = summary_df, aes(x = median_hosp, y = median_vax), color = "black", size = 4) +
-  geom_point(data = summary_df, aes(x = median_hosp, y = median_vax, color = .cluster), size = 2.75)
+  geom_point(data = summary_df, aes(x = median_hosp, y = median_vax, color = .cluster), size = 2.75) +
+  labs(x = "COVID Hospitalization Rate", y = "COVID Vaccination Rate", title = "COVID Hospitalization vs Vaccination Rates for each PUMA", color = "Cluster")
 ```
 
 <img src="risk_scores_and_clustering_files/figure-gfm/initial clustering-1.png" width="90%" />
@@ -574,7 +567,8 @@ summary_df = full_df %>%
 ggplot(data = full_df, aes(x = covid_hosp_rate, y = covid_vax_rate, color = factor(cluster))) + 
   geom_point() + 
   geom_point(data = summary_df, aes(x = median_hosp, y = median_vax), color = "black", size = 4) +
-  geom_point(data = summary_df, aes(x = median_hosp, y = median_vax, color = factor(cluster)), size = 2.75)
+  geom_point(data = summary_df, aes(x = median_hosp, y = median_vax, color = factor(cluster)), size = 2.75) +
+  labs(x = "COVID Hospitalization Rate", y = "COVID Vaccination Rate", title = "COVID Hospitalization vs Vaccination Rates for each PUMA", color = "Cluster")
 ```
 
 <img src="risk_scores_and_clustering_files/figure-gfm/scaled clustering-3.png" width="90%" />
@@ -586,22 +580,22 @@ We may want to evaluate this method’s clustering quality as follows:
 fviz_nbclust(for_clustering, kmeans, method = "wss")
 ```
 
-<img src="risk_scores_and_clustering_files/figure-gfm/unnamed-chunk-5-1.png" width="90%" />
+<img src="risk_scores_and_clustering_files/figure-gfm/unnamed-chunk-1-1.png" width="90%" />
 
 ``` r
 # Check for optimal number of clusters using silhouette method
 fviz_nbclust(for_clustering, kmeans, method = "silhouette")
 ```
 
-<img src="risk_scores_and_clustering_files/figure-gfm/unnamed-chunk-5-2.png" width="90%" />
+<img src="risk_scores_and_clustering_files/figure-gfm/unnamed-chunk-1-2.png" width="90%" />
 
 ``` r
-# Check fnumber of clusters that minimize gap statistic
+# Check number of clusters that minimize gap statistic
 gap_stat = clusGap(for_clustering, FUN = kmeans, nstart = 25, K.max = 20, B = 50)
 fviz_gap_stat(gap_stat)
 ```
 
-<img src="risk_scores_and_clustering_files/figure-gfm/unnamed-chunk-5-3.png" width="90%" />
+<img src="risk_scores_and_clustering_files/figure-gfm/unnamed-chunk-1-3.png" width="90%" />
 
 It seems that two clusters may actually work better than three, when
 clustering on predictors.
@@ -621,7 +615,7 @@ fviz_dist(distance, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4
 <img src="risk_scores_and_clustering_files/figure-gfm/scaled - two clusters-1.png" width="90%" />
 
 ``` r
-# Cluster with three centers
+# Cluster with two centers
 k_scaled2 = kmeans(for_clustering, centers = 2)
 
 # Visualize cluster plot with reduction to two dimensions
@@ -650,7 +644,8 @@ summary_df = full_df %>%
 ggplot(data = full_df, aes(x = covid_hosp_rate, y = covid_vax_rate, color = factor(cluster))) + 
   geom_point() + 
   geom_point(data = summary_df, aes(x = median_hosp, y = median_vax), color = "black", size = 4) +
-  geom_point(data = summary_df, aes(x = median_hosp, y = median_vax, color = factor(cluster)), size = 2.75)
+  geom_point(data = summary_df, aes(x = median_hosp, y = median_vax, color = factor(cluster)), size = 2.75) +
+  labs(x = "COVID Hospitalization Rate", y = "COVID Vaccination Rate", title = "COVID Hospitalization vs Vaccination Rates for each PUMA", color = "Cluster")
 ```
 
 <img src="risk_scores_and_clustering_files/figure-gfm/scaled - two clusters-3.png" width="90%" />
