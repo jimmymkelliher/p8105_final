@@ -31,9 +31,6 @@ library(dials)
 knitr::opts_chunk$set(
     echo      = TRUE
   , message   = FALSE
-  , fig.width = 6
-  , fig.asp   = .6
-  , out.width = "90%"
 )
 
 # set theme defaults
@@ -341,6 +338,8 @@ result_plot <- broom::tidy(lasso_model$finalModel) %>%
   geom_vline(xintercept = log(lambda_opt, 10), color = "blue", size = 1.2) +
   theme(legend.position = "none") +
   labs(y = "Coefficient Estimate", title = "Coefficient Estimates for Varying Values of Lambda")
+
+result_plot
 ```
 
 Below, we will obtain a risk prediction for each PUMA and visualize them.
@@ -366,8 +365,8 @@ risk_prediction %>%
   geom_hline(yintercept = 50, linetype = "dashed", color = "red") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
   labs(title = "Predicting Risk Score of Vaccination Rate across PUMA",
-       x = "PUMA", y = "Risk Score") + 
-  scale_fill_manual(values = c("yellow", "purple"), labels = c("Below 70%", "Above 70%"))
+       x = "PUMA", y = "Predicted Risk Score", fill = "Actual Vax Status") + 
+  viridis::scale_fill_viridis(discrete = TRUE, labels = c("Below 70%", "Above 70%"))
 ```
 
 
