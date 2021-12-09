@@ -27,9 +27,6 @@ library(GGally)
 knitr::opts_chunk$set(
     echo      = TRUE
   , message   = FALSE
-  , fig.width = 6
-  , fig.asp   = .6
-  , out.width = "90%"
 )
 
 # set theme defaults
@@ -326,8 +323,8 @@ puma_level_data =
   ) %>% 
   # Turn hospitalization and death data into percentages
   mutate(
-    covid_hosp_rate = covid_hosp_rate / 100,
-    covid_death_rate = covid_death_rate / 100
+    covid_hosp_rate = covid_hosp_rate / 1000,
+    covid_death_rate = covid_death_rate / 1000
   )
 
 # Generate data frame with outcomes for each combination of sex, age (class), and race
@@ -631,7 +628,7 @@ heatmap_two_var = function(predict1, predict2, outcome) {
         aes(
           x = predict1,
           y = predict2,
-          fill = hosp_rate / 100
+          fill = hosp_rate / 1000
         )
       ) + 
       geom_tile()
@@ -643,7 +640,7 @@ heatmap_two_var = function(predict1, predict2, outcome) {
           aes(
             x = predict1,
           y = predict2,
-            fill = death_rate / 100
+            fill = death_rate / 1000
           )
         ) + 
         geom_tile()
@@ -670,7 +667,7 @@ outcome_vs_predictor = function(predict, outcome){
         data = b,
         aes(
           x = predict,
-          y = hosp_rate / 100,
+          y = hosp_rate / 1000,
           fill = predict
         )
       ) + 
@@ -680,7 +677,7 @@ outcome_vs_predictor = function(predict, outcome){
         data = b,
         aes(
           x = predict,
-          y = death_rate / 100,
+          y = death_rate / 1000,
           fill = predict
         )
       ) + 
@@ -775,7 +772,7 @@ borough_cat_comparisons = function(predict, outcome) {
     stack = b %>%
       ggplot(aes(
         x = borough,
-        y = num_hosp,
+        y = num_hosp / 1000,
         fill = predict
       )
       ) + 
@@ -787,7 +784,7 @@ borough_cat_comparisons = function(predict, outcome) {
         )
       
       vary1 = b %>%
-      ggplot(aes(x = borough, y = hosp_rate / 100)) + 
+      ggplot(aes(x = borough, y = hosp_rate / 1000)) + 
       geom_point(aes(color = predict)) + 
         labs(
           x = "Borough",
@@ -828,7 +825,7 @@ borough_cat_comparisons = function(predict, outcome) {
     stack = b %>%
       ggplot(aes(
         x = borough,
-        y = num_death,
+        y = num_death / 1000,
         fill = predict
       )
       ) + 
@@ -840,7 +837,7 @@ borough_cat_comparisons = function(predict, outcome) {
         )
       
       vary1 = b %>%
-      ggplot(aes(x = borough, y = death_rate / 100)) + 
+      ggplot(aes(x = borough, y = death_rate / 1000)) + 
       geom_point(aes(color = predict)) + 
         labs(
           x = "Borough",
@@ -1169,7 +1166,8 @@ puma_level_data %>%
     subtitle = "By Borough",
     ggplot2::aes(color = Borough, alpha = 0.3)
   ) + 
-  scale_fill_discrete()
+  scale_fill_discrete() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
 
 ### Outcomes by Borough
@@ -1343,45 +1341,57 @@ Can we determine which age/sex/race combos perform best and worst on each outcom
 race_age_sex %>% 
   filter(outcome == "hosp_rate") %>% 
   mutate(
-    outcome_rate = outcome_rate / 100
+    outcome_rate = outcome_rate / 1000
   ) %>% 
   arrange(outcome_rate) %>% 
-  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  select(race, age_class, sex, outcome_rate) %>% 
   head() %>% 
-  knitr::kable()
+  knitr::kable(
+    caption = "Lowest hospitalization rates",
+    col.names = c("Race", "Age", "Sex", "% Hospitalized")
+  )
 
 # Highest hospitalization rates
 race_age_sex %>% 
   filter(outcome == "hosp_rate") %>% 
   mutate(
-    outcome_rate = outcome_rate / 100
+    outcome_rate = outcome_rate / 1000
   ) %>% 
   arrange(desc(outcome_rate)) %>% 
-  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  select(race, age_class, sex, outcome_rate) %>% 
   head() %>% 
-  knitr::kable()
+  knitr::kable(
+    caption = "Highest hospitalization rates",
+    col.names = c("Race", "Age", "Sex", "% Hospitalized")
+  )
 
 # Lowest death rates
 race_age_sex %>% 
   filter(outcome == "death_rate") %>% 
   mutate(
-    outcome_rate = outcome_rate / 100
+    outcome_rate = outcome_rate / 1000
   ) %>% 
   arrange(outcome_rate) %>% 
-  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  select(race, age_class, sex, outcome_rate) %>% 
   head() %>% 
-  knitr::kable()
+  knitr::kable(
+    caption = "Lowest death rates",
+    col.names = c("Race", "Age", "Sex", "% Deceased")
+  )
 
 # Highest death rates
 race_age_sex %>% 
   filter(outcome == "death_rate") %>% 
   mutate(
-    outcome_rate = outcome_rate / 100
+    outcome_rate = outcome_rate / 1000
   ) %>% 
   arrange(desc(outcome_rate)) %>% 
-  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  select(race, age_class, sex, outcome_rate) %>% 
   head() %>% 
-  knitr::kable()
+  knitr::kable(
+    caption = "Highest death rates",
+    col.names = c("Race", "Age", "Sex", "% Deceased")
+  )
 
 # Lowest vax rates
 race_age_sex %>% 
@@ -1390,9 +1400,12 @@ race_age_sex %>%
     outcome_rate = outcome_rate
   ) %>% 
   arrange(outcome_rate) %>% 
-  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  select(race, age_class, sex, outcome_rate) %>% 
   head() %>% 
-  knitr::kable()
+  knitr::kable(
+    caption = "Lowest vaccination rates",
+    col.names = c("Race", "Age", "Sex", "% Vaccinated")
+  )
 
 # Highest vax rates
 race_age_sex %>% 
@@ -1401,9 +1414,12 @@ race_age_sex %>%
     outcome_rate = outcome_rate
   ) %>% 
   arrange(desc(outcome_rate)) %>% 
-  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  select(race, age_class, sex, outcome_rate) %>% 
   head() %>% 
-  knitr::kable()
+  knitr::kable(
+    caption = "Highest vaccination rates",
+    col.names = c("Race", "Age", "Sex", "% Vaccinated")
+  )
 ```
 
 ## Associations between Predictors and Outcomes
@@ -1442,7 +1458,24 @@ puma_level_data %>%
     title = "Correlation Matrix Between Predictors and Outcomes",
     subtitle = "At the PUMA level",
     fill = "Correlation"
-  )
+  ) + 
+  scale_y_discrete(labels = c(
+    "perc_white" = "% White",
+    "perc_welfare" = "% on Welfare",
+    "perc_unemployed" = "% Unemployed",
+    "perc_public_transit" = "% using Public Transit",
+    "perc_poverty" = "% Below Poverty Line",
+    "perc_male" = "% Male",
+    "perc_insured" = "% Insured",
+    "perc_foreign_born" = "% Born Ex-US",
+    "perc_foodstamps" = "% on Foodstamps",
+    "perc_english" = "% English at Home",
+    "perc_college" = "% College Educated",
+    "perc_citizen" = "% US Citizen",
+    "perc_broadband" = "% Broadband Access",
+    "median_personal_income" = "Median Personal Income",
+    "median_household_income" = "Median Household Income",
+    "median_age" = "Median Age"))
 ```
 
 For each of the four most correlated variables (excluding obvious redundancies) with each outcome, can we explore more precisely the relationship between outcome and predictor?
@@ -1579,7 +1612,7 @@ death_citizenship =
   ) + 
   geom_point(aes(color = borough)) + 
   geom_smooth(se = FALSE, method = "lm", color = "red", aes(weight = total_people)) + 
-  stat_cor(method = "pearson", label.x = 28, label.y = 1.25) + 
+  stat_cor(method = "pearson", label.x = 22, label.y = 1.25) + 
   labs(
     x = "% with US Citizenship",
     y = "% Deceased"
@@ -1713,7 +1746,7 @@ first_predict = outcome_vs_predictor(race, "hosp") +
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(hosp_rate / 100, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white")
 
 # Hospitalizations vs age
 # First create data frame for use later
@@ -1747,7 +1780,7 @@ second_predict = age_grouped %>%
   ggplot(
     aes(
       x = age,
-      y = hosp_rate / 100,
+      y = hosp_rate / 1000,
       fill = age
     )
   ) + 
@@ -1761,7 +1794,7 @@ second_predict = age_grouped %>%
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(hosp_rate / 100, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white")
   
 # Hospitalizations vs sex
 third_predict = outcome_vs_predictor(sex, "hosp") + 
@@ -1773,7 +1806,7 @@ third_predict = outcome_vs_predictor(sex, "hosp") +
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(hosp_rate / 100, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white")
 
 first_predict + second_predict + third_predict
 ```
@@ -1790,14 +1823,14 @@ first_predict = outcome_vs_predictor(race, "death") +
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(death_rate / 100, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white")
 
 # Deaths vs age
 second_predict = age_grouped %>% 
   ggplot(
     aes(
       x = age,
-      y = death_rate / 100,
+      y = death_rate / 1000,
       fill = age
     )
   ) + 
@@ -1811,7 +1844,7 @@ second_predict = age_grouped %>%
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(death_rate / 100, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white")
   
 # Deaths vs sex
 third_predict = outcome_vs_predictor(sex, "death") + 
@@ -1823,7 +1856,7 @@ third_predict = outcome_vs_predictor(sex, "death") +
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(death_rate / 100, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white")
 
 first_predict + second_predict + third_predict
 ```
@@ -1917,7 +1950,7 @@ first_predict_ses = income_grouped %>%
   ggplot(
     aes(
       x = household_income,
-      y = hosp_rate / 100,
+      y = hosp_rate / 1000,
       fill = household_income
     )
   ) + 
@@ -1931,7 +1964,7 @@ first_predict_ses = income_grouped %>%
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(hosp_rate / 100, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white")
 
 # Hospitalizations vs Education
 second_predict_ses = outcome_vs_predictor(education, "hosp") + 
@@ -1944,7 +1977,7 @@ second_predict_ses = outcome_vs_predictor(education, "hosp") +
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(hosp_rate / 100, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white")
 
 # Hospitalizations vs Insurance
 third_predict_ses = outcome_vs_predictor(health_insurance, "hosp") + 
@@ -1956,7 +1989,7 @@ third_predict_ses = outcome_vs_predictor(health_insurance, "hosp") +
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(hosp_rate / 100, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white")
 
 # Hospitalizations vs Birthplace
 fourth_predict_ses = outcome_vs_predictor(birthplace, "hosp") + 
@@ -1968,7 +2001,7 @@ fourth_predict_ses = outcome_vs_predictor(birthplace, "hosp") +
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(hosp_rate / 100, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white")
 
 (first_predict_ses + second_predict_ses) / (third_predict_ses + fourth_predict_ses)
 ```
@@ -1980,7 +2013,7 @@ first_predict_ses = income_grouped %>%
   ggplot(
     aes(
       x = household_income,
-      y = death_rate / 100,
+      y = death_rate / 1000,
       fill = household_income
     )
   ) + 
@@ -1994,7 +2027,7 @@ first_predict_ses = income_grouped %>%
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(death_rate / 100, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white")
 
 # Deaths vs Education
 second_predict_ses = outcome_vs_predictor(education, "death") + 
@@ -2007,7 +2040,7 @@ second_predict_ses = outcome_vs_predictor(education, "death") +
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(death_rate / 100, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white")
 
 # Deaths vs Citizenship
 third_predict_ses = outcome_vs_predictor(US_citizen, "death") + 
@@ -2019,7 +2052,7 @@ third_predict_ses = outcome_vs_predictor(US_citizen, "death") +
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(death_rate / 100, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white")
 
 # Deaths vs Birthplace
 fourth_predict_ses = outcome_vs_predictor(birthplace, "death") + 
@@ -2031,7 +2064,7 @@ fourth_predict_ses = outcome_vs_predictor(birthplace, "death") +
     caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(death_rate / 100, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white")
 
 (first_predict_ses + second_predict_ses) / (third_predict_ses + fourth_predict_ses)
 ```
