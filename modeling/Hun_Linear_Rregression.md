@@ -1,28 +1,11 @@
----
-title: "Linear Regression"
-author: "Hun"
-date: "12/5/2021"
-output: github_document
----
+Linear Regression
+================
+Hun
+12/5/2021
 
 # Modeling
-```{r, echo = FALSE, message = FALSE, warning = FALSE}
-library(tidyverse)
-library(spatstat)
-library(glmnet)
-library(workflows)
-library(rstatix)
-library(modelr)
-library(PerformanceAnalytics)
-library(robmed)
-library(tidymodels)
-library(lmtest)
-library(sandwich)
-library(performance)
-library(olsrr)
-```
 
-```{r}
+``` r
 # set knitr defaults
 knitr::opts_chunk$set(
     echo      = TRUE
@@ -50,10 +33,7 @@ scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete   = scale_fill_viridis_d
 ```
 
-
-
-```{r}
-
+``` r
 nyc_hh_summary <- read_csv("./modeling/data_for_regression.csv")
 
 outcome_by_year <- 
@@ -64,9 +44,9 @@ unbiased_data <- read_csv("./modeling/unbiased_group_means.csv") %>%
   merge(outcome_by_year, by = "puma")
 ```
 
-
 ## Correlation between predictors and 2020 hospitalizaiton rate (outcome variable)
-```{r}
+
+``` r
 unbiased_data %>% 
   select(-puma_death_rate_2020, -puma_hosp_rate_2021, 
          -puma_death_rate_2021, -puma_vacc_per,
@@ -101,8 +81,11 @@ unbiased_data %>%
   )
 ```
 
+    ## Warning: Removed 17 rows containing missing values (geom_text).
 
-```{r}
+<img src="Hun_Linear_Rregression_files/figure-gfm/unnamed-chunk-4-1.png" width="90%" />
+
+``` r
 selected_variables <-
   unbiased_data %>%
   select(language_spanish, education_bachelors_degree,
@@ -110,9 +93,9 @@ selected_variables <-
              personal_income, employment_not_in_labor_force)
 ```
 
-
 ## Scatterplot (predictors used in the model against 2020 hosp rate)
-```{r}
+
+``` r
 selected_variables <- 
   selected_variables %>%
   colnames() %>%
@@ -131,9 +114,11 @@ for (i in selected_variables) {
 }
 ```
 
+<img src="Hun_Linear_Rregression_files/figure-gfm/unnamed-chunk-6-1.png" width="90%" /><img src="Hun_Linear_Rregression_files/figure-gfm/unnamed-chunk-6-2.png" width="90%" /><img src="Hun_Linear_Rregression_files/figure-gfm/unnamed-chunk-6-3.png" width="90%" /><img src="Hun_Linear_Rregression_files/figure-gfm/unnamed-chunk-6-4.png" width="90%" /><img src="Hun_Linear_Rregression_files/figure-gfm/unnamed-chunk-6-5.png" width="90%" /><img src="Hun_Linear_Rregression_files/figure-gfm/unnamed-chunk-6-6.png" width="90%" /><img src="Hun_Linear_Rregression_files/figure-gfm/unnamed-chunk-6-7.png" width="90%" />
 
 # 2020 Hosp Model
-```{r}
+
+``` r
 best_model <- lm(puma_hosp_rate_2020  ~ language_spanish + 
                    education_bachelors_degree +
                    birthplace_us + health_insurance_public + language_english + 
@@ -150,13 +135,30 @@ full_model <-  lm(puma_hosp_rate_2020  ~
 ```
 
 ## Best Model Estimates Summary
-```{r}
+
+``` r
 summary(best_model) %>%
   broom::tidy()
 ```
 
-## Comparing Best model vs Full model summaries 
-```{r}
+    ## # A tibble: 11 × 5
+    ##    term                                    estimate std.error statistic  p.value
+    ##    <chr>                                      <dbl>     <dbl>     <dbl>    <dbl>
+    ##  1 (Intercept)                             -1.57e+3   6.17e+2    -2.54   1.45e-2
+    ##  2 language_spanish                         1.58e+3   2.81e+2     5.62   1.22e-6
+    ##  3 education_bachelors_degree               7.73e+3   2.11e+3     3.67   6.47e-4
+    ##  4 birthplace_us                           -2.78e+3   5.71e+2    -4.86   1.52e-5
+    ##  5 health_insurance_public                 -3.20e+3   5.94e+2    -5.39   2.60e-6
+    ##  6 language_english                        -3.56e+2   5.22e+2    -0.683  4.98e-1
+    ##  7 personal_income                         -9.73e-3   2.61e-3    -3.72   5.60e-4
+    ##  8 employment_not_in_labor_force            7.01e+3   1.34e+3     5.24   4.35e-6
+    ##  9 health_insurance_public:personal_in…     6.93e-2   1.49e-2     4.66   2.91e-5
+    ## 10 education_bachelors_degree:employme…    -1.43e+4   4.18e+3    -3.41   1.39e-3
+    ## 11 birthplace_us:language_english           2.41e+3   8.99e+2     2.68   1.02e-2
+
+## Comparing Best model vs Full model summaries
+
+``` r
 summary(best_model) %>% 
   broom::glance() %>%
   bind_rows(summary(full_model) %>% broom::glance()) %>%
@@ -164,14 +166,23 @@ summary(best_model) %>%
   relocate(model)
 ```
 
+    ## # A tibble: 2 × 9
+    ##   model  r.squared adj.r.squared sigma statistic p.value    df df.residual  nobs
+    ##   <chr>      <dbl>         <dbl> <dbl>     <dbl>   <dbl> <dbl>       <int> <dbl>
+    ## 1 Best …     0.686         0.615  136.      9.61 3.09e-8    10          44    55
+    ## 2 Full …     0.798         0.580  142.      3.66 6.78e-4    28          26    55
+
 ## Mallow CP
-```{r}
+
+``` r
 ols_mallows_cp(best_model, full_model)
 ```
 
+    ## [1] 7.359837
 
 ## Checking assumptions for linear regression
-```{r}
+
+``` r
 lm_spec <- linear_reg() %>%
   set_mode("regression") %>%
   set_engine("lm")
@@ -187,8 +198,6 @@ best_model <- fit(lm_spec, puma_hosp_rate_2020  ~ language_spanish + education_b
 
 check_model(best_model, 
             check = c("linearity", "qq", "normality", "outliers", "homogeneity"))
-
-
-
-
 ```
+
+<img src="Hun_Linear_Rregression_files/figure-gfm/unnamed-chunk-11-1.png" width="90%" />
