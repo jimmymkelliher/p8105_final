@@ -223,33 +223,33 @@ variables from particular data frames.
 
 How are key outcomes distributed across PUMAs?
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/outcomes all PUMAs-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/outcomes%20all%20PUMAs-1.png)<!-- -->
 
 Which PUMAs have the worst and best outcomes?
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/worst PUMA outcomes-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/worst%20PUMA%20outcomes-1.png)<!-- -->
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/best PUMA outcomes-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/best%20PUMA%20outcomes-1.png)<!-- -->
 
 What about with PUMAs in the same order?
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/outcomes sorted by puma-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/outcomes%20sorted%20by%20puma-1.png)<!-- -->
 
 How do key outcomes associate with each other at the PUMA level?
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/key outcome associations-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/key%20outcome%20associations-1.png)<!-- -->
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/outcome correlations-1.png" width="90%" /><img src="cleaned_exploratory_analysis_files/figure-gfm/outcome correlations-2.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/outcome%20correlations-1.png)<!-- -->![](cleaned_exploratory_analysis_files/figure-gfm/outcome%20correlations-2.png)<!-- -->
 
 ### Outcomes by Borough
 
 Within each borough, how are PUMAs distributed on each key outcome?
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/hospitalizations by borough-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/hospitalizations%20by%20borough-1.png)<!-- -->
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/deaths by borough-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/deaths%20by%20borough-1.png)<!-- -->
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/vax by borough-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/vax%20by%20borough-1.png)<!-- -->
 
 What proportion of PUMAs in a given borough were above or below the
 citywide median on a given outcome?
@@ -274,88 +274,108 @@ each outcome?
 race_age_sex %>% 
   filter(outcome == "hosp_rate") %>% 
   mutate(
-    outcome_rate = outcome_rate / 100
+    outcome_rate = outcome_rate / 1000
   ) %>% 
   arrange(outcome_rate) %>% 
-  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  select(race, age_class, sex, outcome_rate) %>% 
   head() %>% 
-  knitr::kable()
+  knitr::kable(
+    caption = "Lowest hospitalization rates",
+    col.names = c("Race", "Age", "Sex", "% Hospitalized")
+  )
 ```
 
-| race  | age\_class | sex    | outcome    | outcome\_rate |
-|:------|:-----------|:-------|:-----------|--------------:|
-| White | 21-30      | Female | hosp\_rate |      8.761509 |
-| White | 31-40      | Male   | hosp\_rate |      8.859089 |
-| White | 31-40      | Female | hosp\_rate |      8.908691 |
-| White | 21-30      | Male   | hosp\_rate |      8.963492 |
-| White | 41-50      | Male   | hosp\_rate |      9.275372 |
-| White | 41-50      | Female | hosp\_rate |      9.347574 |
+| Race  | Age   | Sex    | % Hospitalized |
+|:------|:------|:-------|---------------:|
+| White | 21-30 | Female |      0.8761509 |
+| White | 31-40 | Male   |      0.8859089 |
+| White | 31-40 | Female |      0.8908692 |
+| White | 21-30 | Male   |      0.8963492 |
+| White | 41-50 | Male   |      0.9275371 |
+| White | 41-50 | Female |      0.9347574 |
+
+Lowest hospitalization rates
 
 ``` r
 # Highest hospitalization rates
 race_age_sex %>% 
   filter(outcome == "hosp_rate") %>% 
   mutate(
-    outcome_rate = outcome_rate / 100
+    outcome_rate = outcome_rate / 1000
   ) %>% 
   arrange(desc(outcome_rate)) %>% 
-  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  select(race, age_class, sex, outcome_rate) %>% 
   head() %>% 
-  knitr::kable()
+  knitr::kable(
+    caption = "Highest hospitalization rates",
+    col.names = c("Race", "Age", "Sex", "% Hospitalized")
+  )
 ```
 
-| race                       | age\_class | sex    | outcome    | outcome\_rate |
-|:---------------------------|:-----------|:-------|:-----------|--------------:|
-| American Indian            | 81-90      | Male   | hosp\_rate |      12.72494 |
-| Other                      | 61-70      | Male   | hosp\_rate |      12.16952 |
-| Other                      | 11-20      | Male   | hosp\_rate |      12.11757 |
-| Other                      | 41-50      | Male   | hosp\_rate |      12.00270 |
-| Other                      | 61-70      | Female | hosp\_rate |      11.85198 |
-| Asian and Pacific Islander | 91-100     | Male   | hosp\_rate |      11.73874 |
+| Race                       | Age    | Sex    | % Hospitalized |
+|:---------------------------|:-------|:-------|---------------:|
+| American Indian            | 81-90  | Male   |       1.272494 |
+| Other                      | 61-70  | Male   |       1.216953 |
+| Other                      | 11-20  | Male   |       1.211757 |
+| Other                      | 41-50  | Male   |       1.200270 |
+| Other                      | 61-70  | Female |       1.185197 |
+| Asian and Pacific Islander | 91-100 | Male   |       1.173874 |
+
+Highest hospitalization rates
 
 ``` r
 # Lowest death rates
 race_age_sex %>% 
   filter(outcome == "death_rate") %>% 
   mutate(
-    outcome_rate = outcome_rate / 100
+    outcome_rate = outcome_rate / 1000
   ) %>% 
   arrange(outcome_rate) %>% 
-  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  select(race, age_class, sex, outcome_rate) %>% 
   head() %>% 
-  knitr::kable()
+  knitr::kable(
+    caption = "Lowest death rates",
+    col.names = c("Race", "Age", "Sex", "% Deceased")
+  )
 ```
 
-| race  | age\_class | sex    | outcome     | outcome\_rate |
-|:------|:-----------|:-------|:------------|--------------:|
-| White | 21-30      | Female | death\_rate |      2.376629 |
-| White | 31-40      | Male   | death\_rate |      2.424339 |
-| White | 21-30      | Male   | death\_rate |      2.435737 |
-| White | 31-40      | Female | death\_rate |      2.455473 |
-| Other | 81-90      | Male   | death\_rate |      2.541018 |
-| White | 41-50      | Male   | death\_rate |      2.564677 |
+| Race  | Age   | Sex    | % Deceased |
+|:------|:------|:-------|-----------:|
+| White | 21-30 | Female |  0.2376629 |
+| White | 31-40 | Male   |  0.2424339 |
+| White | 21-30 | Male   |  0.2435737 |
+| White | 31-40 | Female |  0.2455473 |
+| Other | 81-90 | Male   |  0.2541018 |
+| White | 41-50 | Male   |  0.2564677 |
+
+Lowest death rates
 
 ``` r
 # Highest death rates
 race_age_sex %>% 
   filter(outcome == "death_rate") %>% 
   mutate(
-    outcome_rate = outcome_rate / 100
+    outcome_rate = outcome_rate / 1000
   ) %>% 
   arrange(desc(outcome_rate)) %>% 
-  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  select(race, age_class, sex, outcome_rate) %>% 
   head() %>% 
-  knitr::kable()
+  knitr::kable(
+    caption = "Highest death rates",
+    col.names = c("Race", "Age", "Sex", "% Deceased")
+  )
 ```
 
-| race                       | age\_class | sex  | outcome     | outcome\_rate |
-|:---------------------------|:-----------|:-----|:------------|--------------:|
-| 2+ races                   | 91-100     | Male | death\_rate |      3.525028 |
-| Asian and Pacific Islander | 91-100     | Male | death\_rate |      3.386789 |
-| American Indian            | 81-90      | Male | death\_rate |      3.246158 |
-| Other                      | 11-20      | Male | death\_rate |      3.228600 |
-| Other                      | 41-50      | Male | death\_rate |      3.220782 |
-| Other                      | 71-80      | Male | death\_rate |      3.202419 |
+| Race                       | Age    | Sex  | % Deceased |
+|:---------------------------|:-------|:-----|-----------:|
+| 2+ races                   | 91-100 | Male |  0.3525028 |
+| Asian and Pacific Islander | 91-100 | Male |  0.3386789 |
+| American Indian            | 81-90  | Male |  0.3246158 |
+| Other                      | 11-20  | Male |  0.3228600 |
+| Other                      | 41-50  | Male |  0.3220782 |
+| Other                      | 71-80  | Male |  0.3202419 |
+
+Highest death rates
 
 ``` r
 # Lowest vax rates
@@ -365,19 +385,24 @@ race_age_sex %>%
     outcome_rate = outcome_rate
   ) %>% 
   arrange(outcome_rate) %>% 
-  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  select(race, age_class, sex, outcome_rate) %>% 
   head() %>% 
-  knitr::kable()
+  knitr::kable(
+    caption = "Lowest vaccination rates",
+    col.names = c("Race", "Age", "Sex", "% Vaccinated")
+  )
 ```
 
-| race            | age\_class | sex    | outcome   | outcome\_rate |
-|:----------------|:-----------|:-------|:----------|--------------:|
-| American Indian | 71-80      | Male   | vax\_rate |      49.32433 |
-| Black           | 11-20      | Female | vax\_rate |      49.35445 |
-| Black           | &lt;11     | Male   | vax\_rate |      49.47578 |
-| Black           | 11-20      | Male   | vax\_rate |      49.48017 |
-| Black           | 31-40      | Female | vax\_rate |      49.49496 |
-| Black           | &lt;11     | Female | vax\_rate |      49.51926 |
+| Race            | Age    | Sex    | % Vaccinated |
+|:----------------|:-------|:-------|-------------:|
+| American Indian | 71-80  | Male   |     49.32433 |
+| Black           | 11-20  | Female |     49.35445 |
+| Black           | &lt;11 | Male   |     49.47578 |
+| Black           | 11-20  | Male   |     49.48017 |
+| Black           | 31-40  | Female |     49.49496 |
+| Black           | &lt;11 | Female |     49.51926 |
+
+Lowest vaccination rates
 
 ``` r
 # Highest vax rates
@@ -387,25 +412,30 @@ race_age_sex %>%
     outcome_rate = outcome_rate
   ) %>% 
   arrange(desc(outcome_rate)) %>% 
-  select(race, age_class, sex, outcome, outcome_rate) %>% 
+  select(race, age_class, sex, outcome_rate) %>% 
   head() %>% 
-  knitr::kable()
+  knitr::kable(
+    caption = "Highest vaccination rates",
+    col.names = c("Race", "Age", "Sex", "% Vaccinated")
+  )
 ```
 
-| race                       | age\_class | sex    | outcome   | outcome\_rate |
-|:---------------------------|:-----------|:-------|:----------|--------------:|
-| Asian and Pacific Islander | 91-100     | Female | vax\_rate |      66.13596 |
-| Asian and Pacific Islander | 71-80      | Female | vax\_rate |      65.89982 |
-| Asian and Pacific Islander | 71-80      | Male   | vax\_rate |      65.73426 |
-| Asian and Pacific Islander | 31-40      | Male   | vax\_rate |      65.61553 |
-| Asian and Pacific Islander | 31-40      | Female | vax\_rate |      65.57662 |
-| 2+ races                   | 81-90      | Male   | vax\_rate |      65.47910 |
+| Race                       | Age    | Sex    | % Vaccinated |
+|:---------------------------|:-------|:-------|-------------:|
+| Asian and Pacific Islander | 91-100 | Female |     66.13596 |
+| Asian and Pacific Islander | 71-80  | Female |     65.89982 |
+| Asian and Pacific Islander | 71-80  | Male   |     65.73426 |
+| Asian and Pacific Islander | 31-40  | Male   |     65.61553 |
+| Asian and Pacific Islander | 31-40  | Female |     65.57662 |
+| 2+ races                   | 81-90  | Male   |     65.47910 |
+
+Highest vaccination rates
 
 ## Associations between Predictors and Outcomes
 
 How do key predictors correlate with key outcomes at the PUMA level?
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/correlations predictors vs outcomes-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/correlations%20predictors%20vs%20outcomes-1.png)<!-- -->
 
 For each of the four most correlated variables (excluding obvious
 redundancies) with each outcome, can we explore more precisely the
@@ -413,27 +443,27 @@ relationship between outcome and predictor?
 
 First, across PUMAs:
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/PUMA hospitalization rate vs predictor-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/PUMA%20hospitalization%20rate%20vs%20predictor-1.png)<!-- -->
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/PUMA death rate vs predictor-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/PUMA%20death%20rate%20vs%20predictor-1.png)<!-- -->
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/PUMA vax rate vs predictor-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/PUMA%20vax%20rate%20vs%20predictor-1.png)<!-- -->
 
 Then, across all interviews, for key demographic predictors:
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/hospitalization rate by demo-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/hospitalization%20rate%20by%20demo-1.png)<!-- -->
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/death rate by demo-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/death%20rate%20by%20demo-1.png)<!-- -->
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/vax rate by demo-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/vax%20rate%20by%20demo-1.png)<!-- -->
 
 And finally across all interviews for key socioeconomic predictors:
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/hosp rate by ses-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/hosp%20rate%20by%20ses-1.png)<!-- -->
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/death rate by ses-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/death%20rate%20by%20ses-1.png)<!-- -->
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/vax rate by ses-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/vax%20rate%20by%20ses-1.png)<!-- -->
 
 ## Associations between Predictors and Outcomes by Borough
 
@@ -442,27 +472,27 @@ across levels of a predictor?
 
 First, hospitalizations:
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/hospitalization borough disparities-1.png" width="90%" /><img src="cleaned_exploratory_analysis_files/figure-gfm/hospitalization borough disparities-2.png" width="90%" /><img src="cleaned_exploratory_analysis_files/figure-gfm/hospitalization borough disparities-3.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/hospitalization%20borough%20disparities-1.png)<!-- -->![](cleaned_exploratory_analysis_files/figure-gfm/hospitalization%20borough%20disparities-2.png)<!-- -->![](cleaned_exploratory_analysis_files/figure-gfm/hospitalization%20borough%20disparities-3.png)<!-- -->
 
 Then, deaths:
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/death borough disparities-1.png" width="90%" /><img src="cleaned_exploratory_analysis_files/figure-gfm/death borough disparities-2.png" width="90%" /><img src="cleaned_exploratory_analysis_files/figure-gfm/death borough disparities-3.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/death%20borough%20disparities-1.png)<!-- -->![](cleaned_exploratory_analysis_files/figure-gfm/death%20borough%20disparities-2.png)<!-- -->![](cleaned_exploratory_analysis_files/figure-gfm/death%20borough%20disparities-3.png)<!-- -->
 
 And finally, vaccinations:
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/vax borough disparities-1.png" width="90%" /><img src="cleaned_exploratory_analysis_files/figure-gfm/vax borough disparities-2.png" width="90%" /><img src="cleaned_exploratory_analysis_files/figure-gfm/vax borough disparities-3.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/vax%20borough%20disparities-1.png)<!-- -->![](cleaned_exploratory_analysis_files/figure-gfm/vax%20borough%20disparities-2.png)<!-- -->![](cleaned_exploratory_analysis_files/figure-gfm/vax%20borough%20disparities-3.png)<!-- -->
 
 A note for later – we could try this for key SES indicators as well,
 such as:
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/vax borough ses disparity-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/vax%20borough%20ses%20disparity-1.png)<!-- -->
 
 And finally, we can visualize outcomes on a given predictor across
 boroughs in the following way – for simplicity’s sake, only demographic
 variables and outcomes included here.
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/borough predictor heatmap hosp-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/borough%20predictor%20heatmap%20hosp-1.png)<!-- -->
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/borough predictor heatmap death-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/borough%20predictor%20heatmap%20death-1.png)<!-- -->
 
-<img src="cleaned_exploratory_analysis_files/figure-gfm/borough predictor heatmap vax-1.png" width="90%" />
+![](cleaned_exploratory_analysis_files/figure-gfm/borough%20predictor%20heatmap%20vax-1.png)<!-- -->
