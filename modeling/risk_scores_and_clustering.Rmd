@@ -475,7 +475,7 @@ gap_stat = clusGap(for_clustering, FUN = kmeans, nstart = 25, K.max = 20, B = 50
 fviz_gap_stat(gap_stat)
 ```
 
-It seems that two clusters may actually work better than three, when clustering on predictors.
+It seems that one or two clusters may actually work better than three, when clustering on predictors. Below, we try it with two, just for fun.
 
 ```{r scaled - two clusters}
 # Scale predictors

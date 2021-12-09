@@ -21,15 +21,22 @@ library(spatstat)
 library(ggpubr)
 library(GGally)
 library(readxl)
-library(spatstat)
+library(glmnet)
+library(pvclust)
+library(cluster)
+library(factoextra)
+library(tidymodels)
+library(vip)
+library(rsample)
+library(themis)
+library(parsnip)
+library(workflows)
+library(dials)
 
 # set knitr defaults
 knitr::opts_chunk$set(
     echo      = TRUE
   , message   = FALSE
-  , fig.width = 6
-  , fig.asp   = .6
-  , out.width = "90%"
 )
 
 # set theme defaults
@@ -60,9 +67,9 @@ Knowing that socioeconomic factors have historically been associated with health
 
 ## Related Work
 
-In 2020, the COVID-19 pandemic was only one factor that increased the public attention on structural inequality. A confluence of recent events, from the Black Lives Matter movement to the election of New York City’s second Black mayor, has attracted the gaze of local researchers given the vast demographic and socioeconomic diversity concentrated in just one urban area. Our work is motivated by pre-existing analyses related to potential socioeconomic predictors and COVID-19 outcomes. For example, Little et al.’s research suggests an “unequal socioeconomic gradient in the demographic and clinical presentation of COVID-19 patients,” building on other analysis into census tract-level associations with key outcomes like hospitalization. As COVID-19’s endemicity becomes all but inevitable, with globalization expected to contribute to a rise in the number of pandemics easily spread across borders and continents, a comprehensive understanding of the predictors of hospitalization, death, and vaccination rates for COVID-19 may aid the development of effective intervention strategies that limit disparate impact across all disease stages.
+In 2020, the COVID-19 pandemic was only one factor that increased the public attention on structural inequality. A confluence of recent events, from the Black Lives Matter movement to the election of New York City’s second Black mayor, has attracted the gaze of local researchers given the vast demographic and socioeconomic diversity concentrated in just one urban area. Our work is motivated by pre-existing analyses related to potential socioeconomic predictors and COVID-19 outcomes. For example, [Little et al.’s research](https://link.springer.com/article/10.1007/s10900-020-00944-3) suggests an “unequal socioeconomic gradient in the demographic and clinical presentation of COVID-19 patients,” building on [other analysis](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0257622) into census tract-level associations with key outcomes like hospitalization. As [COVID-19’s endemicity](https://www.nature.com/articles/d41586-021-00396-2) becomes all but inevitable, with globalization expected to contribute to a rise in the number of pandemics easily spread across borders and continents, a comprehensive understanding of the predictors of hospitalization, death, and vaccination rates for COVID-19 may aid the development of [effective intervention strategies](https://www.albany.edu/communicationsmarketing/covid-19-documents/Racial%20Disparities%20in%20COVID-19%20Bonus%20Briefing%20Paper%5B2%5D.pdf) that limit disparate impact across all disease stages.
 
-While a number of studies have examined differential outcomes across neighborhoods in New York City (and have even, at times, attempted to approach causal explanations, such as subway utilization), no ecological study to-date has explored the potential for a ~20-variable  set of predictors to explain between-neighborhood variation across multiple COVID outcomes, including vaccination. Although prior work has explored disparities in testing and positivity, for example – and systemic meta-analyses have demonstrated disparities in COVID-19 outcomes by race, ethnicity, and socioeconomic status – our study takes a modeling-forward approach to generate a multivariate regression model that explains outcomes at the PUMA, or census-tract, level. We also contribute a novel method of predictive risk scoring to highlight the possibility of a given PUMA failing to achieve a key outcome target – in this case, 70% vaccination rate. Although further work will be required to better understand the mechanisms by which various contributing factors are associated with key outcomes, this research highlights the diversity of outcomes across a relatively small geographic area, and thus the potential for greater health equity in the future.
+While a number of studies have examined [differential outcomes across neighborhoods](https://onlinelibrary.wiley.com/doi/10.1111/irv.12816) in New York City (and have even, at times, attempted to approach [causal explanations](https://www.nature.com/articles/s41467-021-24088-7), such as [subway utilization](https://academic.oup.com/aje/article/190/7/1234/6054607), no ecological study to-date has explored the potential for a ~20-variable  set of predictors to explain between-neighborhood variation across multiple COVID outcomes, including vaccination. Although prior work has explored disparities in [testing and positivity](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7316038/), for example – and systemic meta-analyses have demonstrated disparities in COVID-19 outcomes by [race, ethnicity, and socioeconomic status](https://jamanetwork.com/journals/jamanetworkopen/fullarticle/2785980) – our study takes a modeling-forward approach to generate a multivariate regression model that explains outcomes at the PUMA, or census-tract, level. We also contribute a novel method of predictive risk scoring to highlight the possibility of a given PUMA failing to achieve a key outcome target – in this case, 70% vaccination rate. Although further work will be required to better understand the mechanisms by which various contributing factors are associated with key outcomes, this research highlights the diversity of outcomes across a relatively small geographic area, and thus the potential for greater health equity in the future.
 
 ## Initial Questions
 
@@ -74,17 +81,17 @@ Our initial questions are centered on how demographic factors in New York City t
 
 #### Integrated Public Use Microdata Series (IPUMS USA)
 
-The Integrated Public Use Microdata Series (IPUMS USA) consists of individual-level data from samples of the US population drawn from the American Community Surveys (ACS) of 2000 - present as well as from fifteen federal censuses from 1850 to 2010. Each record in IPUMS is a person with numerically coded characteristics and “weight” variables indicating how many persons in the population are represented by each record. Samples were created at different times by different investigators, which lead to a variety of documentation conventions. However, IPUMS applies consistent coding and documentation across records to allow for effective analysis over time. A data extraction system exists to allow users to pull particular samples and variables from IPUMS. This project uses demographic and macroeconomic data from the American Community Survey (ACS) 2019 five-year estimate via IPUMS.
+The [Integrated Public Use Microdata Series (IPUMS USA)](https://usa.ipums.org/usa/) consists of individual-level data from samples of the US population drawn from the American Community Surveys (ACS) of 2000 - present as well as from fifteen federal censuses from 1850 to 2010. Each record in IPUMS is a person with numerically coded characteristics and “weight” variables indicating how many persons in the population are represented by each record. Samples were created at different times by different investigators, which lead to a variety of documentation conventions. However, IPUMS applies consistent coding and documentation across records to allow for effective analysis over time. A data extraction system exists to allow users to pull particular samples and variables from IPUMS. This project uses demographic and macroeconomic data from the American Community Survey (ACS) 2019 five-year estimate via IPUMS.
 
 While data from IPUMS is recorded at the individual-level, each interview is coded to a particular Public Use Microdata Area (PUMA) geography where the housing unit was located at the time of interview.
 
 #### New York City Department of Health and Mental Hygiene (NYC DOHMH)
 
-The New York City Department of Health and Mental Hygiene (NYC DOHMH) is one of the oldest public health agencies in the United States. Among other responsibilities, the DOHMH monitors the spread of infectious disease in NYC. The Department of Health classified the beginning of the COVID-19 pandemic as February 29, 2020, the date of the first laboratory-confirmed case. Since then, the DOHMH has recorded and reported COVID-19 data on a daily, weekly, or monthly basis. These data include cases, hospitalizations, and deaths by borough, modified Zip Code tabulation area (ZCTA), and demographic factors. As NYC has administered vaccinations for COVID-19, these data have been recorded and made available by borough, ZCTA, and demography. This project uses COVID-19 hospitalization rates, death rates, and vaccination rates by ZCTA in NYC.
+The New York City Department of Health and Mental Hygiene (NYC DOHMH) is one of the oldest public health agencies in the United States. Among other responsibilities, the DOHMH [monitors the spread of infectious disease in NYC](https://github.com/nychealth). The Department of Health classified the beginning of the COVID-19 pandemic as February 29, 2020, the date of the first laboratory-confirmed case. Since then, the DOHMH has recorded and reported COVID-19 data on a daily, weekly, or monthly basis. These data include cases, hospitalizations, and deaths by borough, modified Zip Code tabulation area (ZCTA), and demographic factors. As NYC has administered vaccinations for COVID-19, these data have been recorded and made available by borough, ZCTA, and demography. This project uses COVID-19 hospitalization rates, death rates, and vaccination rates by ZCTA in NYC.
 
 #### Baruch College, City University of New York - Geoportal 
 
-The Baruch Geoportal, maintained by the Newman Library at Baruch College, is a repository of geospatial resources including tabular data sets, tutorials, maps, and crosswalks. This project uses a crosswalk data set from Baruch Geoportal to apportion NYC ZCTAs to PUMAs, which allows PUMA-coded data from IPUMS to be analyzed alongside COVID-19 outcome data from DOHMH.
+The [Baruch Geoportal](https://www.baruch.cuny.edu/confluence/display/geoportal/NYC+Geographies), maintained by the Newman Library at Baruch College, is a repository of geospatial resources including tabular data sets, tutorials, maps, and crosswalks. This project uses a crosswalk data set from Baruch Geoportal to apportion NYC ZCTAs to PUMAs, which allows PUMA-coded data from IPUMS to be analyzed alongside COVID-19 outcome data from DOHMH.
 
 ### Data Cleaning
 
@@ -2399,12 +2406,273 @@ vax_heat + theme(legend.position = "bottom") +
 
 ## Regression
 
-TO DO!
+Let $S$ denote the set of PUMAs in NYC. We consider the latent variable model
+	$$ y_s = \xi_s' \beta + \varepsilon_s $$
+for each $s \in S$, where $\xi_s$ a vector of PUMA-level means of data from the census. There are two challenges in considering such a model: (1) we know historically that NYC neighborhoods, particularly those within boroughs, are subject to spatial correlation; and (2) because the census data is recorded at the interview level, we do not observe the group-level means $\xi_s$.
+
+In order to address (1), we employ heteroscedasticity-robust White standard errors to deal with the potential threat of spatial correlation. We find that all of our coefficient estimates retain their significance under the adjusted standard errors, and hence we leave this check on robustness to the appendix.
+
+More interesting is the challenge presented in (2). For each $s \in S$, suppose we observe $i \in \{ 1, \ldots, n_s \}$ individual-level interviews. It is natural to consider the group mean
+	$$ \bar{X}_s \equiv \frac{1}{n_s} \sum_{i = 1}^{n_s} X_{is}. $$
+However, as shown in Croon and Veldhoven (2007), it is generally the case that using the observed group mean $\bar{X}_s$ as an estimator of $\xi_s$ will lead to biased regression coefficients. Thus, we address (2) by following the procedure outlined by Croon and Veldhoven to re-weight our group means and obtain adjusted group means $\tilde{X}_s$. In particular, let $ \hat{\Sigma}_{\xi \xi}$ and $\hat{\Sigma}_{\nu \nu}$ denote the usual ANOVA estimates of the between- and within-group variation matrices, respectively. The adjusted group means are then given by
+	$$ \tilde{X}_s \equiv \bar{X}' (I - W_s) + \bar{X}_s' W_s, \quad \text{where} $$
+	$$ W_s \equiv \left( \hat{\Sigma}_{\xi \xi} + \hat{\Sigma}_{\nu \nu} / n_s \right)^{-1} \hat{\Sigma}_{\xi \xi} $$
+and $I$ denotes the identity matrix.
+
+TODO: Output
+
 
 ## Predictive Risk Scoring & Clustering
+
+### Risk Scoring
 
 Following our regression work, we decided to make our insights more actionable by developing a novel scoring method capable of indicating whether a PUMA is at relatively lower or higher risk of achieving some COVID-19-related outcome. To demonstrate the method, we developed a risk score for whether a PUMA is likely to have achieved or not achieved a vaccination rate of 70% among residents, corresponding to the level of population immunity generally considered requisite to “halt the pandemic.” That said, our method is applicable to other outcomes as well, and one might imagine using it to score a given PUMA on the possibility of a hospitalization rate above X%, or a death rate above Y%. We only chose to begin with vaccination rate given our inability to develop a linear regression for this particular outcome, as opposed to hospitalization and death rates.
 
 The risk scoring method we developed is predicated on (regularized, lasso) logistic regression, used most often for classification tasks because predictions can be interpreted as class probabilities. Regularization further prevents overfitting of the model. After defining our outcome as 1 for below 70% vaccination and 0 for equal to or above 70% vaccination, we converted our set of predictors to matrix form, and then trained a glmnet model on our training data using 5-fold cross-validation repeated 100 times given the large number of predictors compared to our mere 55 PUMA samples, and because we were interested in predicting the risk score of vaccination rate for each PUMA in our data set. Through our lasso regression, we found an optimal lambda tuning parameter of 0.0102, and generated a model prediction accuracy of 0.886 (~87%). Generally, however, obtaining the kappa value averaged over the simulated confusion matrices is a more useful metric for prediction given unbalanced classes (of our 55 PUMAs, 41 achieve vaccination rate >= 70%, and only 14 do not); Our optimal model’s averaged kappa was 0.63, which is considered reasonably decent, but again suggests that the limited number of in-sample data points may result in model overfitting. 
 
+```{r defining predictors and outcomes}
+# 1 indicates BELOW 70% vaccination rate
+logistic_df = nyc_puma_summary %>% 
+  mutate(
+    below_herd_vax = as.factor(ifelse(covid_vax_rate >= 70, 0, 1))
+  ) %>% 
+  select(-puma, -total_people, -covid_hosp_rate, -covid_death_rate, -covid_vax_rate)
 
+# Define predictors matrix
+x = model.matrix(below_herd_vax ~ ., logistic_df)[,-1]
+
+# Define outcomes
+y = logistic_df$below_herd_vax
+```
+
+```{r loading in new libraries}
+library(caret) # Note: new libraries are loaded here due to potential function masking from the `caret` library
+library(mlbench)
+```
+
+```{r finding optimal lambda}
+set.seed(777)
+vax_cv <- trainControl(method = "repeatedcv", number = 5, repeats = 100, 
+                       savePredictions = T
+                       )
+
+# Goal is to find optimal lambda
+lasso_model <- train(below_herd_vax ~ ., data = logistic_df,
+                     method = "glmnet",
+                     trControl = vax_cv,
+                     tuneGrid = expand.grid(
+                       .alpha = 1,
+                       .lambda = seq(0.0001, 1, length = 100)),
+                     family = "binomial")
+```
+
+```{r resulting confusion matrix}
+coef <- coef(lasso_model$finalModel, lasso_model$bestTune$lambda)
+
+sub_lasso <-
+  subset(lasso_model$pred, lasso_model$pred$lambda == lasso_model$bestTune$lambda)
+
+caret::confusionMatrix(table(sub_lasso$pred, sub_lasso$obs))
+```
+
+Notably, feature selection from our lasso regression discovered that the most important predictors of risk for sub-70% vaccination were insurance composition, employment composition, poverty composition, and welfare composition in a given PUMA – largely aligned with key correlates of vaccination noted in our exploratory analysis.
+
+```{r plotting predictors against lambda}
+lambda  <- seq(0.0001, 1, length = 100)
+
+lambda_opt = lasso_model$bestTune$lambda
+
+result_plot <- broom::tidy(lasso_model$finalModel) %>% 
+  select(term, lambda, estimate) %>% 
+  complete(term, lambda, fill = list(estimate = 0) ) %>% 
+  filter(term != "(Intercept)") %>% 
+  ggplot(aes(x = log(lambda, 10), y = estimate, group = term, color = term)) + 
+  geom_path() + 
+  geom_vline(xintercept = log(lambda_opt, 10), color = "blue", size = 1.2) +
+  theme(legend.position = "none") +
+  labs(y = "Coefficient Estimate", title = "Coefficient Estimates for Varying Values of Lambda")
+
+result_plot
+```
+
+Again, we wanted to move beyond binary classification to develop a risk score. Generally, in logistic regression, when a data point is predicted with probability > 0.5 to be a “1,” the model classifies it as a 1, and otherwise as a 0. We obtained risk scores not only by classifying PUMAs as above or below 70% vaccination rate using our prediction model, but by obtaining the exact probability of a given data point being a 1. For instance, if a PUMA has an 85% chance of being below 70% vaccination rate according to our classifier, its risk score would be 85, even though our model would binarily predict it to be a “1” rather than a “0.”
+
+```{r visualizing risk scores by PUMA, message = FALSE, warning = FALSE}
+lambda <- lasso_model$bestTune$lambda
+lasso_fit = glmnet(x, y, lambda = lambda, family = "binomial")
+risk_predictions = (round((predict(lasso_fit, x, type = "response"))*100, 1))
+
+puma <- nyc_puma_summary %>% 
+  select(puma)
+
+vax <- logistic_df %>% 
+  select(below_herd_vax)
+
+risk_prediction <- 
+  bind_cols(puma, vax, as.vector(risk_predictions)) %>%
+  rename(risk_prediciton = ...3)
+
+risk_prediction %>%
+  mutate(puma = fct_reorder(puma, risk_prediciton, .desc = TRUE)) %>%
+  ggplot(aes(x = puma, y = risk_prediciton, fill = below_herd_vax)) + 
+  geom_bar(stat  = "identity") + 
+  geom_hline(yintercept = 50, linetype = "dashed", color = "red") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  labs(title = "Predicting Risk Score of Vaccination Rate across PUMA",
+       x = "PUMA", y = "Risk Score") + 
+  scale_fill_manual(values = c("yellow", "purple"), labels = c("Below 70%", "Above 70%"))
+```
+
+### Clustering
+
+We were also curious how statistical learning techniques would cluster our PUMAs based on predictors, and how those clusters might correspond to performance on key outcomes. We separated our data into a tibble of predictors only and a tibble of outcomes only, then fit three clusters – just to try it – on our predictors alone. We proceeded to plot each PUMA on hospitalization rate vs vaccination rate (choosing to forego death rate, in this case, given its collinearity and likely redundancy of hospitalization rate), then colored each data point by predicted clustering. 
+
+```{r initial clustering}
+# Define tibble of predictors only
+predictors = nyc_puma_summary %>% 
+  select(-puma, -total_people, -covid_hosp_rate, -covid_vax_rate, -covid_death_rate)
+
+# Define tibble of outcomes only
+outcomes = nyc_puma_summary %>% 
+  select(covid_hosp_rate, covid_death_rate, covid_vax_rate)
+
+# Define tibble of pumas only
+pumas = nyc_puma_summary %>% 
+  select(puma)
+
+# Fit 3 clusters on predictors
+kmeans_fit = 
+  kmeans(x = predictors, centers = 3)
+
+# Add clusters to data frame of predictors and bind with PUMA and outcomes data
+predictors = 
+  broom::augment(kmeans_fit, predictors)
+
+# Bind columns
+full_df = cbind(pumas, outcomes, predictors)
+
+# Summary df
+summary_df = full_df %>% 
+  group_by(.cluster) %>% 
+  summarize(
+    median_hosp = median(covid_hosp_rate),
+    median_death = median(covid_death_rate),
+    median_vax = median(covid_vax_rate)
+  )
+
+# Plot predictor clusters against outcomes
+# Example: try hospitalization vs vaccination
+ggplot(data = full_df, aes(x = covid_hosp_rate, y = covid_vax_rate, color = .cluster)) + 
+  geom_point() + 
+  geom_point(data = summary_df, aes(x = median_hosp, y = median_vax), color = "black", size = 4) +
+  geom_point(data = summary_df, aes(x = median_hosp, y = median_vax, color = .cluster), size = 2.75) +
+  labs(x = "COVID Hospitalization Rate", y = "COVID Vaccination Rate", title = "COVID Hospitalization vs Vaccination Rates for each PUMA", color = "Cluster")
+```
+
+Generally, our three clusters included:
+* One cluster with relatively low hospitalization rate (~5%) and relatively high vaccination rate (~75%)
+* Two clusters with relatively identical average hospitalization rate (~10%), but one with substantially higher vaccination rate (nearly 60%) than the other (nearly 50%)
+
+For fun, we also evaluated Euclidean distance between our observed PUMAs, and alternatively mapped PUMAs onto their respective clusters after reducing our predictors to two key (principal) component dimensions.
+
+```{r scaled clustering}
+# Scale predictors
+for_clustering = predictors %>% 
+  select(-.cluster) %>% 
+  na.omit() %>% 
+  scale()
+
+# Evaluate Euclidean distances between observations
+distance = get_dist(for_clustering)
+fviz_dist(distance, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+
+# Cluster with three centers
+k_scaled = kmeans(for_clustering, centers = 3)
+
+# Visualize cluster plot with reduction to two dimensions
+fviz_cluster(k_scaled, data = for_clustering)
+
+# Bind with outcomes and color clusters
+full_df = for_clustering %>% 
+  as_tibble() %>% 
+  cbind(outcomes, pumas) %>% 
+  mutate(
+    cluster = k_scaled$cluster
+  )
+
+summary_df = full_df %>% 
+  group_by(cluster) %>% 
+  summarize(
+    median_hosp = median(covid_hosp_rate),
+    median_death = median(covid_death_rate),
+    median_vax = median(covid_vax_rate)
+  )
+
+ggplot(data = full_df, aes(x = covid_hosp_rate, y = covid_vax_rate, color = factor(cluster))) + 
+  geom_point() + 
+  geom_point(data = summary_df, aes(x = median_hosp, y = median_vax), color = "black", size = 4) +
+  geom_point(data = summary_df, aes(x = median_hosp, y = median_vax, color = factor(cluster)), size = 2.75) +
+  labs(x = "COVID Hospitalization Rate", y = "COVID Vaccination Rate", title = "COVID Hospitalization vs Vaccination Rates for each PUMA", color = "Cluster")
+```
+
+Because we settled on setting the number of clusters at three relatively arbitrarily, we decided to evaluate the clustering quality using both WSS, silhouette, and gap methods.
+
+```{r}
+# Check where elbow occurs using WSS method
+fviz_nbclust(for_clustering, kmeans, method = "wss")
+
+# Check for optimal number of clusters using silhouette method
+fviz_nbclust(for_clustering, kmeans, method = "silhouette")
+
+# Check number of clusters that minimize gap statistic
+gap_stat = clusGap(for_clustering, FUN = kmeans, nstart = 25, K.max = 20, B = 50)
+fviz_gap_stat(gap_stat)
+```
+
+The elbow in our WSS plot indicates that three clusters may be optimal, whereas the silhouette plot shows an average silhouette width optimized at two clusters. Finally, the gap plot shows that clustering is actually optimized when the number of clusters equals 1 – i.e. when no clustering occurs. The relative lack of concordance between these assessments of clustering quality is no surprise given the fact that our model is fit on only 55 predictors. For completeness, we re-modeled our clustering of predictors with only k = 2 clusters, and again tried to visualize where these clusters of PUMAs were distributed on the hospitalization/vaccination rate axes:
+
+```{r scaled - two clusters}
+# Scale predictors
+for_clustering = predictors %>% 
+  select(-.cluster) %>% 
+  na.omit() %>% 
+  scale()
+
+# Evaluate Euclidean distances between observations
+distance = get_dist(for_clustering)
+fviz_dist(distance, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+
+# Cluster with two centers
+k_scaled2 = kmeans(for_clustering, centers = 2)
+
+# Visualize cluster plot with reduction to two dimensions
+fviz_cluster(k_scaled2, data = for_clustering)
+
+# Bind with outcomes and color clusters
+full_df = for_clustering %>% 
+  as_tibble() %>% 
+  cbind(outcomes, pumas) %>% 
+  mutate(
+    cluster = k_scaled2$cluster
+  )
+
+summary_df = full_df %>% 
+  group_by(cluster) %>% 
+  summarize(
+    median_hosp = median(covid_hosp_rate),
+    median_death = median(covid_death_rate),
+    median_vax = median(covid_vax_rate)
+  )
+
+ggplot(data = full_df, aes(x = covid_hosp_rate, y = covid_vax_rate, color = factor(cluster))) + 
+  geom_point() + 
+  geom_point(data = summary_df, aes(x = median_hosp, y = median_vax), color = "black", size = 4) +
+  geom_point(data = summary_df, aes(x = median_hosp, y = median_vax, color = factor(cluster)), size = 2.75) +
+  labs(x = "COVID Hospitalization Rate", y = "COVID Vaccination Rate", title = "COVID Hospitalization vs Vaccination Rates for each PUMA", color = "Cluster")
+```
+
+With two clusters, our low hospitalization/high vaccination cluster remains, but our two mid-level hospitalization rate clusters are condensed into one cluster.
+
+## Discussion
+
+To do!
