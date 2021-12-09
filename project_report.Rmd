@@ -97,7 +97,7 @@ The [Baruch Geoportal](https://www.baruch.cuny.edu/confluence/display/geoportal/
 
 #### Pulling Data
 
-As mentioned above, monthly outcome data reported at the ZCTA-level geography were obtained from the NYC DOHMH. First, these data were summed over the time interval March 2020 - *TODO* to obtain one cumulative incidence measure per ZCTA. However, the predictor variables from IPUMS were coded to the PUMA-level geography, and so we used the Baruch ZCTA-PUMA crosswalk data set to convert our data into common geographical units.
+As mentioned above, monthly outcome data reported at the ZCTA-level geography were obtained from the NYC DOHMH. First, these data were summed over the time interval March 2020 - Sept 2021 to obtain one cumulative incidence measure per ZCTA. However, the predictor variables from IPUMS were coded to the PUMA-level geography, and so we used the Baruch ZCTA-PUMA crosswalk data set to convert our data into common geographical units.
 
 The following columns were used to convert ZCTA-level outcome data to PUMA-level data:
 
@@ -119,7 +119,7 @@ This bridged us towards one cumulative incidence measure per PUMA (per 100,000 p
 
 We proceeded to clean our demographic dataset from IPUMS, which originally contained over 350,000 interviews from the NYC area: 
 
-```{r create cleaned interview level data set}
+```{r create cleaned interview level data set, message = FALSE}
 # Cleaning
 jimzip <- function(csv_file, path) {
   # create full path to csv file
@@ -286,6 +286,7 @@ cleaned_data =
       work_transport %in% c(0, 70) ~ "Other"
     )
   ) %>% 
+  mutate(education = fct_relevel(education, "Less Than HS Graduate", "HS Graduate", "Some College", "Bachelor's Degree", "Post-Graduate Degree", "Unknown")) %>% 
   # Eliminate columns no longer needed after transformation
   select(-hispan, -hcovany, -hcovpriv) %>% 
   # Relocate new columns
@@ -985,6 +986,7 @@ puma_outcomes + plot_annotation(
 ```
 
 When PUMAs are ranked from lowest outcome rate to highest outcome rate, and colored by borough, we find the following, as visualized in the graphs below:
+
 * Hospitalization rate ranges from <0.5% to nearly 2%, with the plurality of high hospitalization rates occurring in Queens PUMAs and the plurality of low hospitalization rates occurring in Manhattan and Brooklyn PUMAs
 * Death rate ranges from ~0.05% to ~0.6%, with the plurality of high death rates occurring in Queens PUMAs and the plurality of low death rates occurring in Manhattan and Brooklyn PUMAs
 * Vaccination rate ranges from nearly 30% to over 100% (due to migrations between PUMAs), with all of the highest vaccination rates occurring in Manhattan and Queens, and all of the lowest vaccination rates occurring in Brooklyn and the Bronx
@@ -1299,6 +1301,7 @@ puma_level_data %>%
 ```
 
 Interestingly, we find:
+
 * The variables highly positively correlated with hospitalization rate at the PUMA level are percent US citizens and percent foreign born; the variables highly negatively correlated with hospitalization rate at the PUMA level are percent white, percent using public transit to get to work, percent with health insurance, percent English-speaking at home, percent with college education, percent with broadband access, and median personal and household incomes.
 * The variables highly positively correlated with death rate at the PUMA level, are percent US citizens and percent foreign born; the variables highly negatively correlated with death rate at the PUMA level are percent using public transit to get to work, percent with health insurance, percent college educated, and median personal and household incomes.
 * The variables highly positively correlated with vaccination rate at the PUMA level are percent white, percent male, percent college educated, percent with broadband access, median age, and median personal and household incomes; the variables highly negatively correlated with vaccination rate at the PUMA level are percent on welfare, percent unemployed, percent below the poverty threshold, and percent on food stamps
@@ -1732,6 +1735,7 @@ first_predict + second_predict + third_predict
 ```
 
 Some key findings include:
+
 * Males and females appear similar on each outcome
 * Hospitalization and death rates tend to be higher after middle age compared to those below middle age, whereas vaccination rate shows a general increase with each age group
 * In general, white individuals have a lower likelihood of hospitalization and death, but a higher likelihood – along with Asian and Pacific Islanders – of vaccination, whereas other groups of color and Native Americans seem to have higher hospitalization and death rates, but lower vaccination rates
@@ -1958,6 +1962,7 @@ fourth_predict_ses = outcome_vs_predictor(employment, "vax") +
 ```
 
 Again, there were a few interesting findings here, such as:
+
 * We observe a monotonic decrease in hospitalization and death rate as household income increases, but a monotonic increase in vaccination rate as household income increases as well
 * Individuals with public health insurance tend to perform similarly on key outcomes to those with no health insurance at all, with both groups worse than those who have private health insurance
 * Individuals with college and graduate education tend to perform better on key outcomes than those without any college education
@@ -2199,6 +2204,7 @@ ggplot(data = full_df, aes(x = covid_hosp_rate, y = covid_vax_rate, color = .clu
 ```
 
 Generally, our three clusters included:
+
 * One cluster with relatively low hospitalization rate (~5%) and relatively high vaccination rate (~75%)
 * Two clusters with relatively identical average hospitalization rate (~10%), but one with substantially higher vaccination rate (nearly 60%) than the other (nearly 50%)
 
@@ -2276,4 +2282,29 @@ With two clusters, our low hospitalization/high vaccination cluster remains, but
 
 ## Discussion
 
-To do!
+### Project Obstacles
+
+The primary obstacles at the outset of the project were related to data pre-processing, getting our disparate data sources to play nice with each other. As mentioned elsewhere, our outcome variables were obtained at the ZCTA-level geography while our predictor variables were obtained at the interview-level and coded to PUMA geographies. We were able to use a ZCTA-PUMA crosswalk data set from Baruch College and a bit of math to merge these data sets for further analysis.
+
+Another obstacle was to aggregate the interview-level data to the PUMA-level geography and to tidy the IPUMS variables according to the census data dictionary. For instance, factor variables like education and race were coded numerically, but these data needed to have descriptive factor levels for analysis. This process is described in more detail in the Data Sources and Cleaning section.
+
+These data presented a unique regression challenge as well. (TO BE COMPLETED)
+
+### Findings
+
+In our exploratory analysis we looked at COVID-19 hospitalizations, deaths, and vaccinations across boroughs, PUMAs, and demographic combinations.
+
+When looking at outcomes across boroughs, we saw that PUMA geographies in Queens and the Bronx tended to be above the median NYC PUMA for COVID-19 hospitalization and death rates. Interestingly, PUMA geographies in Queens were among the most highly vaccinated areas in NYC.
+
+In general, we did not see notable differences of COVID-19 outcomes between males and females. When looking at demographic categories, we found that hospitalization and death rates were lowest among white males and females under 30 and that vaccination rates were highest among Asian and Pacific Islander males and females. The lowest vaccination rates were among older American Indian individuals and younger and middle-aged Black individuals.
+
+In an analysis of correlations between predictors and outcomes across PUMA geographies, we found income to be strongly associated with COVID-19 hospitalizations (negative association), deaths (negative association), and vaccinations (positive association). We found that many indicators of socioeconomic status – including poverty level, welfare, unemployment, and food stamp utilization – seem highly negatively correlated with vaccination, but not with hospitalization and death. These findings may indicate the potential impact from significant structural inequalities that hinder healthcare access among the poor, given that vaccination is a more “active” outcome (requiring deliberate action) here than hospitalization or death, which are both the result of (in all likelihood) “passive” or indeliberate transmission.
+
+Lastly, we saw that among boroughs, Manhattan had the most significant disparities of outcomes across demographic groups like race and age.
+
+(REGRESSION CONCLUSIONS TO BE ADDED)
+
+### Next Steps
+
+To Do!
+
