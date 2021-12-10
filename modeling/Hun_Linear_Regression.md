@@ -128,10 +128,11 @@ best_model <- lm(puma_hosp_rate_2020  ~ language_spanish +
                    language_english:birthplace_us, data = unbiased_data)
 
 full_model <-  lm(puma_hosp_rate_2020  ~ 
-                    (language_spanish + education_bachelors_degree +
-                     birthplace_us + health_insurance_public + language_english + 
-                     personal_income + employment_not_in_labor_force)^2, 
-                     data = unbiased_data)
+                   (language_spanish + 
+                   education_bachelors_degree +
+                   birthplace_us + health_insurance_public + language_english + 
+                   personal_income + employment_not_in_labor_force)^2, 
+                  data = unbiased_data)
 ```
 
 ## Best Model Estimates Summary
@@ -172,6 +173,28 @@ summary(best_model) %>%
     ## 1 Best …     0.686         0.615  136.      9.61 3.09e-8    10          44    55
     ## 2 Full …     0.798         0.580  142.      3.66 6.78e-4    28          26    55
 
+## Checking assumptions for linear regression
+
+``` r
+lm_spec <- linear_reg() %>%
+  set_mode("regression") %>%
+  set_engine("lm")
+
+best_model_tidy <- fit(lm_spec, puma_hosp_rate_2020  ~language_spanish + 
+                   education_bachelors_degree +
+                   birthplace_us + health_insurance_public + language_english + 
+                   personal_income + employment_not_in_labor_force +
+                   health_insurance_public:personal_income +
+                   education_bachelors_degree:employment_not_in_labor_force +
+                   language_english:birthplace_us,data = unbiased_data)
+
+
+check_model(best_model_tidy, 
+            check = c("linearity", "qq", "normality", "outliers", "homogeneity"))
+```
+
+<img src="Hun_Linear_Regression_files/figure-gfm/unnamed-chunk-10-1.png" width="90%" />
+
 ## Mallow CP
 
 ``` r
@@ -180,24 +203,14 @@ ols_mallows_cp(best_model, full_model)
 
     ## [1] 7.359837
 
-## Checking assumptions for linear regression
+## Checking Autocorrelation
 
 ``` r
-lm_spec <- linear_reg() %>%
-  set_mode("regression") %>%
-  set_engine("lm")
-
-best_model <- fit(lm_spec, puma_hosp_rate_2020  ~ language_spanish + education_bachelors_degree +
-             birthplace_us + health_insurance_public + language_english + 
-             personal_income + employment_not_in_labor_force +
-             health_insurance_public:personal_income +
-             education_bachelors_degree:employment_not_in_labor_force +
-             language_english:birthplace_us,
-                data = unbiased_data)
-
-
-check_model(best_model, 
-            check = c("linearity", "qq", "normality", "outliers", "homogeneity"))
+library(forecast)
+checkresiduals(best_model$residuals)
 ```
 
-<img src="Hun_Linear_Regression_files/figure-gfm/unnamed-chunk-11-1.png" width="90%" />
+    ## Warning in modeldf.default(object): Could not find appropriate degrees of
+    ## freedom for this model.
+
+<img src="Hun_Linear_Regression_files/figure-gfm/unnamed-chunk-12-1.png" width="90%" />
