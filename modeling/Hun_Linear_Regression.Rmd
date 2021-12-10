@@ -52,9 +52,7 @@ scale_fill_discrete   = scale_fill_viridis_d
 ```
 
 
-
 ```{r}
-nyc_hh_summary <- read_csv("./modeling/data_for_regression.csv")
 
 outcome_by_year <- 
   read_csv("./modeling/outcome_puma_by_year.csv") %>%
@@ -139,7 +137,7 @@ best_model <- lm(puma_hosp_rate_2020  ~ language_spanish +
                    birthplace_us + health_insurance_public + language_english + 
                    personal_income + employment_not_in_labor_force +
                    health_insurance_public:personal_income +
-                   education_bachelors_degree:employment_not_in_labor_force +
+                   education_bachelors_degree:personal_income +
                    language_english:birthplace_us, data = unbiased_data)
 
 full_model <-  lm(puma_hosp_rate_2020  ~ 
@@ -148,6 +146,10 @@ full_model <-  lm(puma_hosp_rate_2020  ~
                    birthplace_us + health_insurance_public + language_english + 
                    personal_income + employment_not_in_labor_force)^2, 
                   data = unbiased_data)
+```
+
+```{r}
+summary(best_model)
 ```
 
 
@@ -178,7 +180,7 @@ best_model_tidy <- fit(lm_spec, puma_hosp_rate_2020  ~language_spanish +
                    birthplace_us + health_insurance_public + language_english + 
                    personal_income + employment_not_in_labor_force +
                    health_insurance_public:personal_income +
-                   education_bachelors_degree:employment_not_in_labor_force +
+                   education_bachelors_degree:personal_income +
                    language_english:birthplace_us,data = unbiased_data)
 
 
@@ -192,13 +194,11 @@ check_model(best_model_tidy,
 
 ## Mallow CP
 ```{r}
-ols_mallows_cp(best_model, full_model)
-```
+Cp <- ols_mallows_cp(best_model, full_model)
 
-## Checking Autocorrelation
-```{r, warning = FALSE, message = FALSE}
-checkresiduals(best_model$residuals)
-```
+names(Cp) <- c("Mallows' Cp")
 
+Cp
+```
 
 
