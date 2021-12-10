@@ -12,15 +12,18 @@ output:
 # load necessary packages
 library(tidyverse)
 library(patchwork)
+library(modelr)
+library(glmnet)
+library(PerformanceAnalytics)
 library(reshape2)
 library(rstatix)
 library(patchwork)
 library(ggridges)
 library(spatstat)
 library(ggpubr)
+library(robmed)
 library(GGally)
 library(readxl)
-library(glmnet)
 library(pvclust)
 library(cluster)
 library(factoextra)
@@ -32,6 +35,11 @@ library(parsnip)
 library(workflows)
 library(dials)
 library(viridis)
+library(lmtest)
+library(sandwich)
+library(performance)
+library(olsrr)
+library(forecast)
 
 # set knitr defaults
 knitr::opts_chunk$set(
@@ -2040,6 +2048,31 @@ The most interesting finding here is that Manhattan seems to have the most signi
 
 ## Regression
 
+```{r}
+outcome_by_year <- 
+  read_csv("./modeling/outcome_puma_by_year.csv") %>%
+  rename(puma = puma10)
+
+unbiased_data <- read_csv("./modeling/unbiased_group_means.csv") %>%
+  merge(outcome_by_year, by = "puma")
+
+best_model <- lm(puma_hosp_rate_2020  ~ language_spanish + 
+                   education_bachelors_degree +
+                   birthplace_us + health_insurance_public + language_english + 
+                   personal_income + employment_not_in_labor_force +
+                   health_insurance_public:personal_income +
+                   education_bachelors_degree:personal_income +
+                   language_english:birthplace_us, data = unbiased_data)
+
+full_model <-  lm(puma_hosp_rate_2020  ~ 
+                   (language_spanish + 
+                   education_bachelors_degree +
+                   birthplace_us + health_insurance_public + language_english + 
+                   personal_income + employment_not_in_labor_force)^2, 
+                  data = unbiased_data)
+```
+
+
 Let $S$ denote the set of PUMAs in NYC. We consider the latent variable model
 	$$ y_s = \xi_s' \beta + \varepsilon_s $$
 for each $s \in S$, where $\xi_s$ a vector of PUMA-level means of data from the census. There are two challenges in considering such a model: (1) we know historically that NYC neighborhoods, particularly those within boroughs, are subject to spatial correlation; and (2) because the census data is recorded at the interview level, we do not observe the group-level means $\xi_s$.
@@ -2053,7 +2086,69 @@ However, as shown in Croon and Veldhoven (2007), it is generally the case that u
 	$$ W_s \equiv \left( \hat{\Sigma}_{\xi \xi} + \hat{\Sigma}_{\nu \nu} / n_s \right)^{-1} \hat{\Sigma}_{\xi \xi} $$
 and $I$ denotes the identity matrix.
 
+## Regression Dianostics
+```{r, warning = FALSE, message = FALSE}
+lm_spec <- linear_reg() %>%
+  set_mode("regression") %>%
+  set_engine("lm")
+
+best_model_tidy <- fit(lm_spec, puma_hosp_rate_2020 ~ language_spanish + 
+                   education_bachelors_degree +
+                   birthplace_us + health_insurance_public + language_english + 
+                   personal_income + employment_not_in_labor_force +
+                   health_insurance_public:personal_income +
+                   education_bachelors_degree:personal_income +
+                   language_english:birthplace_us, data = unbiased_data)
+
+
+check_model(best_model_tidy, 
+            check = c("linearity", "qq", "normality", "outliers", "homogeneity"))
+
+```
+
+Linearity:
+It is to be observed that the relationship between independent and dependent  variables is fairly linear in our model. Thus,  we claim that the mean of the hospitalization rate in 2020 (outcome) is a linear combination of the model parameters and the predictor variables. 
+
+Equal Variance (homoscedasticity): 
+Based on the residual vs fitted plot, it is to be observed that the points in the plot are randomly dispersed around the horizontal line at 0 without showing a certain trend. This implies no violation of homoscedasticity. 
+
+Normality of residuals: 
+According to the normality probability plot, it is to be observed most of the points fall along the line. Therefore, we claim that residuals are normally distributed in our model. 
+
+Influential points among outliers: 
+According to residuals vs leverage plot, it is to be observed all points are inside the contour lines. Hence, there are no influential observations. Therefore, we claim that the residuals are independent of each other. 
+
+Residuals are uncorrelated: 
+On the basis of the autocorrelation plot, it is to be observed that the lags do not have significant effect because they are within the bounds. 
+
+
+```{r}
+summary(best_model) %>% 
+  broom::glance() %>%
+  bind_rows(summary(full_model) %>% broom::glance()) %>%
+  mutate(model = c("Best Model", "Full Model")) %>%
+  relocate(model)
+
+Cp <- ols_mallows_cp(best_model, full_model)
+
+names(Cp) <- c("Mallows' Cp")
+
+Cp
+```
+
+Adjusted R-squared: 
+We compared our model to the full model which includes all main effects of our model with all possible second-order interaction terms of main effects. It is obvious that the full model has higher R-squared (0.797) than that of our model (0.669). However, our model has a higher adjusted R-squared (0.593) than that of the full model (0.579).
+
+Mallows’ Cp: 
+Based on Mallows’ Cp criterion, we want our model to have Cp value less than or equal to the number of parameters, indicating little or no bias in the regression model. we obtained our Cp) from our model and the full model.  The Cp value is 9.5 and it is less than the number of our model parameters (11).  Therefore, we claim that our regression model has little or no bias.
+
+
 TODO: Output
+```{r}
+summary(best_model) %>%
+  broom::tidy()
+```
+
 
 
 ## Predictive Risk Scoring & Clustering
@@ -2062,7 +2157,8 @@ TODO: Output
 
 Following our regression work, we decided to make our insights more actionable by developing a novel scoring method capable of indicating whether a PUMA is at relatively lower or higher risk of achieving some COVID-19-related outcome. To demonstrate the method, we developed a risk score for whether a PUMA is likely to have achieved or not achieved a vaccination rate of 70% among residents, corresponding to the level of population immunity generally considered requisite to “halt the pandemic.” That said, our method is applicable to other outcomes as well, and one might imagine using it to score a given PUMA on the possibility of a hospitalization rate above X%, or a death rate above Y%. We only chose to begin with vaccination rate given our inability to develop a linear regression for this particular outcome, as opposed to hospitalization and death rates.
 
-The risk scoring method we developed is predicated on (regularized, lasso) logistic regression, used most often for classification tasks because predictions can be interpreted as class probabilities. Regularization further prevents over-fitting of the model. After defining our outcome as 1 for below 70% vaccination and 0 for equal to or above 70% vaccination, we converted our set of predictors to matrix form, and then trained a glmnet model on our training data using 5-fold cross-validation repeated 100 times given the large number of predictors compared to our mere 55 PUMA samples, and because we were interested in predicting the risk score of vaccination rate for each PUMA in our data set. Through our lasso regression, we found an optimal lambda tuning parameter of 0.0102, and generated a model prediction accuracy of 0.886 (~87%). Generally, however, obtaining the kappa value averaged over the simulated confusion matrices is a more useful metric for prediction given unbalanced classes (of our 55 PUMAs, 41 achieve vaccination rate >= 70%, and only 14 do not); Our optimal model’s averaged kappa was 0.63, which is considered reasonably decent, but again suggests that the limited number of in-sample data points may result in model over-fitting. 
+The risk scoring method we developed is predicated on (regularized, lasso) logistic regression, used most often for classification tasks because predictions can be interpreted as class probabilities. Regularization further prevents over-fitting of the model. After defining our outcome as 1 for below 70% vaccination and 0 for equal to or above 70% vaccination, we converted our set of predictors to matrix form, and then trained a glmnet model on our training data using 5-fold cross-validation repeated 100 times given the large number of predictors compared to our mere 55 PUMA samples, and because we were interested in predicting the risk score of vaccination rate for each PUMA in our data set. Through our lasso regression, we found an optimal lambda tuning parameter of 0.0102, and generated a model prediction accuracy of 0.886 (~87%). Generally, however, obtaining the kappa value averaged over the simulated confusion matrices is a more useful metric for prediction given unbalanced classes (of our 55 PUMAs, 41 achieve vaccination rate >= 70%, and only 14 do not); Our optimal model’s averaged kappa was 0.63, which is considered reasonably decent, but again suggests that the limited number of in-sample data points may result in model over-fitting.
+
 
 ```{r defining predictors and outcomes}
 # 1 indicates BELOW 70% vaccination rate
