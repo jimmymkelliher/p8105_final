@@ -206,7 +206,6 @@ ols_mallows_cp(best_model, full_model)
 ## Checking Autocorrelation
 
 ``` r
-library(forecast)
 checkresiduals(best_model$residuals)
 ```
 

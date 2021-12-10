@@ -20,6 +20,7 @@ library(lmtest)
 library(sandwich)
 library(performance)
 library(olsrr)
+library(forecast)
 ```
 
 ```{r}
@@ -196,7 +197,6 @@ ols_mallows_cp(best_model, full_model)
 
 ## Checking Autocorrelation
 ```{r, warning = FALSE, message = FALSE}
-library(forecast)
 checkresiduals(best_model$residuals)
 ```
 
