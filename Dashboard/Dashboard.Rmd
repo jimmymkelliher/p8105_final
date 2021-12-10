@@ -1,0 +1,188 @@
+---
+title: "NYC COVID-19 Trend Analysis Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    source: embed
+    theme: sandstone
+---
+
+```{r}
+library(tidyverse)
+library(nycgeo)
+library(plotly)
+library(lubridate)
+library(flexdashboard)
+library(janitor)
+```
+
+```{r setup, include=FALSE}
+hosp_by_month <- read_csv("./data/nyc_hosp_rate_zcta.csv")
+death_by_month <- read_csv("./data/nyc_death_rate_zcta.csv")
+```
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### Chart A
+```{r, echo = FALSE, message = FALSE}
+
+hosp_2020 <- hosp_by_month %>%
+  janitor::clean_names() %>%
+  select(date:hosprate_staten_island) %>%
+  separate(date, c("month", "year")) %>%
+  filter(year == "2020") %>%
+  mutate(month = as.integer(month),
+         month = month.abb[month]) %>%
+  mutate(month = month %>% 
+           fct_relevel("Mar", "Apr", "May", "Jun", "Jul", 
+                       "Aug", "Sep", "Oct", "Nov", "Dec")) %>%
+  select(-month, -year)
+
+
+a <- hosp_2020[1,] + hosp_2020[2,]
+b <- hosp_2020[3,] + hosp_2020[4,]
+c <- hosp_2020[5,] + hosp_2020[6,]
+d <- hosp_2020[7,] + hosp_2020[8,]
+e <- hosp_2020[9,] + hosp_2020[10,]
+
+hosp_2020_sum <-
+  bind_rows(a,b,c,d,e) %>%
+  mutate(date = c("Mar&Apr", "May&Jun", "Jul&Aug", "Sep&Oct", "Nov&Dec"),
+         year = 2020) %>%
+  relocate(date, year)
+
+hosp_2021 <- hosp_by_month %>%
+  janitor::clean_names() %>%
+  select(date:hosprate_staten_island) %>%
+  separate(date, c("month", "year")) %>%
+  filter(year == "2021") %>%
+  mutate(month = as.integer(month),
+         month = month.abb[month]) %>%
+  mutate(month = month %>% 
+           fct_relevel("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", 
+                       "Aug", "Sep", "Oct"))  %>%
+  select(-month, -year)
+
+
+a <- hosp_2021[1,] + hosp_2021[2,]
+b <- hosp_2021[3,] + hosp_2021[4,]
+c <- hosp_2021[5,] + hosp_2021[6,]
+d <- hosp_2021[7,] + hosp_2021[8,]
+e <- hosp_2021[9,] + hosp_2021[10,]
+
+hosp_2021_sum <-
+  bind_rows(a,b,c,d,e) %>%
+  mutate(date = c("Jan&Feb","Mar&Apr", "May&Jun", "Jul&Aug", "Sep&Oct"),
+         year = 2021) %>%
+  relocate(date, year)
+
+bind_rows(hosp_2020_sum, hosp_2021_sum) %>%
+  mutate(date = paste0(date, "/" ,year) %>% fct_relevel(
+    c("Mar&Apr/2020", "May&Jun/2020", "Jul&Aug/2020", "Sep&Oct/2020", "Nov&Dec/2020",
+      "Jan&Feb/2021","Mar&Apr/2021", "May&Jun/2021", "Jul&Aug/2021", "Sep&Oct/2021")
+  )) %>%
+  select(-year) %>%
+  pivot_longer(hosprate_bronx:hosprate_staten_island, 
+               names_to = "borough", values_to = "hosp_rate",
+               names_prefix = "hosprate_") %>%
+  mutate(borough = recode(borough,"staten_island" = "Staten Island"),
+         borough = str_to_title(borough)
+         ) %>%
+  plot_ly(x = ~borough, y = ~hosp_rate, type = "bar",
+         frame = ~date, color = ~borough, alpha = 0.5) %>%
+    layout(title = "Hospitalization Rate across NYC Boroughs in 2021",
+         xaxis = list(title = "Borough"),
+         yaxis = list(title = "Hospitalizaion Rate per 100,000",
+                      titlefont = list(size = 8.5)),
+         font = list(size = 10)
+         ) 
+```
+
+
+
+### Chart B
+
+```{r, echo = FALSE, message = FALSE}
+hosp_by_month %>%
+  janitor::clean_names() %>%
+  select(date:hosprate_staten_island) %>%
+  separate(date, c("month", "year")) %>%
+  pivot_longer(hosprate_bronx:hosprate_staten_island, 
+               names_to = "borough", values_to = "hosp_rate",
+               names_prefix = "hosprate_") %>%
+  mutate(borough = recode(borough,"staten_island" = "Staten Island"),
+         borough = str_to_title(borough)) %>%
+  plot_ly(x = ~borough, y = ~hosp_rate, type = "box",
+         frame = ~year, color = ~borough, alpha = 0.5) %>%
+    layout(title = 
+           "The distribution of Hospitalization Rate across NYC Boroughs",
+         xaxis = list(title = "Borough"),
+         yaxis = list(title = "Hospitalizaion Rate per 100,000",
+                      titlefont = list(size = 8.5)),
+         font = list(size = 10))
+```
+
+Column  {data-height=500}
+-----------------------------------------------------------------------
+### Chart C
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+hosp_by_month %>%
+  janitor::clean_names() %>%
+  select(date:hosprate_staten_island) %>%
+  separate(date, c("month", "year")) %>%
+  mutate(month = as.integer(month),
+         month = case_when(month < 10 ~ paste0("0", month),
+                           month >= 10 ~ paste0("", month))) %>%
+  mutate(date = paste0(year, "-", month)) %>%
+  pivot_longer(hosprate_bronx:hosprate_staten_island, 
+              names_to = "borough", values_to = "hosp_rate",
+              names_prefix = "hosprate_") %>%
+  mutate(borough = recode(borough,"staten_island" = "Staten Island"),
+         borough = str_to_title(borough)) %>%
+  plot_ly(x = ~date, y = ~hosp_rate,
+          color = ~borough, type = "scatter", 
+          mode = "lines", alpha = 0.5) %>%
+  layout(title =  "Hospitalization Rate across NYC Borough over Time",
+         xaxis = list(title = "Date", tickangle = 45),
+         yaxis = list(title = "Hospitalization Rate per 100,000"),
+         font = list(size = 10)
+         ) 
+
+```
+
+### Chart D
+
+```{r, echo = FALSE, message = FALSE}
+death_by_month %>%
+  janitor::clean_names() %>%
+  select(date:deathrate_staten_island) %>%
+  separate(date, c("month", "year")) %>%
+  mutate(month = as.integer(month),
+         month = case_when(month < 10 ~ paste0("0", month),
+                           month >= 10 ~ paste0("", month))) %>%
+  mutate(date = paste0(year, "-", month)) %>%
+  pivot_longer(deathrate_bronx:deathrate_staten_island, 
+              names_to = "borough", values_to = "death_rate",
+              names_prefix = "deathrate_") %>%
+  mutate(borough = recode(borough,"staten_island" = "Staten Island"),
+         borough = str_to_title(borough)) %>%
+  plot_ly(x = ~date, y = ~death_rate,
+          color = ~borough, type = "scatter", 
+          mode = "lines", alpha = 0.5) %>%
+  layout(title =  "Death Rate across NYC Borough over Time",
+         xaxis = list(title = "Date", tickangle = 45),
+         yaxis = list(title = "Death Rate per 100,000"),
+         font = list(size = 10),
+         xaxis = list(tickangle = 45)
+         )
+```
+
+
+
+
+
+
+
