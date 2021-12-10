@@ -83,7 +83,7 @@ unbiased_data %>%
 
     ## Warning: Removed 17 rows containing missing values (geom_text).
 
-<img src="Hun_Linear_Rregression_files/figure-gfm/unnamed-chunk-4-1.png" width="90%" />
+<img src="Hun_Linear_Regression_files/figure-gfm/unnamed-chunk-4-1.png" width="90%" />
 
 ``` r
 selected_variables <-
@@ -114,7 +114,7 @@ for (i in selected_variables) {
 }
 ```
 
-<img src="Hun_Linear_Rregression_files/figure-gfm/unnamed-chunk-6-1.png" width="90%" /><img src="Hun_Linear_Rregression_files/figure-gfm/unnamed-chunk-6-2.png" width="90%" /><img src="Hun_Linear_Rregression_files/figure-gfm/unnamed-chunk-6-3.png" width="90%" /><img src="Hun_Linear_Rregression_files/figure-gfm/unnamed-chunk-6-4.png" width="90%" /><img src="Hun_Linear_Rregression_files/figure-gfm/unnamed-chunk-6-5.png" width="90%" /><img src="Hun_Linear_Rregression_files/figure-gfm/unnamed-chunk-6-6.png" width="90%" /><img src="Hun_Linear_Rregression_files/figure-gfm/unnamed-chunk-6-7.png" width="90%" />
+<img src="Hun_Linear_Regression_files/figure-gfm/unnamed-chunk-6-1.png" width="90%" /><img src="Hun_Linear_Regression_files/figure-gfm/unnamed-chunk-6-2.png" width="90%" /><img src="Hun_Linear_Regression_files/figure-gfm/unnamed-chunk-6-3.png" width="90%" /><img src="Hun_Linear_Regression_files/figure-gfm/unnamed-chunk-6-4.png" width="90%" /><img src="Hun_Linear_Regression_files/figure-gfm/unnamed-chunk-6-5.png" width="90%" /><img src="Hun_Linear_Regression_files/figure-gfm/unnamed-chunk-6-6.png" width="90%" /><img src="Hun_Linear_Regression_files/figure-gfm/unnamed-chunk-6-7.png" width="90%" />
 
 # 2020 Hosp Model
 
@@ -200,4 +200,4 @@ check_model(best_model,
             check = c("linearity", "qq", "normality", "outliers", "homogeneity"))
 ```
 
-<img src="Hun_Linear_Rregression_files/figure-gfm/unnamed-chunk-11-1.png" width="90%" />
+<img src="Hun_Linear_Regression_files/figure-gfm/unnamed-chunk-11-1.png" width="90%" />

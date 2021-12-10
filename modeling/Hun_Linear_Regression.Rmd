@@ -53,7 +53,6 @@ scale_fill_discrete   = scale_fill_viridis_d
 
 
 ```{r}
-
 nyc_hh_summary <- read_csv("./modeling/data_for_regression.csv")
 
 outcome_by_year <- 
