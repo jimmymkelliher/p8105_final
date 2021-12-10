@@ -195,7 +195,7 @@ ols_mallows_cp(best_model, full_model)
 ```
 
 ## Checking Autocorrelation
-```{r}
+```{r, warning = FALSE, message = FALSE}
 library(forecast)
 checkresiduals(best_model$residuals)
 ```

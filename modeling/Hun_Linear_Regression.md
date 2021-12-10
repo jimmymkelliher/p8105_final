@@ -210,7 +210,4 @@ library(forecast)
 checkresiduals(best_model$residuals)
 ```
 
-    ## Warning in modeldf.default(object): Could not find appropriate degrees of
-    ## freedom for this model.
-
 <img src="Hun_Linear_Regression_files/figure-gfm/unnamed-chunk-12-1.png" width="90%" />
