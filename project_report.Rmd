@@ -2055,7 +2055,7 @@ borough_cat_comparisons(age_class, "vax") + plot_annotation(
 The most interesting finding here is that Manhattan seems to have the most significant racial disparities on hospitalization rate and death rate, along with age disparities on hospitalization rate, and racial and age disparities in vaccination rate. In general, the level of inequality on key outcomes across demographics in Manhattan tends to be higher than in other boroughs.
 
 ## Regression Methodology
-```{r, warning = FALSE, message = FALSE}
+```{r regression methodology, warning = FALSE, message = FALSE}
 outcome_by_year <- 
   read_csv("./modeling/outcome_puma_by_year.csv") %>%
   rename(puma = puma10)
@@ -2088,13 +2088,13 @@ In order to address (1), we employ heteroscedasticity-robust White standard erro
 
 More interesting is the challenge presented in (2). For each $s \in S$, suppose we observe $i \in \{ 1, \ldots, n_s \}$ individual-level interviews. It is natural to consider the group mean
 	$$ \bar{X}_s \equiv \frac{1}{n_s} \sum_{i = 1}^{n_s} X_{is}. $$
-However, as shown in Croon and Veldhoven (2007), it is generally the case that using the observed group mean $\bar{X}_s$ as an estimator of $\xi_s$ will lead to biased regression coefficients. Thus, we address (2) by following the procedure outlined by Croon and Veldhoven to re-weight our group means and obtain adjusted group means $\tilde{X}_s$. In particular, let $ \hat{\Sigma}_{\xi \xi}$ and $\hat{\Sigma}_{\nu \nu}$ denote the usual ANOVA estimates of the between- and within-group variation matrices, respectively. The adjusted group means are then given by
+However, as shown in Croon and Veldhoven (2007), it is generally the case that using the observed group mean $\bar{X}_s$ as an estimator of $\xi_s$ will lead to biased regression coefficients. Thus, we address (2) by following the procedure outlined by Croon and Veldhoven to re-weight our group means and obtain adjusted group means $\tilde{X}_s$. In particular, let $\hat{\Sigma}_{\xi \xi}$ and $\hat{\Sigma}_{\nu \nu}$ denote the usual ANOVA estimates of the between- and within-group variation matrices, respectively. The adjusted group means are then given by
 	$$ \tilde{X}_s \equiv \bar{X}' (I - W_s) + \bar{X}_s' W_s, \quad \text{where} $$
 	$$ W_s \equiv \left( \hat{\Sigma}_{\xi \xi} + \hat{\Sigma}_{\nu \nu} / n_s \right)^{-1} \hat{\Sigma}_{\xi \xi} $$
 and $I$ denotes the identity matrix.
 
 ## Regression Diagnostics
-```{r, warning = FALSE, message = FALSE}
+```{r regression diagnostics, warning = FALSE, message = FALSE}
 lm_spec <- linear_reg() %>%
   set_mode("regression") %>%
   set_engine("lm")
@@ -2126,7 +2126,7 @@ Influential points among outliers:
 According to residuals vs leverage plot, it is to be observed all points are inside the contour lines. Hence, there are no influential observations. Therefore, we claim that the residuals are independent of each other. 
 
 
-```{r, warning = FALSE, message = FALSE}
+```{r regression summary, warning = FALSE, message = FALSE}
 model_summary <-
   summary(best_model) %>% 
   broom::glance() %>%
@@ -2155,7 +2155,7 @@ Adjusted R-squared:
 We compared our model to the full model which includes all main effects of our model with all possible second-order interaction terms of main effects. It is obvious that the full model has higher R-squared (0.797) than that of our model (0.669). However, our model has a higher adjusted R-squared (0.593) than that of the full model (0.579).
 
 Mallows’ Cp: 
-Based on Mallows’ Cp criterion, we want our model to have Cp value less than or equal to the number of parameters, indicating little or no bias in the regression model. we obtained our Cp) from our model and the full model.  The Cp value is 9.5 and it is less than the number of our model parameters (11).  Therefore, we claim that our regression model has little or no bias.
+Based on Mallows’ Cp criterion, we want our model to have Cp value less than or equal to the number of parameters, indicating little or no bias in the regression model. we obtained our Cp from our model and the full model.  The Cp value is 9.5 and it is less than the number of our model parameters (11).  Therefore, we claim that our regression model has little or no bias.
 
 
 ## Model Summary
@@ -2455,7 +2455,7 @@ The primary obstacles at the outset of the project were related to data pre-proc
 
 Another obstacle was to aggregate the interview-level data to the PUMA-level geography and to tidy the IPUMS variables according to the census data dictionary. For instance, factor variables like education and race were coded numerically, but these data needed to have descriptive factor levels for analysis. This process is described in more detail in the Data Sources and Cleaning section.
 
-These data presented a unique regression challenge as well. (TO BE COMPLETED)
+These data presented a unique regression challenge as well. First, NYC neighborhoods, particularly within boroughs, have historically been subject to spatial correlation. This required the use of heteroscedasticity-robust White standard errors. A larger issue was that group-level means were not observed in our data set; the census data was recorded at the interview level. We used a procedure outlined by Croon and Veldhoven (2007) to address this issue in our regression model.
 
 ### Findings
 
@@ -2469,7 +2469,7 @@ In an analysis of correlations between predictors and outcomes across PUMA geogr
 
 Lastly, we saw that among boroughs, Manhattan had the most significant disparities of outcomes across demographic groups like race and age.
 
-(REGRESSION CONCLUSIONS TO BE ADDED)
+In our (logistic) regression modeling, we claim that the mean hospitalization rate in 2020 (outcome) is a linear combination of 10 predictor variables. We found `language_spanish` and `employment_not_in_labor_force` to be positively associated with mean hospitalization rates in 2020. We found `education_bachelors_degree`, `birthplace_us`, `health_insurance_public`, `language_english`, and `personal_income` to be negatively associated with hospitalization rate. We found statistically significant (p < 0.05) interactions between `health_insurance_public` and `personal_income`, `education_bachelors_degree` and `personal_income`, and `birthplace_us` and `language_english`.
 
 ### Next Steps
 
