@@ -1,15 +1,9 @@
 ---
 title: "Cleaned Exploratory Analysis"
-author: 'Zachary Katz'
-date: "11/30/2021"
 output: github_document
 ---
 
 # Data Preprocessing
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
 ```{r defaults, echo = FALSE, message = FALSE, warning = FALSE}
 # load necessary packages
@@ -27,6 +21,7 @@ library(GGally)
 knitr::opts_chunk$set(
     echo      = TRUE
   , message   = FALSE
+  , fig.align = "center"
 )
 
 # set theme defaults
@@ -49,8 +44,6 @@ scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete   = scale_fill_viridis_d
 ```
 
-The following code chunks are replicated from our `cleaning_merged_data.Rmd` file to generate the data set from which exploratory analyses can be conducted.
-
 ```{r unzipping census data}
 jimzip <- function(csv_file, path) {
   # create full path to csv file
@@ -69,9 +62,6 @@ jimzip <- function(csv_file, path) {
 
 # Apply function to filtered census data CSV
 census_data <- jimzip("census_filtered.csv", "./data")
-
-# Observe first several rows of data frame
-head(census_data) %>%  knitr::kable()
 ```
 
 ```{r}
@@ -84,9 +74,6 @@ merged_data <- merge(census_data, health_data, by = "puma")
 
 # Deprecate census data alone
 rm(census_data)
-
-# Observe first several rows of merged census and health outcomes data
-head(merged_data) %>% knitr::kable()
 ```
 
 ```{r}
@@ -265,7 +252,7 @@ nyc_puma_summary = cleaned_data %>%
 
 # Exploratory Analysis
 
-To accommodate our exploratory analysis, we develop a few particular kinds of data frames from the primary cleaned data frame, as well as functions to run quick, replicable analysis upon certain sets of variables from particular data frames.
+On this page, we'll explore overall trends for our key outcomes -- hospitalizations, deaths, and vaccinations -- across PUMAs and boroughs in New York City, as well as high-level trends for how these outcomes correlate with census predictors, including major demographic variables like age, race, and sex.
 
 ```{r data set prep, echo = FALSE, message = FALSE, warning = FALSE}
 # Data sets
@@ -295,7 +282,8 @@ interview_level_data = cleaned_data %>%
                                            "+$200k-250k" = "(2e+05,2.5e+05]", 
                                            "+$250k-300k" = "(2.5e+05,3e+05]", 
                                            "+$300k-350k" = "(3e+05,3.5e+05]",
-                                           ">$350k" = "(3.5e+05,4e+05]"))
+                                           ">$350k" = "(3.5e+05,4e+05]")) %>% 
+  mutate(education = fct_relevel(education, c("Less Than HS Graduate", "HS Graduate", "Some College", "Bachelor's Degree", "Post-Graduate Degree", "Unknown")))
 
 # PUMA level data with boroughs and some new metrics / categoricals
 puma_level_data = 
@@ -711,10 +699,12 @@ borough_cat_comparisons = function(predict, outcome) {
         theme(legend.position = "none") + 
         labs(
           x = "",
-          y = "Proportion in Borough"
+          y = "Proportion in Borough",
+          fill = ""
         ) + 
         scale_y_continuous(labels = scales::percent_format()) + 
-        scale_x_discrete(labels = c("num_people" = "Overall", "num_vax" = "Vaccinated"))
+        scale_x_discrete(labels = c("num_people" = "Overall", "num_vax" = "Vaccinated")) + 
+        theme(axis.text.x = element_text(angle = -60, vjust = 0.5, hjust=0))
       
     stack = b %>% 
       ggplot(aes(
@@ -727,15 +717,18 @@ borough_cat_comparisons = function(predict, outcome) {
       theme(legend.position = "none") + 
         labs(
           x = "Borough",
-          y = "Number of People Vaccinated"
-        )
+          y = "Number of People Vaccinated",
+          fill = ""
+        ) + 
+        theme(axis.text.x = element_text(angle = -60, vjust = 0.5, hjust=0))
       
       vary1 = b %>% 
       ggplot(aes(x = borough, y = vax_rate)) + 
       geom_point(aes(color = predict)) + 
         labs(
           x = "Borough",
-          y = "% Vaccinated"
+          y = "% Vaccinated",
+          fill = ""
         )
       
       total = (stack + compare) / vary1
@@ -764,10 +757,12 @@ borough_cat_comparisons = function(predict, outcome) {
         theme(legend.position = "none") + 
         labs(
           x = "",
-          y = "Proportion in Borough"
+          y = "Proportion in Borough",
+          fill = ""
         ) + 
         scale_y_continuous(labels = scales::percent_format()) + 
-        scale_x_discrete(labels = c("num_people" = "Overall", "num_hosp" = "Hospitalized"))
+        scale_x_discrete(labels = c("num_people" = "Overall", "num_hosp" = "Hospitalized")) + 
+        theme(axis.text.x = element_text(angle = -60, vjust = 0.5, hjust=0))
       
     stack = b %>%
       ggplot(aes(
@@ -780,15 +775,18 @@ borough_cat_comparisons = function(predict, outcome) {
       theme(legend.position = "none") + 
         labs(
           x = "Borough",
-          y = "Number of People Hospitalized"
-        )
+          y = "Number of People Hospitalized",
+          fill = ""
+        ) + 
+        theme(axis.text.x = element_text(angle = -60, vjust = 0.5, hjust=0))
       
       vary1 = b %>%
       ggplot(aes(x = borough, y = hosp_rate / 1000)) + 
       geom_point(aes(color = predict)) + 
         labs(
           x = "Borough",
-          y = "% Hospitalized"
+          y = "% Hospitalized",
+          fill = ""
         )
       
       total = (stack + compare) / vary1
@@ -817,10 +815,12 @@ borough_cat_comparisons = function(predict, outcome) {
         theme(legend.position = "none") + 
         labs(
           x = "",
-          y = "Proportion in Borough"
+          y = "Proportion in Borough",
+          fill = ""
         ) + 
         scale_y_continuous(labels = scales::percent_format()) + 
-        scale_x_discrete(labels = c("num_people" = "Overall", "num_deceased" = "Deceased"))
+        scale_x_discrete(labels = c("num_people" = "Overall", "num_death" = "Deceased"))  + 
+        theme(axis.text.x = element_text(angle = -60, vjust = 0.5, hjust=0))
       
     stack = b %>%
       ggplot(aes(
@@ -833,15 +833,18 @@ borough_cat_comparisons = function(predict, outcome) {
       theme(legend.position = "none") + 
         labs(
           x = "Borough",
-          y = "Number of People Deceased"
-        )
+          y = "Number of People Deceased",
+          fill = ""
+        ) + 
+        theme(axis.text.x = element_text(angle = -60, vjust = 0.5, hjust=0))
       
       vary1 = b %>%
       ggplot(aes(x = borough, y = death_rate / 1000)) + 
       geom_point(aes(color = predict)) + 
         labs(
           x = "Borough",
-          y = "% Deceased"
+          y = "% Deceased",
+          fill = ""
         )
       
       total = (stack + compare) / vary1
@@ -857,7 +860,7 @@ borough_cat_comparisons = function(predict, outcome) {
 
 ### Outcomes by PUMA
 
-How are key outcomes distributed across PUMAs?
+We can observe that **hospitalization rates from as low as ~0.4% to nearly 2% (a 5x difference)** by PUMA (see [NYC Map of PUMAs and Community Districts](https://www1.nyc.gov/assets/planning/download/pdf/data-maps/nyc-population/census2010/puma_cd_map.pdf)), **death rates range from just over 0.05% all the way to above 0.6% (a 12x difference!)**, and **vaccination rates range from as low as ~30% to above 100%** in one PUMA (as an artifact of migration between PUMA -- a known issue in NYC DOHMH data). Excluding this vaccination outlier, the PUMAs with higher vaccination rates tend to have 75-85% of their residents vaccinated.
 
 ```{r outcomes all PUMAs, echo = FALSE, message = FALSE, warning = FALSE}
 
@@ -865,21 +868,23 @@ How are key outcomes distributed across PUMAs?
 PUMA_hosp = puma_level_data %>% 
   ggplot(aes(x = fct_reorder(puma, covid_hosp_rate), y = covid_hosp_rate)) + 
   geom_point(aes(color = borough)) + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 5)) + 
   labs(
     x = "PUMA",
     y = "% Hospitalized"
-  )
+  ) + 
+  scale_x_discrete(guide = guide_axis(n.dodge = 2))
 
 # Death rates across PUMAs, colored by borough
 PUMA_death = puma_level_data %>% 
   ggplot(aes(x = fct_reorder(puma, covid_death_rate), y = covid_death_rate)) + 
   geom_point(aes(color = borough)) + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 5)) + 
   labs(
     x = "PUMA",
     y = "% Deceased"
-  )
+  ) + 
+  scale_x_discrete(guide = guide_axis(n.dodge = 2))
 
 # Vax rates across PUMAs, colored by borough
 PUMA_vax = puma_level_data %>% 
@@ -902,8 +907,6 @@ puma_outcomes + plot_annotation(
 
 ```
 
-Which PUMAs have the worst and best outcomes?
-
 ``` {r worst PUMA outcomes, echo = FALSE, message = FALSE, warning = FALSE}
 
 # Set colors for each borough
@@ -922,7 +925,8 @@ PUMA_hosp_highest10 = puma_level_data %>%
     x = "PUMA",
     y = "% Hospitalized (highest)"
   ) + 
-  scale_fill_manual(values = boroughColors)
+  scale_fill_manual(values = boroughColors) + 
+  theme(axis.text.x = element_text(angle = -60, vjust = 0.5, hjust=0))
 
 # PUMAs with highest death rates
 PUMA_death_highest10 = puma_level_data %>% 
@@ -937,7 +941,8 @@ PUMA_death_highest10 = puma_level_data %>%
     x = "PUMA",
     y = "% Deceased (highest)"
   ) + 
-  scale_fill_manual(values = boroughColors)
+  scale_fill_manual(values = boroughColors) + 
+  theme(axis.text.x = element_text(angle = -60, vjust = 0.5, hjust=0))
 
 # PUMAs with lowest vax rates
 PUMA_vax_lowest10 = puma_level_data %>% 
@@ -952,7 +957,8 @@ PUMA_vax_lowest10 = puma_level_data %>%
     x = "PUMA",
     y = "% Vaccinated (lowest)"
   ) + 
-  scale_fill_manual(values = boroughColors)
+  scale_fill_manual(values = boroughColors) + 
+  theme(axis.text.x = element_text(angle = -60, vjust = 0.5, hjust=0))
 
 # "Worst" PUMAs
 worst_pumas = (PUMA_hosp_highest10 + PUMA_death_highest10) / PUMA_vax_lowest10
@@ -979,7 +985,8 @@ PUMA_hosp_lowest10 = puma_level_data %>%
     x = "PUMA",
     y = "% Hospitalized (lowest)"
   ) +
-  scale_fill_manual(values = boroughColors)
+  scale_fill_manual(values = boroughColors) + 
+  theme(axis.text.x = element_text(angle = -60, vjust = 0.5, hjust=0))
 
 # PUMAs with lowest death rates
 PUMA_death_lowest10 = puma_level_data %>% 
@@ -994,7 +1001,8 @@ PUMA_death_lowest10 = puma_level_data %>%
     x = "PUMA",
     y = "% Deceased (lowest)"
   ) +
-  scale_fill_manual(values = boroughColors)
+  scale_fill_manual(values = boroughColors) + 
+  theme(axis.text.x = element_text(angle = -60, vjust = 0.5, hjust=0))
 
 # PUMAs with highest vax rates
 PUMA_vax_highest10 = puma_level_data %>% 
@@ -1022,9 +1030,7 @@ best_pumas + plot_annotation(
   plot_layout(guides = "collect")
 ```
 
-What about with PUMAs in the same order?
-
-```{r outcomes sorted by puma, echo = FALSE, message = FALSE, warning = FALSE}
+```{r outcomes sorted by puma, eval = FALSE, echo = FALSE, message = FALSE, warning = FALSE}
 
 outcome.labs = c("Hospitalized", "Deceased", "Vaccinated")
 names(outcome.labs) = c("covid_hosp_rate", "covid_death_rate", "covid_vax_rate")
@@ -1077,7 +1083,7 @@ outcomes_pumas_ordered + plot_annotation(
   plot_layout(guides = "collect")
 ```
 
-How do key outcomes associate with each other at the PUMA level?
+While our regression analysis more fully explores potential collinearity of our outcomes variables, we were interested how well hospitalizations, deaths, and vaccinations tracked each other at the PUMA level. Our findings show that across PUMAs in all boroughs, **hospitalizations and deaths had a 0.913 correlation**, which was highly statistically significant, whereas **vaccination was not significantly correlated with either hospitalization or fatality.**
 
 ```{r key outcome associations, echo = FALSE, message = FALSE, warning = FALSE}
 
@@ -1147,7 +1153,10 @@ puma_level_data %>%
     title = "Correlations Between Key Outcomes"
   ) + 
   scale_fill_discrete()
+```
 
+
+```{r eval = FALSE}
 # ggpairs correlations between key pairs, faceted by borough
 puma_level_data %>% 
   select(covid_hosp_rate, covid_death_rate, covid_vax_rate, borough) %>% 
@@ -1172,7 +1181,9 @@ puma_level_data %>%
 
 ### Outcomes by Borough
 
-Within each borough, how are PUMAs distributed on each key outcome?
+Beyond exploring our data at the PUMA level, we were keen to understand trends at the borough level as well.
+
+We can observe that hospitalization rates are generally more favorable in **Manhattan and Brooklyn and less favorable in Queens and the Bronx**. Similarly, death rates track hospitalization rates fairly well, with the **best outcomes occurring in Manhattan and Brooklyn and the worst outcomes occurring largely in Queens.** And unsurprisingly given the low correlation between vaccination and death or hospitalization by PUMA, we find that **all of the top 10 vaccination rates occur in PUMAs found in Manhattan and Queens**, whereas **all of the bottom 10 vaccination rates occur in PUMAs found in the Bronx and Brooklyn.**
 
 ```{r hospitalizations by borough, echo = FALSE, message = FALSE, warning = FALSE}
 # Outcomes distribution by borough
@@ -1186,7 +1197,8 @@ hosps_box = puma_level_data %>%
     y = "% Hospitalized"
   ) + 
   scale_fill_manual(values = boroughColors) + 
-  theme(legend.position = "none") + 
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 75, vjust = 1, hjust = 1)) + 
   geom_hline(aes(yintercept=median(covid_hosp_rate)),
             color="red", linetype="dashed") + 
   geom_text(aes(0, median(covid_hosp_rate), label = "PUMA Median"), vjust = -0.5, hjust = 0, color = "red")  + 
@@ -1207,7 +1219,6 @@ hosps_density = PUMA_outcomes %>%
   ) +
   geom_vline(aes(xintercept=median(outcome_rate)),
             color="red", linetype="dashed") + 
-  geom_text(aes(median(outcome_rate), 4, label = "PUMA Median"), hjust = 1.1, color = "red")  + 
   scale_fill_manual(values = boroughColors)
 
 hosp_by_borough = hosps_box + hosps_density
@@ -1231,7 +1242,8 @@ deaths_box = puma_level_data %>%
     y = "% Deceased"
   ) + 
   scale_fill_manual(values = boroughColors) + 
-  theme(legend.position = "none") + 
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 75, vjust = 1, hjust = 1)) + 
   geom_hline(aes(yintercept=median(covid_death_rate)),
             color="red", linetype="dashed") + 
   geom_text(aes(0, median(covid_death_rate), label = "PUMA Median"), vjust = -0.5, hjust = 0, color = "red")  + 
@@ -1276,7 +1288,8 @@ vax_box = puma_level_data %>%
     y = "% Vaccinated"
   ) + 
   scale_fill_manual(values = boroughColors) + 
-  theme(legend.position = "none") + 
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 75, vjust = 1, hjust = 1)) + 
   geom_hline(aes(yintercept=median(covid_vax_rate)),
             color="red", linetype="dashed") + 
   geom_text(aes(0, median(covid_vax_rate), label = "PUMA Median"), vjust = -0.5, hjust = 0, color = "red")  + 
@@ -1312,8 +1325,6 @@ vax_by_borough + plot_annotation(
   labs(fill = "Borough")
 ```
 
-What proportion of PUMAs in a given borough were above or below the citywide median on a given outcome?
-
 ```{r puma above/below table, echo = FALSE, message = FALSE, warning = FALSE}
 # Table showing PUMAs in each borough above or below citywide median on outcome
 puma_level_data %>% 
@@ -1332,9 +1343,9 @@ puma_level_data %>%
   )
 ```
 
-### Outcomes by Demographic Combos
+### Outcomes by Demographic Combinations
 
-Can we determine which age/sex/race combos perform best and worst on each outcome?
+It's quite common for individuals to self-identity according to a triplet of demographic variables: age, race, and sex. Epidemiological studies often use inclusion or exclusion criteria that explicitly restrict study populations to a subset of the overall population for each of these variables. As a result, we decided it would be interesting to explore how each uniquely-identified triplet (age, race, sex) performs on key COVID-19 outcomes. Generally, we find that **hospitalization and death rates are lower among young white males and females, whereas vaccination rates are higher among Asian and Pacific Islanders across ages and sexes. Older American Indiain individuals, along with younger and middle-aged Black individuals, tended to have lower vaccination rates, while mixed race, American Indian, and "other" racial groups tended towards higher hospitalizations and fatalities as well.**
 
 ```{r outcomes by demographic combos}
 # Lowest hospitalization rates
@@ -1348,7 +1359,8 @@ race_age_sex %>%
   head() %>% 
   knitr::kable(
     caption = "Lowest hospitalization rates",
-    col.names = c("Race", "Age", "Sex", "% Hospitalized")
+    col.names = c("Race", "Age", "Sex", "% Hospitalized"),
+    digits = 2
   )
 
 # Highest hospitalization rates
@@ -1362,7 +1374,8 @@ race_age_sex %>%
   head() %>% 
   knitr::kable(
     caption = "Highest hospitalization rates",
-    col.names = c("Race", "Age", "Sex", "% Hospitalized")
+    col.names = c("Race", "Age", "Sex", "% Hospitalized"),
+    digits = 2
   )
 
 # Lowest death rates
@@ -1376,7 +1389,8 @@ race_age_sex %>%
   head() %>% 
   knitr::kable(
     caption = "Lowest death rates",
-    col.names = c("Race", "Age", "Sex", "% Deceased")
+    col.names = c("Race", "Age", "Sex", "% Deceased"),
+    digits = 2
   )
 
 # Highest death rates
@@ -1390,7 +1404,8 @@ race_age_sex %>%
   head() %>% 
   knitr::kable(
     caption = "Highest death rates",
-    col.names = c("Race", "Age", "Sex", "% Deceased")
+    col.names = c("Race", "Age", "Sex", "% Deceased"),
+    digits = 2
   )
 
 # Lowest vax rates
@@ -1404,7 +1419,8 @@ race_age_sex %>%
   head() %>% 
   knitr::kable(
     caption = "Lowest vaccination rates",
-    col.names = c("Race", "Age", "Sex", "% Vaccinated")
+    col.names = c("Race", "Age", "Sex", "% Vaccinated"),
+    digits = 2
   )
 
 # Highest vax rates
@@ -1418,13 +1434,32 @@ race_age_sex %>%
   head() %>% 
   knitr::kable(
     caption = "Highest vaccination rates",
-    col.names = c("Race", "Age", "Sex", "% Vaccinated")
+    col.names = c("Race", "Age", "Sex", "% Vaccinated"),
+    digits = 2
   )
 ```
 
 ## Associations between Predictors and Outcomes
 
-How do key predictors correlate with key outcomes at the PUMA level?
+After exploring our outcomes geospatially (across PUMAs and boroughs), as well as on key demographic combinations, we turned towards our larger set of predictors from the census data to determine which, at the PUMA level, were significantly associated with our outcomes at the p < 0.01 significance level.
+
+In the correlation matrix below, we include correlation scores only for those correlations that are highly statistically significant. 
+
+**Correlates of worse outcomes**
+
+* Variables highly correlated with more hospitalizations: % US citizenship, % foreign born
+* Variables highly correlated with more deaths: % US citizenship, % foreign born
+* Variables highly correlated with fewer vaccinations: % on welfare, % unemployed, % below poverty line, % on food stamps
+
+**Correlates of better outcomes**
+
+* Variables highly correlated with fewer hospitalizations: % white, % using public transit to get to work, % with health insurance, % speaking English at home, % with college education, % with broadband access, median personal/household income
+* Variables highly correlated with fewer deaths: % using public transit to get to work, % with health insurance, % college educated, median personal/household income
+* Variables highly correlated with more vaccinations: % white, % male, % college educated, % with broadband access, median age, and median personal/household income
+
+Income seems strongly associated with all three COVID-19 outcome variables across PUMAs, which resonates with [prior analysis](https://twitter.com/youyanggu/status/1407418434955005955) showing that income levels and income inequality are highly predictive of COVID deaths, among other outcomes.
+
+Another interesting finding is that signifiers of poverty -- food stamp use, welfare use, and unemployment, for example -- tend to be more associated with vaccination than with outcomes of transmission, like hospitalization or death. This is a fascinating indicator that vaccination, which may be considered a more "active" outcome than the other two -- since it requires one to take an action on their own volition or motivation -- may be more associated with structural inequality compared to more "passive" transmission. 
 
 ```{r correlations predictors vs outcomes, echo = FALSE, message = FALSE, warning = FALSE}
 # Show text only for correlations with p < 0.01
@@ -1478,9 +1513,7 @@ puma_level_data %>%
     "median_age" = "Median Age"))
 ```
 
-For each of the four most correlated variables (excluding obvious redundancies) with each outcome, can we explore more precisely the relationship between outcome and predictor?
-
-First, across PUMAs:
+We then selected each of the four variables with highest correlation (positive or negative) for each outcome, excluding obvious redundancies (like personal income and household income), and explored specific association trends between predictor and outcome, colored by borough. The following graphs explore the variation across PUMAs on each major predictor vs. outcome, colored by borough.
 
 ```{r PUMA hospitalization rate vs predictor, echo = FALSE, message = FALSE, warning = FALSE}
 # Scatter plots across PUMAS, predictor vs outcome
@@ -1578,7 +1611,7 @@ death_income =
   ) + 
   geom_point(aes(color = borough)) + 
   geom_smooth(se = FALSE, method = "lm", color = "red", aes(weight = total_people)) + 
-  stat_cor(method = "pearson", label.x = 45000, label.y = 1.25) + 
+  stat_cor(method = "pearson", label.x = 40000, label.y = 0.60) + 
   labs(
     x = "Median Personal Income ($)",
     y = "% Deceased"
@@ -1595,7 +1628,7 @@ death_college =
   ) + 
   geom_point(aes(color = borough)) + 
   geom_smooth(se = FALSE, method = "lm", color = "red", aes(weight = total_people)) + 
-  stat_cor(method = "pearson", label.x = 60, label.y = 1.25) + 
+  stat_cor(method = "pearson", label.x = 50, label.y = 0.60) + 
   labs(
     x = "% with College Education",
     y = "% Deceased"
@@ -1612,7 +1645,7 @@ death_citizenship =
   ) + 
   geom_point(aes(color = borough)) + 
   geom_smooth(se = FALSE, method = "lm", color = "red", aes(weight = total_people)) + 
-  stat_cor(method = "pearson", label.x = 22, label.y = 1.25) + 
+  stat_cor(method = "pearson", label.x = 22, label.y = 0.60) + 
   labs(
     x = "% with US Citizenship",
     y = "% Deceased"
@@ -1629,7 +1662,7 @@ death_foreign =
   ) + 
   geom_point(aes(color = borough)) + 
   geom_smooth(se = FALSE, method = "lm", color = "red", aes(weight = total_people)) + 
-  stat_cor(method = "pearson", label.x = 45, label.y = 1.25) + 
+  stat_cor(method = "pearson", label.x = 40, label.y = 1.00) + 
   labs(
     x = "% Born Outside the US",
     y = "% Deceased"
@@ -1660,7 +1693,7 @@ vax_welfare =
   ) + 
   geom_point(aes(color = borough)) + 
   geom_smooth(se = FALSE, method = "lm", color = "red", aes(weight = total_people)) + 
-  stat_cor(method = "pearson", label.x = 60, label.y = 90) + 
+  stat_cor(method = "pearson", label.x = 30, label.y = 90) + 
   labs(
     x = "% on Welfare",
     y = "% Vaccinated"
@@ -1678,7 +1711,7 @@ vax_foodstamps =
   ) + 
   geom_point(aes(color = borough)) + 
   geom_smooth(se = FALSE, method = "lm", color = "red", aes(weight = total_people)) + 
-  stat_cor(method = "pearson", label.x = 30, label.y = 90) + 
+  stat_cor(method = "pearson", label.x = 25, label.y = 90) + 
   labs(
     x = "% on Food Stamps",
     y = "% Vaccinated"
@@ -1695,7 +1728,7 @@ vax_income =
   ) + 
   geom_point(aes(color = borough)) + 
   geom_smooth(se = FALSE, method = "lm", color = "red", aes(weight = total_people)) + 
-  stat_cor(method = "pearson", label.x = 45000, label.y = 90) + 
+  stat_cor(method = "pearson", label.x = 38000, label.y = 90) + 
   labs(
     x = "Median Personal Income ($)",
     y = "% Vaccinated"
@@ -1730,7 +1763,9 @@ vax_predict_panel +
   plot_layout(guides = "collect")
 ```
 
-Then, across all interviews, for key demographic predictors:
+Beyond the predictors significantly associated with each outcome, we wanted to focus as well on how outcomes varied by levels of key socioeconomic variables – namely, race, age group, and sex. Because we lack individual outcome data (i.e. each census observation within a given PUMA has the same PUMA-level hospitalization, death, and vaccination rate), we assumed for this analysis that all persons in a given PUMA had equal likelihood of a particular outcome (hospitalization, death, or vaccination) being true, with the likelihood corresponding to the PUMA outcome rate.
+
+Below, we exclude some of the graphs for sex, since we found that males and females appear similar on each outcome. That said, we found older age groups tend to have higher hospitalization and death rates, but also higher vaccination rates. In general, white individuals also have a lower likelihood of hospitalization and death (matching the race-sex-age triplets we explored earlier), as well as a higher likelihood of vaccination (along with Asian and Pacific Islanders).
 
 ```{r hospitalization rate by demo, echo = FALSE, message = FALSE, warning = FALSE}
 # Demographics 
@@ -1740,13 +1775,12 @@ first_predict = outcome_vs_predictor(race, "hosp") +
   labs(
     x = "Race",
     y = "% Hospitalized",
-    title = "% Hospitalized by Race Category",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    title = "% Hospitalized by Race",
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white", size = 2)
 
 # Hospitalizations vs age
 # First create data frame for use later
@@ -1788,13 +1822,12 @@ second_predict = age_grouped %>%
   labs(
     x = "Age Group",
     y = "% Hospitalized",
-    title = "% Hospitalized by Age Group",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    title = "% Hospitalized by Age",
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white", size = 2)
   
 # Hospitalizations vs sex
 third_predict = outcome_vs_predictor(sex, "hosp") + 
@@ -1802,11 +1835,10 @@ third_predict = outcome_vs_predictor(sex, "hosp") +
     x = "Sex",
     y = "% Hospitalized",
     title = "% Hospitalized by Sex",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white", size = 2)
 
 first_predict + second_predict + third_predict
 ```
@@ -1817,13 +1849,12 @@ first_predict = outcome_vs_predictor(race, "death") +
   labs(
     x = "Race",
     y = "% Deceased",
-    title = "% Deceased by Race Category",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    title = "% Deceased by Race",
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white", size = 2)
 
 # Deaths vs age
 second_predict = age_grouped %>% 
@@ -1838,13 +1869,12 @@ second_predict = age_grouped %>%
   labs(
     x = "Age Group",
     y = "% Deceased",
-    title = "% Deceased by Age Group",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    title = "% Deceased by Age",
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white", size = 2)
   
 # Deaths vs sex
 third_predict = outcome_vs_predictor(sex, "death") + 
@@ -1852,11 +1882,10 @@ third_predict = outcome_vs_predictor(sex, "death") +
     x = "Sex",
     y = "% Deceased",
     title = "% Deceased by Sex",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white", size = 2)
 
 first_predict + second_predict + third_predict
 ```
@@ -1867,13 +1896,12 @@ first_predict = outcome_vs_predictor(race, "vax") +
   labs(
     x = "Race",
     y = "% Vaccinated",
-    title = "% Vaccinated by Race Category",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    title = "% Vaccinated by Race",
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(vax_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(vax_rate, 2)), vjust = 1.5, color = "white", size = 2)
 
 # Vax vs age
 second_predict = age_grouped %>% 
@@ -1888,13 +1916,12 @@ second_predict = age_grouped %>%
   labs(
     x = "Age Group",
     y = "% Vaccinated",
-    title = "% Vaccinated by Age Group",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    title = "% Vaccinated by Age",
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(vax_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(vax_rate, 2)), vjust = 1.5, color = "white", size = 2)
   
 # Vax vs sex
 third_predict = outcome_vs_predictor(sex, "vax") + 
@@ -1902,16 +1929,17 @@ third_predict = outcome_vs_predictor(sex, "vax") +
     x = "Sex",
     y = "% Vaccinated",
     title = "% Vaccinated by Sex",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(vax_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(vax_rate, 2)), vjust = 1.5, color = "white", size = 2)
 
 first_predict + second_predict + third_predict
 ```
 
-And finally across all interviews for key socioeconomic predictors:
+Similarly, we explored how key outcomes varied across categories of a few seemingly important predictor variables for each outcome observed in our correlation matrix. We found in the analysis below that all outcomes generally improve with higher income -- again, confirming our correlation matrix findings. Education also generally appears protective of poor health outcomes from COVID-19. A couple of other interesting findings include:
+* Individuals with public health insurance perform similarly to those with no insurance at all
+* Individuals with unknown citizenship status tend to have lower death rates, which we hypothesize may be the result of under-reporting perhaps due to stigma and/or potential skepticism of city authorities that may result in US citizenship documentation issues
 
 ```{r hosp rate by ses, echo = FALSE, message = FALSE, warning = FALSE}
 # Socioeconomics
@@ -1959,37 +1987,34 @@ first_predict_ses = income_grouped %>%
     x = "Household Income ($)",
     y = "% Hospitalized",
     title = "% Hospitalized by Household Income",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white", size = 2)
 
 # Hospitalizations vs Education
 second_predict_ses = outcome_vs_predictor(education, "hosp") + 
   labs(
     x = "Education",
     y = "% Hospitalized",
-    title = "% Hospitalized by Education Status",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    title = "% Hospitalized by Education",
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white", size = 2)
 
 # Hospitalizations vs Insurance
 third_predict_ses = outcome_vs_predictor(health_insurance, "hosp") + 
   labs(
     x = "Health Insurance",
     y = "% Hospitalized",
-    title = "% Hospitalized by Health Insurance Type",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    title = "% Hospitalized by Health Insurance",
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white", size = 2)
 
 # Hospitalizations vs Birthplace
 fourth_predict_ses = outcome_vs_predictor(birthplace, "hosp") + 
@@ -1997,11 +2022,10 @@ fourth_predict_ses = outcome_vs_predictor(birthplace, "hosp") +
     x = "Birthplace",
     y = "% Hospitalized",
     title = "% Hospitalized by Birthplace",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(hosp_rate / 1000, 2)), vjust = 1.5, color = "white", size = 2)
 
 (first_predict_ses + second_predict_ses) / (third_predict_ses + fourth_predict_ses)
 ```
@@ -2022,12 +2046,11 @@ first_predict_ses = income_grouped %>%
     x = "Household Income ($)",
     y = "% Deceased",
     title = "% Deceased by Household Income",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white", size = 2)
 
 # Deaths vs Education
 second_predict_ses = outcome_vs_predictor(education, "death") + 
@@ -2035,24 +2058,22 @@ second_predict_ses = outcome_vs_predictor(education, "death") +
     x = "Education",
     y = "% Deceased",
     title = "% Deceased by Education Status",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white", size = 2)
 
 # Deaths vs Citizenship
 third_predict_ses = outcome_vs_predictor(US_citizen, "death") + 
   labs(
     x = "Citizenship Status",
     y = "% Deceased",
-    title = "% Deceased by Health Insurance Type",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    title = "% Deceased by Health Insurance",
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white", size = 2)
 
 # Deaths vs Birthplace
 fourth_predict_ses = outcome_vs_predictor(birthplace, "death") + 
@@ -2060,11 +2081,10 @@ fourth_predict_ses = outcome_vs_predictor(birthplace, "death") +
     x = "Birthplace",
     y = "% Deceased",
     title = "% Deceased by Birthplace",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(death_rate / 1000, 2)), vjust = 1.5, color = "white", size = 2)
 
 (first_predict_ses + second_predict_ses) / (third_predict_ses + fourth_predict_ses)
 ```
@@ -2077,11 +2097,10 @@ first_predict_ses = outcome_vs_predictor(on_welfare, "vax") +
     x = "On Welfare",
     y = "% Vaccinated",
     title = "% Vaccinated by Welfare Status",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(vax_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(vax_rate, 2)), vjust = 1.5, color = "white", size = 2)
 
 # Vax vs Foodstamps
 second_predict_ses = outcome_vs_predictor(on_foodstamps, "vax") + 
@@ -2089,11 +2108,10 @@ second_predict_ses = outcome_vs_predictor(on_foodstamps, "vax") +
     x = "On Food Stamps",
     y = "% Vaccinated",
     title = "% Vaccinated by Food Stamp Status",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None") + 
-  geom_text(aes(label = round(vax_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(vax_rate, 2)), vjust = 1.5, color = "white", size = 2)
 
 # Vax vs Income
 third_predict_ses = income_grouped %>% 
@@ -2109,12 +2127,11 @@ third_predict_ses = income_grouped %>%
     x = "Household Income ($)",
     y = "% Vaccinated",
     title = "% Vaccinated by Household Income",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(vax_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(vax_rate, 2)), vjust = 1.5, color = "white", size = 2)
 
 # Vax vs Employment
 fourth_predict_ses = outcome_vs_predictor(employment, "vax") + 
@@ -2122,21 +2139,21 @@ fourth_predict_ses = outcome_vs_predictor(employment, "vax") +
     x = "Employment Status",
     y = "% Vaccinated",
     title = "% Vaccinated by Employment Status",
-    subtitle = "Across All Census Interviews",
-    caption = "Note: Assumes PUMA-wide outcome rate applies to all individuals in PUMA"
+    subtitle = "Across All Census Interviews"
   ) + 
   theme(legend.position = "None",
         axis.text.x = element_text(angle = -60, vjust = 0.5, hjust = 0)) + 
-  geom_text(aes(label = round(vax_rate, 2)), vjust = 1.5, color = "white")
+  geom_text(aes(label = round(vax_rate, 2)), vjust = 1.5, color = "white", size = 2)
 
 (first_predict_ses + second_predict_ses) / (third_predict_ses + fourth_predict_ses)
 ```
 
 ## Associations between Predictors and Outcomes by Borough
 
-What kinds of disparities occur within each borough on key outcome rates across levels of a predictor?
+Finally, we were interested in observing disparities *within* boroughs. Each of the following visualizations has three panels: number of people with outcome, categorized by borough and colored by predictor level; % of people with outcome in each borough, colored by predictor level, compared to the overall composition of the borough by predictor level; and percent with outcome variable, in each borough, plotted by level of predictor.
 
-First, hospitalizations:
+One notable finding that became immediately clear to us is the Manhattan generally seems to be the most "unequal" borough when exploring how different demographic groups fare on key outcomes. For example, Manhattan has the greatest variation between racial groups on hospitalization and death rate, as well as between age groups on hospitalization rate, and too between racial groups and age groups on vaccination rate. Generally, Manhattan appears more unequal than other boroughs, which also tracks with the [greater income inequality known to exist](https://furmancenter.org/stateofthecity/view/citywide-and-borough-data) in Manhattan than in other NYC boroughs.
+
 
 ```{r hospitalization borough disparities, echo = FALSE, message = FALSE, warning = FALSE}
 
@@ -2146,11 +2163,8 @@ borough_cat_comparisons(race, "hosp") + plot_annotation(
   subtitle = "Categorized by Race" 
 )
 
-# Hospitalizations by sex
-borough_cat_comparisons(sex, "hosp") + plot_annotation(
-  title = "Hospitalizations Across Boroughs",
-  subtitle = "Categorized by Sex" 
-)
+# REMOVED Hospitalizations by sex
+
 
 # Hospitalizations by age
 borough_cat_comparisons(age_class, "hosp")  + plot_annotation(
@@ -2159,7 +2173,6 @@ borough_cat_comparisons(age_class, "hosp")  + plot_annotation(
 )
 ```
 
-Then, deaths:
 
 ```{r death borough disparities, echo = FALSE, message = FALSE, warning = FALSE}
 
@@ -2169,11 +2182,8 @@ borough_cat_comparisons(race, "death") + plot_annotation(
   subtitle = "Categorized by Race" 
 )
 
-# Deaths by sex
-borough_cat_comparisons(sex, "death") + plot_annotation(
-  title = "Deaths Across Boroughs",
-  subtitle = "Categorized by Sex" 
-)
+# REMOVED Deaths by sex
+
 
 # Deaths by age
 borough_cat_comparisons(age_class, "death")  + plot_annotation(
@@ -2182,7 +2192,6 @@ borough_cat_comparisons(age_class, "death")  + plot_annotation(
 )
 ```
 
-And finally, vaccinations:
 
 ```{r vax borough disparities, echo = FALSE, message = FALSE, warning = FALSE}
 
@@ -2192,11 +2201,14 @@ borough_cat_comparisons(race, "vax")  + plot_annotation(
   subtitle = "Categorized by Race" 
 )
 
-# Vax by sex
-borough_cat_comparisons(sex, "vax")  + plot_annotation(
-  title = "Vaccinations Across Boroughs",
-  subtitle = "Categorized by Sex" 
-)
+
+
+
+
+# REMOVED Vax by sex
+
+
+
 
 # Vax by age
 borough_cat_comparisons(age_class, "vax") + plot_annotation(
@@ -2205,9 +2217,8 @@ borough_cat_comparisons(age_class, "vax") + plot_annotation(
 )
 ```
 
-A note for later -- we could try this for key SES indicators as well, such as:
 
-```{r vax borough ses disparity, echo = FALSE, message = FALSE, warning = FALSE}
+```{r vax borough ses disparity, eval = FALSE, echo = FALSE, message = FALSE, warning = FALSE}
 # Vaccination by household income class
 borough_cat_comparisons(household_income_class, "vax") + plot_annotation(
   title = "Outcomes Across Boroughs",
@@ -2215,9 +2226,9 @@ borough_cat_comparisons(household_income_class, "vax") + plot_annotation(
 )
 ```
 
-And finally, we can visualize outcomes on a given predictor across boroughs in the following way -- for simplicity's sake, only demographic variables and outcomes included here.
+The following heatmaps similarly indicate such variations across PUMAs within a given borough, which appear more significant for race than for age and sex. 
 
-```{r borough predictor heatmap hosp, echo = FALSE, message = FALSE, warning = FALSE}
+```{r borough predictor heatmap hosp, echo = FALSE, message = FALSE, warning = FALSE, fig.asp = 1.2}
 # Hospitalizations
 # Race x Borough
 race_hosp_borough = heatmap_two_var(race, borough, "hosp") + 
@@ -2256,7 +2267,7 @@ hosp_heat + theme(legend.position = "bottom") +
   plot_layout(guides = "collect")
 ```
 
-```{r borough predictor heatmap death, echo = FALSE, message = FALSE, warning = FALSE}
+```{r borough predictor heatmap death, echo = FALSE, message = FALSE, warning = FALSE, fig.asp = 1.2}
 # Deaths
 # Race x Borough
 race_death_borough = heatmap_two_var(race, borough, "death") + 
@@ -2295,7 +2306,7 @@ death_heat + theme(legend.position = "bottom") +
   plot_layout(guides = "collect")
 ```
 
-```{r borough predictor heatmap vax, echo = FALSE, message = FALSE, warning = FALSE}
+```{r borough predictor heatmap vax, out.height = "150%", echo = FALSE, message = FALSE, warning = FALSE, fig.asp = 1.2}
 # Vaccinations
 # Race x Borough
 race_vax_borough = heatmap_two_var(race, borough, "vax") + 
