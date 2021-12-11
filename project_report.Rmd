@@ -39,7 +39,7 @@ library(lmtest)
 library(sandwich)
 library(performance)
 library(olsrr)
-library(forecast)
+library(kableExtra)
 
 # set knitr defaults
 knitr::opts_chunk$set(
@@ -2046,9 +2046,8 @@ borough_cat_comparisons(age_class, "vax") + plot_annotation(
 
 The most interesting finding here is that Manhattan seems to have the most significant racial disparities on hospitalization rate and death rate, along with age disparities on hospitalization rate, and racial and age disparities in vaccination rate. In general, the level of inequality on key outcomes across demographics in Manhattan tends to be higher than in other boroughs.
 
-## Regression
-
-```{r}
+## Regression Methodology
+```{r, warning = FALSE, message = FALSE}
 outcome_by_year <- 
   read_csv("./modeling/outcome_puma_by_year.csv") %>%
   rename(puma = puma10)
@@ -2118,12 +2117,10 @@ According to the normality probability plot, it is to be observed most of the po
 Influential points among outliers: 
 According to residuals vs leverage plot, it is to be observed all points are inside the contour lines. Hence, there are no influential observations. Therefore, we claim that the residuals are independent of each other. 
 
-Residuals are uncorrelated: 
-On the basis of the autocorrelation plot, it is to be observed that the lags do not have significant effect because they are within the bounds. 
 
-
-```{r}
-summary(best_model) %>% 
+```{r, warning = FALSE, message = FALSE}
+model_summary <-
+  summary(best_model) %>% 
   broom::glance() %>%
   bind_rows(summary(full_model) %>% broom::glance()) %>%
   mutate(model = c("Best Model", "Full Model")) %>%
@@ -2131,9 +2128,19 @@ summary(best_model) %>%
 
 Cp <- ols_mallows_cp(best_model, full_model)
 
+Cp <- as.tibble(Cp)
+
 names(Cp) <- c("Mallows' Cp")
 
-Cp
+kbl(model_summary) %>%
+  kable_paper("striped", full_width = F) %>%
+  column_spec(1:9, bold = T) %>%
+  row_spec(1:2, bold = T, color = "white", background = "black")
+
+kbl(Cp) %>%
+  kable_paper("striped", full_width = F) %>%
+  column_spec(1, bold = T) %>%
+  row_spec(1, bold = T, color = "white", background = "black")
 ```
 
 Adjusted R-squared: 
@@ -2143,10 +2150,16 @@ Mallows’ Cp:
 Based on Mallows’ Cp criterion, we want our model to have Cp value less than or equal to the number of parameters, indicating little or no bias in the regression model. we obtained our Cp) from our model and the full model.  The Cp value is 9.5 and it is less than the number of our model parameters (11).  Therefore, we claim that our regression model has little or no bias.
 
 
-TODO: Output
-```{r}
-summary(best_model) %>%
-  broom::tidy()
+## Model Summary
+```{r, warning = FALSE, message = FALSE}
+summary <-
+  summary(best_model) %>%
+  broom::tidy() 
+
+kbl(summary) %>%
+  kable_paper("striped", full_width = F) %>%
+  column_spec(1:5, bold = T) %>%
+  row_spec(1:11, bold = T, color = "white", background = "black")
 ```
 
 
@@ -2202,58 +2215,7 @@ coef <- coef(lasso_model$finalModel, lasso_model$bestTune$lambda)
 sub_lasso <-
   subset(lasso_model$pred, lasso_model$pred$lambda == lasso_model$bestTune$lambda)
 
-# Use function for better visualization of confusion matrix
-# Credit to https://stackoverflow.com/questions/23891140/r-how-to-visualize-confusion-matrix-using-the-caret-package/42940553
-
-draw_confusion_matrix <- function(cm) {
-
-  layout(matrix(c(1,1,2)))
-  par(mar=c(2,2,2,2))
-  plot(c(100, 345), c(300, 450), type = "n", xlab="", ylab="", xaxt='n', yaxt='n')
-  title('55 PUMAs Across 100 Simulations (n=5500)', cex.main=2)
-
-  # create the matrix 
-  rect(150, 430, 240, 370, col='#fde725')
-  text(195, 435, 'Above 70% Vax', cex=1.2)
-  rect(250, 430, 340, 370, col='#440154')
-  text(295, 435, 'Below 70% Vax', cex=1.2)
-  text(125, 370, 'Predicted', cex=1.3, srt=90, font=2)
-  text(245, 450, 'Actual', cex=1.3, font=2)
-  rect(150, 305, 240, 365, col='#440154')
-  rect(250, 305, 340, 365, col='#fde725')
-  text(140, 400, 'Above 70% Vax', cex=1.2, srt=90)
-  text(140, 335, 'Below 70% Vax', cex=1.2, srt=90)
-
-  # add in the cm results 
-  res <- as.numeric(cm$table)
-  text(195, 400, res[1], cex=1.6, font=2, col='black')
-  text(195, 335, res[2], cex=1.6, font=2, col='white')
-  text(295, 400, res[3], cex=1.6, font=2, col='white')
-  text(295, 335, res[4], cex=1.6, font=2, col='black')
-
-  # add in the specifics 
-  plot(c(100, 0), c(100, 0), type = "n", xlab="", ylab="", main = "DETAILS", xaxt='n', yaxt='n')
-  text(10, 85, names(cm$byClass[1]), cex=1.2, font=2)
-  text(10, 70, round(as.numeric(cm$byClass[1]), 3), cex=1.2)
-  text(30, 85, names(cm$byClass[2]), cex=1.2, font=2)
-  text(30, 70, round(as.numeric(cm$byClass[2]), 3), cex=1.2)
-  text(50, 85, names(cm$byClass[5]), cex=1.2, font=2)
-  text(50, 70, round(as.numeric(cm$byClass[5]), 3), cex=1.2)
-  text(70, 85, names(cm$byClass[6]), cex=1.2, font=2)
-  text(70, 70, round(as.numeric(cm$byClass[6]), 3), cex=1.2)
-  text(90, 85, names(cm$byClass[7]), cex=1.2, font=2)
-  text(90, 70, round(as.numeric(cm$byClass[7]), 3), cex=1.2)
-
-  # add in the accuracy information 
-  text(30, 35, names(cm$overall[1]), cex=1.5, font=2)
-  text(30, 20, round(as.numeric(cm$overall[1]), 3), cex=1.4)
-  text(70, 35, names(cm$overall[2]), cex=1.5, font=2)
-  text(70, 20, round(as.numeric(cm$overall[2]), 3), cex=1.4)
-}  
-
-cm = caret::confusionMatrix(table(sub_lasso$pred, sub_lasso$obs))
-
-draw_confusion_matrix(cm)
+caret::confusionMatrix(table(sub_lasso$pred, sub_lasso$obs))
 ```
 
 Notably, feature selection from our lasso regression discovered that the most important predictors of risk for sub-70% vaccination were insurance composition, employment composition, poverty composition, and welfare composition in a given PUMA – largely aligned with key correlates of vaccination noted in our exploratory analysis.
