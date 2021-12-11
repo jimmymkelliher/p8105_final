@@ -44,6 +44,10 @@ scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete   = scale_fill_viridis_d
 ```
 
+# Overview and Setting Up the Data
+
+In this script, we constructed adjusted PUMA-level means of our data to address the potential threat of bias. We begin by providing motivation as to why the interview-level census data should be aggregated to the level of PUMAs, and we conduct the aggregation in a manner that reduces bias in a subsequent regression.
+
 ## Unzipping the Census Data
 
 ```{r unzipping census data}
@@ -232,9 +236,9 @@ cleaned_data =
   )
 ```
 
-<!------------------------------------------------------------------------------
-Overview
-------------------------------------------------------------------------------->
+# Motivation
+
+## The Threat of Overfitting
 
 When considering a regression to predict health outcomes, our primary limitation is that outcomes are recorded at the PUMA-level. This is unfortunate, but without access to anonymized health records, this is the best we can do, so let's work with it!
 
@@ -256,6 +260,8 @@ summary(example_overfit) %>%
   broom::glance() %>%
   knitr::kable()
 ```
+
+## The Threat of Reverse Causality
 
 Thus, for any independent variable $x$ that we consider to predict health outcome $y$, we must ensure that $x$ exhibits sufficient heterogeneity within PUMAs. If not, $x$ is just a predictor of where someone lives, and not of their probability of observing health outcome $y$.
 
@@ -290,6 +296,10 @@ example_validate %>%broom::glance() %>% knitr::kable()
 
 While the PUMA-level vaccination rate and personal income are indeed linearly associated, we also see that PUMA explains personal income. Given this potential reverse causality, it is vital to aggregate our census data before running a regression. To do this, we follow Croon and Veldhoven (2007) to construct adjusted group means that will reduce the bias in our aggregated regression.
 
+# Aggregating the Input Data
+
+## Helper Functions
+
 ```{r}
 # function that computes a sum of weights
 wsum  <- function(w) {
@@ -301,6 +311,27 @@ wmean <- function(v, w = rep(1, length(v)), remove_na = TRUE) {
   sum(w * v, na.rm = TRUE) / sum(w, na.rm = TRUE)
 }
 
+# function that returns (possibly weighted) product of vector with its transpose
+vvt <- function(v) {
+  u <- as.vector(v)
+  u %*% t(u)
+}
+
+# function that applies vvt to rows of a data frame
+vvt_map <- function(df) {
+  pmap(df, ~ vvt(c(...)))
+}
+
+# function that applies vvt to difference of data frames, then adds matrices
+pbyp <- function(df) {
+  Reduce("+", vvt_map(df))
+}
+```
+
+# The Croon-Veldhoven Procedure
+
+```{r}
+# construct
 inputs_plus_index <-
   cleaned_data %>%
   select(-c(
