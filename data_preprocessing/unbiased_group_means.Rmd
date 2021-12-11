@@ -1,0 +1,433 @@
+---
+title: "P8105: Data Science I"
+author: "Regression<br>Jimmy Kelliher (UNI: jmk2303)"
+output:
+  github_document:
+    toc: TRUE
+---
+
+<!------------------------------------------------------------------------------
+Preamble
+------------------------------------------------------------------------------->
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+# load necessary packages
+library(tidyverse)
+
+# set knitr defaults
+knitr::opts_chunk$set(
+    echo      = TRUE
+  , message   = FALSE
+  , fig.width = 6
+  , fig.asp   = .6
+  , out.width = "90%"
+)
+
+# set theme defaults
+theme_set(
+  theme_bw() +
+  theme(
+    legend.position = "bottom"
+    , plot.title    = element_text(hjust = 0.5)
+    , plot.subtitle = element_text(hjust = 0.5)    
+    , plot.caption  = element_text(hjust = 0.0)
+  )
+)
+
+# set color scale defaults
+options(
+    ggplot2.continuous.colour = "viridis"
+  , ggplot2.continuous.fill   = "viridis"
+)
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete   = scale_fill_viridis_d
+```
+
+# Unzipping the Census Data
+
+```{r unzipping census data}
+jimzip <- function(csv_file, path) {
+  # create full path to csv file
+  full_csv <- paste0(path, "/", csv_file)
+  # append ".zip" to csv file
+  zip_file <- paste0(full_csv, ".zip")
+  # unzip file
+  unzip(zip_file)
+  # read csv
+  data_extract <- read_csv(csv_file)
+  # be sure to remove file once unzipped (it will live in working directory)
+  on.exit(file.remove(csv_file))
+  # output data
+  data_extract
+}
+
+# Apply function to filtered census data CSV
+census_data <- jimzip("census_filtered.csv", "./data")
+```
+
+# Merging the Outcome Data
+
+```{r}
+# Read in PUMA outcomes data
+health_data <-
+  read_csv("./data/outcome_puma.csv")
+
+# Merge census data with PUMA outcomes data
+merged_data <- merge(census_data, health_data, by = "puma")
+
+# Deprecate census data alone
+rm(census_data)
+
+# Observe first several rows of merged census and health outcomes data
+head(merged_data) %>% knitr::kable()
+```
+
+## Cleaning the Data
+
+```{r}
+# Clean the merged census and outcomes data
+# Each row represents one 
+cleaned_data = 
+  merged_data %>% 
+  # Remove variables less useful for analysis or redundant (high probability of collinearity with remaining variables)
+  select(-serial, -cluster, -strata, -multyear, -ancestr1, -ancestr2, -labforce, -occ, -ind, -incwage, -occscore, -pwpuma00, -ftotinc, -hcovpub) %>% 
+  # Remove duplicate rows, if any
+  distinct() %>% 
+  # Rename variables
+  rename(
+    borough = countyfip,
+    has_broadband = cihispeed,
+    birthplace = bpl,
+    education = educd,
+    employment = empstat,
+    personal_income = inctot,
+    work_transport = tranwork,
+    household_income = hhincome,
+    on_foodstamps = foodstmp,
+    family_size = famsize,
+    num_children = nchild,
+    US_citizen = citizen,
+    puma_vacc_rate = puma_vacc_per,
+    on_welfare = incwelfr,
+    poverty_threshold = poverty
+  ) %>% 
+  # Recode variables according to data dictionary
+  mutate(
+    # Researched mapping for county
+    borough = recode(
+      borough,
+      "5" = "Bronx",
+      "47" = "Brooklyn",
+      "61" = "Manhattan",
+      "81" = "Queens",
+      "85" = "Staten Island"
+    ),
+    rent = ifelse(
+      rent == 9999, 0,
+      rent
+    ),
+    household_income = ifelse(
+      household_income %in% c(9999998,9999999), NA,
+      household_income
+    ),
+    on_foodstamps = recode(
+      on_foodstamps,
+      "1" = "No",
+      "2" = "Yes"
+    ),
+    has_broadband = case_when(
+      has_broadband == "20" ~ "No",
+      has_broadband != "20" ~ "Yes"
+    ),
+    sex = recode(
+      sex,
+      "1" = "Male",
+      "2" = "Female"
+    ),
+    # Collapse Hispanic observation into race observation
+    race = case_when(
+      race == "1" ~ "White",
+      race == "2" ~ "Black",
+      race == "3" ~ "American Indian",
+      race %in% c(4,5,6) ~ "Asian and Pacific Islander",
+      race == 7 & hispan %in% c(1,2,3,4) ~ "Hispanic",
+      race == 7 & hispan %in% c(0,9) ~ "Other",
+      race %in% c(8,9) ~ "2+ races"
+    ),
+    birthplace = case_when(
+      birthplace %in% 1:120 ~"US",
+      birthplace %in% 121:950 ~ "Non-US",
+      birthplace == 999 ~"Unknown"
+    ),
+    US_citizen = case_when(
+      US_citizen %in% c(1,2) ~ "Yes",
+      US_citizen %in% 3:8 ~"No",
+      US_citizen %in% c(0,9) ~ "Unknown"
+    ),
+    # Chose languages based on highest frequency observed
+    language = case_when(
+      language == "1" ~ "English",
+      language == "12" ~ "Spanish",
+      language == "43" ~ "Chinese",
+      language == "0" ~ "Unknown",
+      language == "31" ~ "Hindi",
+      !language %in% c(1,12,43,0,31) ~ "Other"
+    ),
+    # Collapse multiple health insurance variables into single variable
+    health_insurance = case_when(
+      hcovany == 1 ~ "None",
+      hcovany == 2 && hcovpriv == 2 ~ "Private",
+      hcovany == 2 && hcovpriv == 1 ~ "Public"
+    ),
+    education = case_when(
+      education %in% 2:61 ~ "Less Than HS Graduate",
+      education %in% 62:64 ~ "HS Graduate",
+      education %in% 65:100 ~ "Some College",
+      education %in% 110:113 ~ "Some College",
+      education == 101 ~ "Bachelor's Degree",
+      education %in% 114:116 ~ "Post-Graduate Degree",
+      education %in% c(0,1,999) ~ "Unknown"
+    ),
+    employment = case_when(
+      employment %in% c(0,3) ~ "Not in labor force",
+      employment == 1 ~ "Employed",
+      employment == 2 ~ "Unemployed"
+    ),
+    personal_income = ifelse(
+      personal_income %in% c(9999998,9999999), NA,
+      personal_income
+    ),
+    household_income = ifelse(
+      household_income %in% c(9999998,9999999), NA,
+      household_income
+    ),
+    on_welfare = case_when(
+      on_welfare > 0 ~ "Yes",
+      on_welfare == 0 ~ "No"
+    ), 
+    poverty_threshold = case_when(
+      poverty_threshold >= 100 ~ "Above",
+      poverty_threshold < 100 ~ "Below"
+    ),
+    work_transport = case_when(
+      work_transport %in% c(31:37, 39) ~ "Public Transit",
+      work_transport %in% c(10:20, 38) ~ "Private Vehicle",
+      work_transport == 50 ~ "Bicycle",
+      work_transport == 60 ~ "Walking",
+      work_transport == 80 ~ "Worked From Home",
+      work_transport %in% c(0, 70) ~ "Other"
+    )
+  ) %>% 
+  # Eliminate columns no longer needed after transformation
+  select(-hispan, -hcovany, -hcovpriv) %>% 
+  # Relocate new columns
+  relocate(health_insurance, .before = personal_income) %>% 
+  relocate(poverty_threshold, .before = work_transport) %>% 
+  relocate(on_welfare, .before = poverty_threshold) %>% 
+  relocate(perwt, .before = hhwt) %>% 
+  # Create factor variables where applicable
+  mutate(across(.cols = c(puma, borough, on_foodstamps, has_broadband, sex, race, birthplace, US_citizen, language, health_insurance, education, employment, on_welfare, poverty_threshold, work_transport), as.factor)) %>% 
+  # Ensure consistent use of percentages
+  mutate(
+    puma_death_rate = puma_death_rate / 100,
+    puma_hosp_rate = puma_hosp_rate / 100
+  )
+```
+
+<!------------------------------------------------------------------------------
+Overview
+------------------------------------------------------------------------------->
+
+When considering a regression to predict health outcomes, our primary limitation is that outcomes are recorded at the PUMA-level. This is unfortunate, but without access to anonymized health records, this is the best we can do, so let's work with it!
+
+To that end, we must be careful to avoid over-fitting our model. For example, suppose we have a two-state model with states $s \in$ {0, 1}, and for all individuals $i \in$ {$1, \ldots, n$}, we observe binary outcome $y_{ i, s } = s$. Further suppose we run the regression
+
+&nbsp; &nbsp; &nbsp; &nbsp; $y_{ i, s } = \alpha + \beta$ $I_{\{s = 1\}} + \varepsilon_{ i, s }.$
+
+Trivially, we will find that $\hat{\alpha} = 0$ and $\hat{\beta} = 1$. Moreover, we will find that $R^2 = 1$, but this is deceptive! While the model enjoys a perfect linear fit, it does not say anything meaningful: "If we know the value for each group, we can predict the value for each group!" Below is an example of this in the context of our data.
+
+```{r}
+# example of overfitting
+example_overfit <- lm(
+    puma_hosp_rate ~ puma
+  , data = cleaned_data
+)
+
+# using puma to predict puma-level data generates a bad model
+summary(example_overfit) %>%
+  broom::glance() %>%
+  knitr::kable()
+```
+
+Thus, for any independent variable $x$ that we consider to predict health outcome $y$, we must ensure that $x$ exhibits sufficient heterogeneity within PUMAs. If not, $x$ is just a predictor of where someone lives, and not of their probability of observing health outcome $y$.
+
+```{r}
+# vaccination rate regressed on income
+example <-
+  lm(
+    puma_vacc_rate ~ personal_income
+  , data = cleaned_data
+  , weights = perwt
+  ) %>%
+  summary()
+
+# income regressed on PUMA
+example_validate <-
+  lm(
+    personal_income ~ puma
+  , data = cleaned_data
+  , weights = perwt
+  ) %>%
+  summary()
+
+# coefficients of vaccination rate regressed on income
+example %>%broom::tidy() %>% knitr::kable()
+
+# performance statistics
+example %>%broom::glance() %>% knitr::kable()
+
+# validation via income regressed on PUMA
+example_validate %>%broom::glance() %>% knitr::kable()
+```
+
+While the PUMA-level vaccination rate and personal income are indeed linearly associated, we also see that PUMA explains personal income. Given this potential reverse causality, it is vital to aggregate our census data before running a regression. To do this, we follow Croon and Veldhoven (2007) to construct adjusted group means that will reduce the bias in our aggregated regression.
+
+```{r}
+# function that computes a sum of weights
+wsum  <- function(w) {
+  sum(w, na.rm = TRUE)
+}
+
+# function that returns weighted mean
+wmean <- function(v, w = rep(1, length(v)), remove_na = TRUE) {
+  sum(w * v, na.rm = TRUE) / sum(w, na.rm = TRUE)
+}
+
+test <-
+  cleaned_data %>%
+  #select(puma, perwt, household_income, personal_income, age) %>%
+  select(-c(
+    serial, hhwt, cluster, borough, strata,
+    US_citizen, puma_death_rate, puma_hosp_rate, puma_vacc_rate
+  )) %>%
+  mutate(
+    personal_income = replace_na(
+        personal_income
+      , wmean(personal_income, perwt)
+    )
+    , household_income = replace_na(
+        household_income
+      , wmean(household_income, perwt)
+    )
+  )
+
+X <- test %>% select(-c(puma, perwt))
+X <- as_tibble(model.matrix(~ ., X)[ , -1])
+
+# function that returns (possibly weighted) product of vector with its transpose
+vvt <- function(v) {
+  u <- as.vector(v)
+  u %*% t(u)
+}
+
+# function that applies vvt to rows of a data frame
+vvt_map <- function(df) {
+  pmap(df, ~ vvt(c(...)))
+}
+
+# function that applies vvt to difference of data frames, then adds matrices
+pbyp <- function(df) {
+  Reduce("+", vvt_map(df))
+}
+
+w  <- pull(test, perwt) / sum(pull(test, perwt))
+n  <- nrow(test) # wsum(w)
+g  <- length(unique(pull(test, puma)))
+ng <- test %>% group_by(puma) %>% summarize(ng = n()) %>% pull(ng)
+#ng <- test %>% group_by(puma) %>% summarize(ng = wsum(perwt)) %>% pull(ng)
+
+Xbar  <-
+  X %>%
+  mutate(across(
+      everything()
+    , ~ replace(.x, TRUE, wmean(.x, pull(test, perwt)))
+  ))
+
+Xbarg <-
+  cbind(puma = pull(test, puma), w = w, X) %>%
+  group_by(puma) %>%
+  mutate(across(
+      everything()
+    , ~ replace(.x, TRUE, wmean(.x, w))
+  )) %>%
+  ungroup() %>%
+  select(-c(puma, w))
+
+xbar <- Xbar[1, ]
+
+xbarg <-
+  cbind(puma = pull(test, puma), w = w, X) %>%
+  group_by(puma) %>%
+  mutate(across(
+      everything()
+    , ~ replace(.x, TRUE, wmean(.x, w))
+  )) %>%
+  distinct() %>%
+  ungroup() %>%
+  select(-c(puma, w))
+
+msa <- pbyp(w^(0.5) * (Xbarg - Xbar)) # / (g - 1)
+mse <- pbyp(w^(0.5) * (X - Xbarg)) # / (n - g)
+
+within_error  <- mse
+between_error <- n * (g - 1) * (msa - mse) / (n^2 - sum(ng^2))
+#between_error <- (msa - mse) / n
+
+jimcol <- function(k, x) {
+  W <- solve(between_error + within_error / k) %*% between_error
+  u <- unlist(xbar) %*% (diag(ncol(X)) - W) + unlist(x) %*% W
+  u
+}
+
+ubarg <-
+  test %>%
+  select(puma, perwt) %>%
+  group_by(puma) %>%
+  summarize(group_pop = sum(perwt)) %>%
+  cbind(xbarg) %>%
+  nest(xbarg = -c(puma, group_pop)) %>%
+  mutate(ubarg = map2(group_pop, xbarg, jimcol)) %>%
+  unnest(ubarg) %>%
+  pull(ubarg) %>%
+  as_tibble()
+
+names(ubarg) <- names(xbarg)
+
+unbiased_group_means <-
+  test %>%
+  select(puma, perwt) %>%
+  group_by(puma) %>%
+  summarize(group_pop = sum(perwt)) %>%
+  cbind(ubarg) %>%
+  ungroup()  %>%
+  janitor::clean_names()
+
+write_csv(unbiased_group_means, "./data/unbiased_group_means.csv")
+
+#lmtest::coeftest(model, vcov = sandwich::vcovHC(model, type = "HC0"))
+```
+
+
+
+```{r}
+health_data <-
+  read_csv("./data/outcome_puma.csv") %>%
+  rename(puma = puma10)
+
+myData <-
+  read_csv("./data/unbiased_group_means.csv") %>%
+  merge(health_data, by = "puma")
+
+
+
+```
