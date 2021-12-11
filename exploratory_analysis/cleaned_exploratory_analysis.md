@@ -1,13 +1,7 @@
 Cleaned Exploratory Analysis
 ================
-Zachary Katz
-11/30/2021
 
 # Data Preprocessing
-
-The following code chunks are replicated from our
-`cleaning_merged_data.Rmd` file to generate the data set from which
-exploratory analyses can be conducted.
 
 ``` r
 jimzip <- function(csv_file, path) {
@@ -27,19 +21,7 @@ jimzip <- function(csv_file, path) {
 
 # Apply function to filtered census data CSV
 census_data <- jimzip("census_filtered.csv", "./data")
-
-# Observe first several rows of data frame
-head(census_data) %>%  knitr::kable()
 ```
-
-| multyear |  serial | hhwt |      cluster | countyfip | puma | strata | rent | hhincome | foodstmp | cihispeed | perwt | famsize | nchild | sex | age | race | hispan | bpl | ancestr1 | ancestr2 | citizen | language | hcovany | hcovpriv | hcovpub | educd | empstat | labforce |  occ |  ind |  inctot | ftotinc | incwage | incwelfr | poverty | occscore | pwpuma00 | tranwork |
-|---------:|--------:|-----:|-------------:|----------:|-----:|-------:|-----:|---------:|---------:|----------:|------:|--------:|-------:|----:|----:|-----:|-------:|----:|---------:|---------:|--------:|---------:|--------:|---------:|--------:|------:|--------:|---------:|-----:|-----:|--------:|--------:|--------:|---------:|--------:|---------:|---------:|---------:|
-|     2015 | 4100568 |   30 | 2.019041e+12 |        61 | 3806 | 380636 | 2806 |    93882 |        1 |        10 |    31 |       1 |      0 |   2 |  25 |    1 |      0 |  42 |       51 |      999 |       0 |       11 |       2 |        2 |       1 |   101 |       1 |        2 | 5940 | 7580 |   50718 |   50718 |   50718 |        0 |     381 |       25 |     3800 |       36 |
-|     2015 | 4100568 |   30 | 2.019041e+12 |        61 | 3806 | 380636 | 2806 |    93882 |        1 |        10 |    49 |       1 |      0 |   2 |  27 |    1 |      0 |  39 |      148 |      153 |       0 |        1 |       2 |        2 |       1 |   114 |       1 |        2 |  726 | 8564 |   43164 |   43164 |   43164 |        0 |     325 |       24 |     3800 |       36 |
-|     2015 | 4100570 |   20 | 2.019041e+12 |        47 | 4004 | 400436 |  453 |    16834 |        1 |        10 |    20 |       4 |      2 |   2 |  45 |    4 |      0 | 500 |      706 |      999 |       3 |       43 |       2 |        1 |       2 |    63 |       1 |        2 | 4850 | 4390 |    5503 |   16834 |    5503 |        0 |      62 |       24 |     3200 |       36 |
-|     2015 | 4100570 |   20 | 2.019041e+12 |        47 | 4004 | 400436 |  453 |    16834 |        1 |        10 |    20 |       4 |      2 |   1 |  49 |    4 |      0 | 500 |      706 |      999 |       3 |       43 |       2 |        1 |       2 |    65 |       1 |        2 | 4030 | 8680 |   11331 |   16834 |   11331 |        0 |      62 |       16 |     3800 |       36 |
-|     2015 | 4100570 |   20 | 2.019041e+12 |        47 | 4004 | 400436 |  453 |    16834 |        1 |        10 |    13 |       4 |      0 |   1 |  21 |    4 |      0 | 500 |      706 |      999 |       2 |       43 |       2 |        1 |       2 |    63 |       3 |        1 | 2545 | 7860 |       0 |   16834 |       0 |        0 |      62 |       33 |        0 |        0 |
-|     2015 | 4100570 |   20 | 2.019041e+12 |        47 | 4004 | 400436 |  453 |    16834 |        1 |        10 |    18 |       4 |      0 |   2 |  10 |    4 |      0 |  36 |      706 |      999 |       0 |       43 |       2 |        1 |       2 |    17 |       0 |        0 |    0 |    0 | 9999999 |   16834 |  999999 |    99999 |      62 |        0 |        0 |        0 |
 
 ``` r
 # Read in PUMA outcomes data
@@ -51,19 +33,7 @@ merged_data <- merge(census_data, health_data, by = "puma")
 
 # Deprecate census data alone
 rm(census_data)
-
-# Observe first several rows of merged census and health outcomes data
-head(merged_data) %>% knitr::kable()
 ```
-
-| puma | multyear |  serial | hhwt |      cluster | countyfip | strata | rent | hhincome | foodstmp | cihispeed | perwt | famsize | nchild | sex | age | race | hispan | bpl | ancestr1 | ancestr2 | citizen | language | hcovany | hcovpriv | hcovpub | educd | empstat | labforce |  occ |  ind | inctot | ftotinc | incwage | incwelfr | poverty | occscore | pwpuma00 | tranwork | puma\_death\_rate | puma\_hosp\_rate | puma\_vacc\_per |
-|-----:|---------:|--------:|-----:|-------------:|----------:|-------:|-----:|---------:|---------:|----------:|------:|--------:|-------:|----:|----:|-----:|-------:|----:|---------:|---------:|--------:|---------:|--------:|---------:|--------:|------:|--------:|---------:|-----:|-----:|-------:|--------:|--------:|---------:|--------:|---------:|---------:|---------:|------------------:|-----------------:|----------------:|
-| 3701 |     2017 | 4301368 |   25 | 2.019043e+12 |         5 | 370136 |    0 |   166870 |        1 |        20 |    18 |       2 |      0 |   1 |  58 |    1 |      0 | 465 |      999 |      999 |       2 |        1 |       2 |        2 |       1 |   116 |       1 |        2 | 2100 | 7270 |  83435 |  166870 |   83435 |        0 |     501 |       62 |     3800 |       36 |          398.2366 |         1064.624 |        55.79213 |
-| 3701 |     2018 | 4429112 |   22 | 2.019044e+12 |         5 | 370136 | 1018 |   123192 |        1 |        10 |    22 |       2 |      0 |   1 |  52 |    2 |      0 | 600 |      522 |      999 |       2 |       60 |       2 |        2 |       1 |    81 |       1 |        2 | 9142 | 6190 | 107920 |  123192 |   85522 |        0 |     501 |       22 |     3800 |       10 |          398.2366 |         1064.624 |        55.79213 |
-| 3701 |     2019 | 4496321 |   17 | 2.019045e+12 |         5 | 370136 | 2000 |   125000 |        1 |        10 |    16 |       1 |      0 |   2 |  59 |    1 |      2 | 110 |      200 |      261 |       0 |       12 |       2 |        2 |       1 |    81 |       1 |        2 | 5740 | 6870 | 125000 |  125000 |  125000 |        0 |     501 |       22 |     3800 |       31 |          398.2366 |         1064.624 |        55.79213 |
-| 3701 |     2017 | 4272796 |    6 | 2.019043e+12 |         5 | 370136 |    0 |   140588 |        2 |        10 |     4 |       6 |      3 |   1 |  64 |    4 |      0 | 500 |      706 |      999 |       2 |       43 |       2 |        1 |       2 |   114 |       3 |        1 | 1050 | 8191 |  11264 |  140588 |       0 |        0 |     388 |       33 |        0 |        0 |          398.2366 |         1064.624 |        55.79213 |
-| 3701 |     2015 | 4184953 |   19 | 2.019042e+12 |         5 | 370136 | 1058 |    52876 |        1 |        10 |    20 |       2 |      1 |   1 |  44 |    1 |      4 | 300 |      237 |      999 |       2 |       12 |       2 |        1 |       2 |    81 |       1 |        2 | 4220 | 7072 |  32373 |   52876 |   32373 |        0 |     309 |       19 |     3800 |       36 |          398.2366 |         1064.624 |        55.79213 |
-| 3701 |     2016 | 4255659 |    9 | 2.019043e+12 |         5 | 370136 |    0 |    26101 |        1 |        10 |     9 |       1 |      0 |   2 |  64 |    1 |      0 |  36 |       50 |       32 |       0 |        1 |       2 |        2 |       1 |   114 |       1 |        2 | 2360 | 7890 |  26101 |   26101 |   12784 |        0 |     198 |       20 |     3100 |       10 |          398.2366 |         1064.624 |        55.79213 |
 
 ``` r
 # Clean the merged census and outcomes data
@@ -212,47 +182,88 @@ cleaned_data =
 
 # Exploratory Analysis
 
-To accommodate our exploratory analysis, we develop a few particular
-kinds of data frames from the primary cleaned data frame, as well as
-functions to run quick, replicable analysis upon certain sets of
-variables from particular data frames.
+On this page, we’ll explore overall trends for our key outcomes –
+hospitalizations, deaths, and vaccinations – across PUMAs and boroughs
+in New York City, as well as high-level trends for how these outcomes
+correlate with census predictors, including major demographic variables
+like age, race, and sex.
 
 ## Overview of Outcome Variables
 
 ### Outcomes by PUMA
 
-How are key outcomes distributed across PUMAs?
+We can observe that **hospitalization rates from as low as \~0.4% to
+nearly 2% (a 5x difference)** by PUMA (see [NYC Map of PUMAs and
+Community
+Districts](https://www1.nyc.gov/assets/planning/download/pdf/data-maps/nyc-population/census2010/puma_cd_map.pdf)),
+**death rates range from just over 0.05% all the way to above 0.6% (a
+12x difference!)**, and **vaccination rates range from as low as \~30%
+to above 100%** in one PUMA (as an artifact of migration between PUMA –
+a known issue in NYC DOHMH data). Excluding this vaccination outlier,
+the PUMAs with higher vaccination rates tend to have 75-85% of their
+residents vaccinated.
 
-![](cleaned_exploratory_analysis_files/figure-gfm/outcomes%20all%20PUMAs-1.png)<!-- -->
+<img src="cleaned_exploratory_analysis_files/figure-gfm/outcomes all PUMAs-1.png" style="display: block; margin: auto;" />
 
-Which PUMAs have the worst and best outcomes?
+<img src="cleaned_exploratory_analysis_files/figure-gfm/worst PUMA outcomes-1.png" style="display: block; margin: auto;" />
 
-![](cleaned_exploratory_analysis_files/figure-gfm/worst%20PUMA%20outcomes-1.png)<!-- -->
+<img src="cleaned_exploratory_analysis_files/figure-gfm/best PUMA outcomes-1.png" style="display: block; margin: auto;" />
 
-![](cleaned_exploratory_analysis_files/figure-gfm/best%20PUMA%20outcomes-1.png)<!-- -->
+While our regression analysis more fully explores potential collinearity
+of our outcomes variables, we were interested how well hospitalizations,
+deaths, and vaccinations tracked each other at the PUMA level. Our
+findings show that across PUMAs in all boroughs, **hospitalizations and
+deaths had a 0.913 correlation**, which was highly statistically
+significant, whereas **vaccination was not significantly correlated with
+either hospitalization or fatality.**
 
-What about with PUMAs in the same order?
+<img src="cleaned_exploratory_analysis_files/figure-gfm/key outcome associations-1.png" style="display: block; margin: auto;" />
 
-![](cleaned_exploratory_analysis_files/figure-gfm/outcomes%20sorted%20by%20puma-1.png)<!-- -->
+<img src="cleaned_exploratory_analysis_files/figure-gfm/outcome correlations-1.png" style="display: block; margin: auto;" />
 
-How do key outcomes associate with each other at the PUMA level?
-
-![](cleaned_exploratory_analysis_files/figure-gfm/key%20outcome%20associations-1.png)<!-- -->
-
-![](cleaned_exploratory_analysis_files/figure-gfm/outcome%20correlations-1.png)<!-- -->![](cleaned_exploratory_analysis_files/figure-gfm/outcome%20correlations-2.png)<!-- -->
+``` r
+# ggpairs correlations between key pairs, faceted by borough
+puma_level_data %>% 
+  select(covid_hosp_rate, covid_death_rate, covid_vax_rate, borough) %>% 
+  mutate(
+    covid_hosp_rate = covid_hosp_rate,
+    covid_death_rate = covid_death_rate
+  ) %>% 
+  rename(
+    "Hospitalized" = covid_hosp_rate,
+    "Deceased" = covid_death_rate,
+    "Vaccinated" = covid_vax_rate,
+    "Borough" = borough
+  ) %>% 
+  ggpairs(
+    title = "Correlations Between Key Outcomes",
+    subtitle = "By Borough",
+    ggplot2::aes(color = Borough, alpha = 0.3)
+  ) + 
+  scale_fill_discrete() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
 
 ### Outcomes by Borough
 
-Within each borough, how are PUMAs distributed on each key outcome?
+Beyond exploring our data at the PUMA level, we were keen to understand
+trends at the borough level as well.
 
-![](cleaned_exploratory_analysis_files/figure-gfm/hospitalizations%20by%20borough-1.png)<!-- -->
+We can observe that hospitalization rates are generally more favorable
+in **Manhattan and Brooklyn and less favorable in Queens and the
+Bronx**. Similarly, death rates track hospitalization rates fairly well,
+with the **best outcomes occurring in Manhattan and Brooklyn and the
+worst outcomes occurring largely in Queens.** And unsurprisingly given
+the low correlation between vaccination and death or hospitalization by
+PUMA, we find that **all of the top 10 vaccination rates occur in PUMAs
+found in Manhattan and Queens**, whereas **all of the bottom 10
+vaccination rates occur in PUMAs found in the Bronx and Brooklyn.**
 
-![](cleaned_exploratory_analysis_files/figure-gfm/deaths%20by%20borough-1.png)<!-- -->
+<img src="cleaned_exploratory_analysis_files/figure-gfm/hospitalizations by borough-1.png" style="display: block; margin: auto;" />
 
-![](cleaned_exploratory_analysis_files/figure-gfm/vax%20by%20borough-1.png)<!-- -->
+<img src="cleaned_exploratory_analysis_files/figure-gfm/deaths by borough-1.png" style="display: block; margin: auto;" />
 
-What proportion of PUMAs in a given borough were above or below the
-citywide median on a given outcome?
+<img src="cleaned_exploratory_analysis_files/figure-gfm/vax by borough-1.png" style="display: block; margin: auto;" />
 
 | Borough       | Total PUMAs | % Above Hosp Median | % Above Death Median | % Above Vax Median |
 |:--------------|------------:|--------------------:|---------------------:|-------------------:|
@@ -264,10 +275,22 @@ citywide median on a given outcome?
 
 % of PUMAs in Each Borough Above Citywide PUMA Median
 
-### Outcomes by Demographic Combos
+### Outcomes by Demographic Combinations
 
-Can we determine which age/sex/race combos perform best and worst on
-each outcome?
+It’s quite common for individuals to self-identity according to a
+triplet of demographic variables: age, race, and sex. Epidemiological
+studies often use inclusion or exclusion criteria that explicitly
+restrict study populations to a subset of the overall population for
+each of these variables. As a result, we decided it would be interesting
+to explore how each uniquely-identified triplet (age, race, sex)
+performs on key COVID-19 outcomes. Generally, we find that
+**hospitalization and death rates are lower among young white males and
+females, whereas vaccination rates are higher among Asian and Pacific
+Islanders across ages and sexes. Older American Indiain individuals,
+along with younger and middle-aged Black individuals, tended to have
+lower vaccination rates, while mixed race, American Indian, and “other”
+racial groups tended towards higher hospitalizations and fatalities as
+well.**
 
 ``` r
 # Lowest hospitalization rates
@@ -281,18 +304,19 @@ race_age_sex %>%
   head() %>% 
   knitr::kable(
     caption = "Lowest hospitalization rates",
-    col.names = c("Race", "Age", "Sex", "% Hospitalized")
+    col.names = c("Race", "Age", "Sex", "% Hospitalized"),
+    digits = 2
   )
 ```
 
 | Race  | Age   | Sex    | % Hospitalized |
 |:------|:------|:-------|---------------:|
-| White | 21-30 | Female |      0.8761509 |
-| White | 31-40 | Male   |      0.8859089 |
-| White | 31-40 | Female |      0.8908692 |
-| White | 21-30 | Male   |      0.8963492 |
-| White | 41-50 | Male   |      0.9275371 |
-| White | 41-50 | Female |      0.9347574 |
+| White | 21-30 | Female |           0.88 |
+| White | 31-40 | Male   |           0.89 |
+| White | 31-40 | Female |           0.89 |
+| White | 21-30 | Male   |           0.90 |
+| White | 41-50 | Male   |           0.93 |
+| White | 41-50 | Female |           0.93 |
 
 Lowest hospitalization rates
 
@@ -308,18 +332,19 @@ race_age_sex %>%
   head() %>% 
   knitr::kable(
     caption = "Highest hospitalization rates",
-    col.names = c("Race", "Age", "Sex", "% Hospitalized")
+    col.names = c("Race", "Age", "Sex", "% Hospitalized"),
+    digits = 2
   )
 ```
 
 | Race                       | Age    | Sex    | % Hospitalized |
 |:---------------------------|:-------|:-------|---------------:|
-| American Indian            | 81-90  | Male   |       1.272494 |
-| Other                      | 61-70  | Male   |       1.216953 |
-| Other                      | 11-20  | Male   |       1.211757 |
-| Other                      | 41-50  | Male   |       1.200270 |
-| Other                      | 61-70  | Female |       1.185197 |
-| Asian and Pacific Islander | 91-100 | Male   |       1.173874 |
+| American Indian            | 81-90  | Male   |           1.27 |
+| Other                      | 61-70  | Male   |           1.22 |
+| Other                      | 11-20  | Male   |           1.21 |
+| Other                      | 41-50  | Male   |           1.20 |
+| Other                      | 61-70  | Female |           1.19 |
+| Asian and Pacific Islander | 91-100 | Male   |           1.17 |
 
 Highest hospitalization rates
 
@@ -335,18 +360,19 @@ race_age_sex %>%
   head() %>% 
   knitr::kable(
     caption = "Lowest death rates",
-    col.names = c("Race", "Age", "Sex", "% Deceased")
+    col.names = c("Race", "Age", "Sex", "% Deceased"),
+    digits = 2
   )
 ```
 
 | Race  | Age   | Sex    | % Deceased |
 |:------|:------|:-------|-----------:|
-| White | 21-30 | Female |  0.2376629 |
-| White | 31-40 | Male   |  0.2424339 |
-| White | 21-30 | Male   |  0.2435737 |
-| White | 31-40 | Female |  0.2455473 |
-| Other | 81-90 | Male   |  0.2541018 |
-| White | 41-50 | Male   |  0.2564677 |
+| White | 21-30 | Female |       0.24 |
+| White | 31-40 | Male   |       0.24 |
+| White | 21-30 | Male   |       0.24 |
+| White | 31-40 | Female |       0.25 |
+| Other | 81-90 | Male   |       0.25 |
+| White | 41-50 | Male   |       0.26 |
 
 Lowest death rates
 
@@ -362,18 +388,19 @@ race_age_sex %>%
   head() %>% 
   knitr::kable(
     caption = "Highest death rates",
-    col.names = c("Race", "Age", "Sex", "% Deceased")
+    col.names = c("Race", "Age", "Sex", "% Deceased"),
+    digits = 2
   )
 ```
 
 | Race                       | Age    | Sex  | % Deceased |
 |:---------------------------|:-------|:-----|-----------:|
-| 2+ races                   | 91-100 | Male |  0.3525028 |
-| Asian and Pacific Islander | 91-100 | Male |  0.3386789 |
-| American Indian            | 81-90  | Male |  0.3246158 |
-| Other                      | 11-20  | Male |  0.3228600 |
-| Other                      | 41-50  | Male |  0.3220782 |
-| Other                      | 71-80  | Male |  0.3202419 |
+| 2+ races                   | 91-100 | Male |       0.35 |
+| Asian and Pacific Islander | 91-100 | Male |       0.34 |
+| American Indian            | 81-90  | Male |       0.32 |
+| Other                      | 11-20  | Male |       0.32 |
+| Other                      | 41-50  | Male |       0.32 |
+| Other                      | 71-80  | Male |       0.32 |
 
 Highest death rates
 
@@ -389,18 +416,19 @@ race_age_sex %>%
   head() %>% 
   knitr::kable(
     caption = "Lowest vaccination rates",
-    col.names = c("Race", "Age", "Sex", "% Vaccinated")
+    col.names = c("Race", "Age", "Sex", "% Vaccinated"),
+    digits = 2
   )
 ```
 
 | Race            | Age    | Sex    | % Vaccinated |
 |:----------------|:-------|:-------|-------------:|
-| American Indian | 71-80  | Male   |     49.32433 |
-| Black           | 11-20  | Female |     49.35445 |
-| Black           | &lt;11 | Male   |     49.47578 |
-| Black           | 11-20  | Male   |     49.48017 |
-| Black           | 31-40  | Female |     49.49496 |
-| Black           | &lt;11 | Female |     49.51926 |
+| American Indian | 71-80  | Male   |        49.32 |
+| Black           | 11-20  | Female |        49.35 |
+| Black           | &lt;11 | Male   |        49.48 |
+| Black           | 11-20  | Male   |        49.48 |
+| Black           | 31-40  | Female |        49.49 |
+| Black           | &lt;11 | Female |        49.52 |
 
 Lowest vaccination rates
 
@@ -416,83 +444,161 @@ race_age_sex %>%
   head() %>% 
   knitr::kable(
     caption = "Highest vaccination rates",
-    col.names = c("Race", "Age", "Sex", "% Vaccinated")
+    col.names = c("Race", "Age", "Sex", "% Vaccinated"),
+    digits = 2
   )
 ```
 
 | Race                       | Age    | Sex    | % Vaccinated |
 |:---------------------------|:-------|:-------|-------------:|
-| Asian and Pacific Islander | 91-100 | Female |     66.13596 |
-| Asian and Pacific Islander | 71-80  | Female |     65.89982 |
-| Asian and Pacific Islander | 71-80  | Male   |     65.73426 |
-| Asian and Pacific Islander | 31-40  | Male   |     65.61553 |
-| Asian and Pacific Islander | 31-40  | Female |     65.57662 |
-| 2+ races                   | 81-90  | Male   |     65.47910 |
+| Asian and Pacific Islander | 91-100 | Female |        66.14 |
+| Asian and Pacific Islander | 71-80  | Female |        65.90 |
+| Asian and Pacific Islander | 71-80  | Male   |        65.73 |
+| Asian and Pacific Islander | 31-40  | Male   |        65.62 |
+| Asian and Pacific Islander | 31-40  | Female |        65.58 |
+| 2+ races                   | 81-90  | Male   |        65.48 |
 
 Highest vaccination rates
 
 ## Associations between Predictors and Outcomes
 
-How do key predictors correlate with key outcomes at the PUMA level?
+After exploring our outcomes geospatially (across PUMAs and boroughs),
+as well as on key demographic combinations, we turned towards our larger
+set of predictors from the census data to determine which, at the PUMA
+level, were significantly associated with our outcomes at the p &lt;
+0.01 significance level.
 
-![](cleaned_exploratory_analysis_files/figure-gfm/correlations%20predictors%20vs%20outcomes-1.png)<!-- -->
+In the correlation matrix below, we include correlation scores only for
+those correlations that are highly statistically significant.
 
-For each of the four most correlated variables (excluding obvious
-redundancies) with each outcome, can we explore more precisely the
-relationship between outcome and predictor?
+**Correlates of worse outcomes**
 
-First, across PUMAs:
+-   Variables highly correlated with more hospitalizations: % US
+    citizenship, % foreign born
+-   Variables highly correlated with more deaths: % US citizenship, %
+    foreign born
+-   Variables highly correlated with fewer vaccinations: % on welfare, %
+    unemployed, % below poverty line, % on food stamps
 
-![](cleaned_exploratory_analysis_files/figure-gfm/PUMA%20hospitalization%20rate%20vs%20predictor-1.png)<!-- -->
+**Correlates of better outcomes**
 
-![](cleaned_exploratory_analysis_files/figure-gfm/PUMA%20death%20rate%20vs%20predictor-1.png)<!-- -->
+-   Variables highly correlated with fewer hospitalizations: % white, %
+    using public transit to get to work, % with health insurance, %
+    speaking English at home, % with college education, % with broadband
+    access, median personal/household income
+-   Variables highly correlated with fewer deaths: % using public
+    transit to get to work, % with health insurance, % college educated,
+    median personal/household income
+-   Variables highly correlated with more vaccinations: % white, % male,
+    % college educated, % with broadband access, median age, and median
+    personal/household income
 
-![](cleaned_exploratory_analysis_files/figure-gfm/PUMA%20vax%20rate%20vs%20predictor-1.png)<!-- -->
+Income seems strongly associated with all three COVID-19 outcome
+variables across PUMAs, which resonates with [prior
+analysis](https://twitter.com/youyanggu/status/1407418434955005955)
+showing that income levels and income inequality are highly predictive
+of COVID deaths, among other outcomes.
 
-Then, across all interviews, for key demographic predictors:
+Another interesting finding is that signifiers of poverty – food stamp
+use, welfare use, and unemployment, for example – tend to be more
+associated with vaccination than with outcomes of transmission, like
+hospitalization or death. This is a fascinating indicator that
+vaccination, which may be considered a more “active” outcome than the
+other two – since it requires one to take an action on their own
+volition or motivation – may be more associated with structural
+inequality compared to more “passive” transmission.
 
-![](cleaned_exploratory_analysis_files/figure-gfm/hospitalization%20rate%20by%20demo-1.png)<!-- -->
+<img src="cleaned_exploratory_analysis_files/figure-gfm/correlations predictors vs outcomes-1.png" style="display: block; margin: auto;" />
 
-![](cleaned_exploratory_analysis_files/figure-gfm/death%20rate%20by%20demo-1.png)<!-- -->
+We then selected each of the four variables with highest correlation
+(positive or negative) for each outcome, excluding obvious redundancies
+(like personal income and household income), and explored specific
+association trends between predictor and outcome, colored by borough.
+The following graphs explore the variation across PUMAs on each major
+predictor vs. outcome, colored by borough.
 
-![](cleaned_exploratory_analysis_files/figure-gfm/vax%20rate%20by%20demo-1.png)<!-- -->
+<img src="cleaned_exploratory_analysis_files/figure-gfm/PUMA hospitalization rate vs predictor-1.png" style="display: block; margin: auto;" />
 
-And finally across all interviews for key socioeconomic predictors:
+<img src="cleaned_exploratory_analysis_files/figure-gfm/PUMA death rate vs predictor-1.png" style="display: block; margin: auto;" />
 
-![](cleaned_exploratory_analysis_files/figure-gfm/hosp%20rate%20by%20ses-1.png)<!-- -->
+<img src="cleaned_exploratory_analysis_files/figure-gfm/PUMA vax rate vs predictor-1.png" style="display: block; margin: auto;" />
 
-![](cleaned_exploratory_analysis_files/figure-gfm/death%20rate%20by%20ses-1.png)<!-- -->
+Beyond the predictors significantly associated with each outcome, we
+wanted to focus as well on how outcomes varied by levels of key
+socioeconomic variables – namely, race, age group, and sex. Because we
+lack individual outcome data (i.e. each census observation within a
+given PUMA has the same PUMA-level hospitalization, death, and
+vaccination rate), we assumed for this analysis that all persons in a
+given PUMA had equal likelihood of a particular outcome
+(hospitalization, death, or vaccination) being true, with the likelihood
+corresponding to the PUMA outcome rate.
 
-![](cleaned_exploratory_analysis_files/figure-gfm/vax%20rate%20by%20ses-1.png)<!-- -->
+Below, we exclude some of the graphs for sex, since we found that males
+and females appear similar on each outcome. That said, we found older
+age groups tend to have higher hospitalization and death rates, but also
+higher vaccination rates. In general, white individuals also have a
+lower likelihood of hospitalization and death (matching the race-sex-age
+triplets we explored earlier), as well as a higher likelihood of
+vaccination (along with Asian and Pacific Islanders).
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/hospitalization rate by demo-1.png" style="display: block; margin: auto;" />
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/death rate by demo-1.png" style="display: block; margin: auto;" />
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/vax rate by demo-1.png" style="display: block; margin: auto;" />
+
+Similarly, we explored how key outcomes varied across categories of a
+few seemingly important predictor variables for each outcome observed in
+our correlation matrix. We found in the analysis below that all outcomes
+generally improve with higher income – again, confirming our correlation
+matrix findings. Education also generally appears protective of poor
+health outcomes from COVID-19. A couple of other interesting findings
+include: \* Individuals with public health insurance perform similarly
+to those with no insurance at all \* Individuals with unknown
+citizenship status tend to have lower death rates, which we hypothesize
+may be the result of under-reporting perhaps due to stigma and/or
+potential skepticism of city authorities that may result in US
+citizenship documentation issues
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/hosp rate by ses-1.png" style="display: block; margin: auto;" />
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/death rate by ses-1.png" style="display: block; margin: auto;" />
+
+<img src="cleaned_exploratory_analysis_files/figure-gfm/vax rate by ses-1.png" style="display: block; margin: auto;" />
 
 ## Associations between Predictors and Outcomes by Borough
 
-What kinds of disparities occur within each borough on key outcome rates
-across levels of a predictor?
+Finally, we were interested in observing disparities *within* boroughs.
+Each of the following visualizations has three panels: number of people
+with outcome, categorized by borough and colored by predictor level; %
+of people with outcome in each borough, colored by predictor level,
+compared to the overall composition of the borough by predictor level;
+and percent with outcome variable, in each borough, plotted by level of
+predictor.
 
-First, hospitalizations:
+One notable finding that became immediately clear to us is the Manhattan
+generally seems to be the most “unequal” borough when exploring how
+different demographic groups fare on key outcomes. For example,
+Manhattan has the greatest variation between racial groups on
+hospitalization and death rate, as well as between age groups on
+hospitalization rate, and too between racial groups and age groups on
+vaccination rate. Generally, Manhattan appears more unequal than other
+boroughs, which also tracks with the [greater income inequality known to
+exist](https://furmancenter.org/stateofthecity/view/citywide-and-borough-data)
+in Manhattan than in other NYC boroughs.
 
-![](cleaned_exploratory_analysis_files/figure-gfm/hospitalization%20borough%20disparities-1.png)<!-- -->![](cleaned_exploratory_analysis_files/figure-gfm/hospitalization%20borough%20disparities-2.png)<!-- -->![](cleaned_exploratory_analysis_files/figure-gfm/hospitalization%20borough%20disparities-3.png)<!-- -->
+<img src="cleaned_exploratory_analysis_files/figure-gfm/hospitalization borough disparities-1.png" style="display: block; margin: auto;" /><img src="cleaned_exploratory_analysis_files/figure-gfm/hospitalization borough disparities-2.png" style="display: block; margin: auto;" />
 
-Then, deaths:
+<img src="cleaned_exploratory_analysis_files/figure-gfm/death borough disparities-1.png" style="display: block; margin: auto;" /><img src="cleaned_exploratory_analysis_files/figure-gfm/death borough disparities-2.png" style="display: block; margin: auto;" />
 
-![](cleaned_exploratory_analysis_files/figure-gfm/death%20borough%20disparities-1.png)<!-- -->![](cleaned_exploratory_analysis_files/figure-gfm/death%20borough%20disparities-2.png)<!-- -->![](cleaned_exploratory_analysis_files/figure-gfm/death%20borough%20disparities-3.png)<!-- -->
+<img src="cleaned_exploratory_analysis_files/figure-gfm/vax borough disparities-1.png" style="display: block; margin: auto;" /><img src="cleaned_exploratory_analysis_files/figure-gfm/vax borough disparities-2.png" style="display: block; margin: auto;" />
 
-And finally, vaccinations:
+The following heatmaps similarly indicate such variations across PUMAs
+within a given borough, which appear more significant for race than for
+age and sex.
 
-![](cleaned_exploratory_analysis_files/figure-gfm/vax%20borough%20disparities-1.png)<!-- -->![](cleaned_exploratory_analysis_files/figure-gfm/vax%20borough%20disparities-2.png)<!-- -->![](cleaned_exploratory_analysis_files/figure-gfm/vax%20borough%20disparities-3.png)<!-- -->
+<img src="cleaned_exploratory_analysis_files/figure-gfm/borough predictor heatmap hosp-1.png" style="display: block; margin: auto;" />
 
-A note for later – we could try this for key SES indicators as well,
-such as:
+<img src="cleaned_exploratory_analysis_files/figure-gfm/borough predictor heatmap death-1.png" style="display: block; margin: auto;" />
 
-![](cleaned_exploratory_analysis_files/figure-gfm/vax%20borough%20ses%20disparity-1.png)<!-- -->
-
-And finally, we can visualize outcomes on a given predictor across
-boroughs in the following way – for simplicity’s sake, only demographic
-variables and outcomes included here.
-
-![](cleaned_exploratory_analysis_files/figure-gfm/borough%20predictor%20heatmap%20hosp-1.png)<!-- -->
-
-![](cleaned_exploratory_analysis_files/figure-gfm/borough%20predictor%20heatmap%20death-1.png)<!-- -->
-
-![](cleaned_exploratory_analysis_files/figure-gfm/borough%20predictor%20heatmap%20vax-1.png)<!-- -->
+<img src="cleaned_exploratory_analysis_files/figure-gfm/borough predictor heatmap vax-1.png" height="150%" style="display: block; margin: auto;" />
