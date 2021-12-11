@@ -331,13 +331,19 @@ pbyp <- function(df) {
 # The Croon-Veldhoven Procedure
 
 ```{r}
-# construct
+# construct dataset of indices (pumas) and inputs (predictors)
 inputs_plus_index <-
   cleaned_data %>%
+  # remove extraneous variables
   select(-c(
-    hhwt, borough,
-    US_citizen, puma_death_rate, puma_hosp_rate, puma_vacc_rate
+      # outputs are already observed at the group level
+      puma_death_rate, puma_hosp_rate, puma_vacc_rate
+      # miscellaneous
+    , hhwt, borough
+      # US_citizen is precisely the same as birthplace, and hence collinear
+    , US_citizen
   )) %>%
+  # replace missing data with weighted group means
   mutate(
     personal_income = replace_na(
         personal_income
@@ -349,34 +355,26 @@ inputs_plus_index <-
     )
   )
 
+# extract inputs
 inputs <- inputs_plus_index %>% select(-c(puma, perwt))
+# feed inputs to model.matrix to convert factors to dummies
 inputs <- as_tibble(model.matrix(~ ., inputs)[ , -1])
 
+# redefine inputs_plus_index to include model.matrix output
 inputs_plus_index <-
   inputs_plus_index %>%
   select(puma) %>%
   bind_cols(inputs)
 
-# function that returns (possibly weighted) product of vector with its transpose
-vvt <- function(v) {
-  u <- as.vector(v)
-  u %*% t(u)
-}
-
-# function that applies vvt to rows of a data frame
-vvt_map <- function(df) {
-  pmap(df, ~ vvt(c(...)))
-}
-
-# function that applies vvt to difference of data frames, then adds matrices
-pbyp <- function(df) {
-  Reduce("+", vvt_map(df))
-}
-
-w  <- pull(cleaned_data, perwt) / sum(pull(cleaned_data, perwt))
-n  <- nrow(inputs_plus_index)
-g  <- length(unique(pull(inputs_plus_index, puma)))
-ng <- inputs_plus_index %>% group_by(puma) %>% summarize(ng = n()) %>% pull(ng)
+# compute relevant statistics for ANOVA
+w  <- pull(cleaned_data, perwt) / sum(pull(cleaned_data, perwt)) # normalized weights
+n  <- nrow(inputs_plus_index)                                    # NYC population
+g  <- length(unique(pull(inputs_plus_index, puma)))              # number of PUMAs
+ng <-                                                            # PUMA populations
+  inputs_plus_index %>%
+  group_by(puma) %>%
+  summarize(ng = n()) %>%
+  pull(ng)
 
 means_observed  <-
   inputs %>%
