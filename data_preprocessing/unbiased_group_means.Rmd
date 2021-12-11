@@ -376,6 +376,7 @@ ng <-                                                            # PUMA populati
   summarize(ng = n()) %>%
   pull(ng)
 
+# identify citywide means
 means_observed  <-
   inputs %>%
   mutate(across(
@@ -383,28 +384,35 @@ means_observed  <-
     , ~ replace(.x, TRUE, wmean(.x, w))
   ))
 
+# identify observed puma-level means
 group_means_observed <-
   inputs_plus_index %>%
   mutate(perwt = pull(cleaned_data, perwt)) %>%
   group_by(puma) %>%
+  # use helper function to apply weighting across numeric columns
   mutate(across(where(is.numeric), ~ replace(.x, TRUE, wmean(.x, perwt))
   )) %>%
   ungroup() %>%
   select(-c(puma, perwt))
 
+# the above matrices have the same dimensionality as our inputs matrix
+# we additionally require the collapsed versions of these matrices
 means_vector <- means_observed %>% distinct()
 group_means_vector <- group_means_observed %>% distinct()
 
-msa <- pbyp(w^(0.5) * (group_means_observed - means_observed))
-mse <- pbyp(w^(0.5) * (group_means_observed - inputs))
+# compute ANOVA statistics
+msa <- pbyp(w^(0.5) * (group_means_observed - means_observed)) # between SSE (weighted)
+mse <- pbyp(w^(0.5) * (group_means_observed - inputs))         # within SSE (weighted)
+between_error <- (msa - mse) / n                               # between variation
+within_error  <-  mse                                          # within variation
 
-within_error  <-  mse
-#between_error <- n * (g - 1) * (msa - msa) / (sum(ng)^2 - sum(ng^2))
-between_error <- (msa - mse) / n
-
+# define a function that applies croon-veldhoven weighting
 jimcol <- function(k, x) {
+  # weight matrix 
   W <- solve(between_error + within_error / k) %*% between_error
+  # convex combination of citywide mean and observed mean, based on W
   u <- unlist(means_vector) %*% (diag(ncol(inputs)) - W) + unlist(x) %*% W
+  # output adjusted mean vector
   u
 }
 
