@@ -85,6 +85,8 @@ While a number of studies have examined [differential outcomes across NYC neighb
 
 Our initial questions are centered on how demographic factors in New York City trend with COVID-19 outcomes. Particularly, what are the key demographic correlates (e.g. race/ethnicity, education) of COVID-19 hospitalizations or vaccinations? Do PUMAs with more individuals on public health insurance fair equally well on key outcomes compared to those with more individuals on private health insurance? How does household income fit into the equation? Broadly, we aim to explore the myriad relationships between predictors and COVID-19 outcomes across New York City census tracts and boroughs.
 
+See the website that accompanies this report [here](https://zacharykatz1.github.io/nyc_covid_trends/index.html) and the underlying website code [here](https://github.com/zacharykatz1/nyc_covid_trends).
+
 ## Data Sources and Cleaning
 
 ### Data Sources
@@ -119,10 +121,10 @@ The following columns were used to convert ZCTA-level outcome data to PUMA-level
 
 * `per_of_puma`: percentage of the specified PUMA occupied by the specified ZCTA
 
-The following shows the mathematical expression used to convert from ZCTA-level outcome data to PUMA-level outcome data:
+The following shows the mathematical expression used to convert from ZCTA-level outcome data $(Z_i)$ to PUMA-level outcome data $(P_j)$:
 
 $$
-\sum_{i = 1}^{n} \text{zcta_outcome_data}_{i} \cdot \text{per_in_puma}_{i} \cdot \text{per_of_puma}_{i} = \text{puma_outcome_data}
+\sum_{i = 1}^{n} Z_{i} \cdot \text{per_in_puma}_{ij} \cdot \text{per_of_puma}_{ij} = P_j
 $$
 
 This bridged us towards one cumulative incidence measure per PUMA (per 100,000 people for hospitalizations and deaths, and per 100 people for vaccinations). 
