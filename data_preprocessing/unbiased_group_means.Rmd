@@ -18,6 +18,7 @@ library(tidyverse)
 knitr::opts_chunk$set(
     echo      = TRUE
   , message   = FALSE
+  , warning   = FALSE
   , fig.width = 6
   , fig.asp   = .6
   , out.width = "90%"
@@ -43,7 +44,7 @@ scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete   = scale_fill_viridis_d
 ```
 
-# Unzipping the Census Data
+## Unzipping the Census Data
 
 ```{r unzipping census data}
 jimzip <- function(csv_file, path) {
@@ -65,7 +66,7 @@ jimzip <- function(csv_file, path) {
 census_data <- jimzip("census_filtered.csv", "./data")
 ```
 
-# Merging the Outcome Data
+## Merging the Outcome Data
 
 ```{r}
 # Read in PUMA outcomes data
@@ -77,9 +78,6 @@ merged_data <- merge(census_data, health_data, by = "puma")
 
 # Deprecate census data alone
 rm(census_data)
-
-# Observe first several rows of merged census and health outcomes data
-head(merged_data) %>% knitr::kable()
 ```
 
 ## Cleaning the Data
@@ -303,11 +301,10 @@ wmean <- function(v, w = rep(1, length(v)), remove_na = TRUE) {
   sum(w * v, na.rm = TRUE) / sum(w, na.rm = TRUE)
 }
 
-test <-
+inputs_plus_index <-
   cleaned_data %>%
-  #select(puma, perwt, household_income, personal_income, age) %>%
   select(-c(
-    serial, hhwt, cluster, borough, strata,
+    hhwt, borough,
     US_citizen, puma_death_rate, puma_hosp_rate, puma_vacc_rate
   )) %>%
   mutate(
@@ -321,8 +318,13 @@ test <-
     )
   )
 
-X <- test %>% select(-c(puma, perwt))
-X <- as_tibble(model.matrix(~ ., X)[ , -1])
+inputs <- inputs_plus_index %>% select(-c(puma, perwt))
+inputs <- as_tibble(model.matrix(~ ., inputs)[ , -1])
+
+inputs_plus_index <-
+  inputs_plus_index %>%
+  select(puma) %>%
+  bind_cols(inputs)
 
 # function that returns (possibly weighted) product of vector with its transpose
 vvt <- function(v) {
@@ -340,71 +342,61 @@ pbyp <- function(df) {
   Reduce("+", vvt_map(df))
 }
 
-w  <- pull(test, perwt) / sum(pull(test, perwt))
-n  <- nrow(test) # wsum(w)
-g  <- length(unique(pull(test, puma)))
-ng <- test %>% group_by(puma) %>% summarize(ng = n()) %>% pull(ng)
-#ng <- test %>% group_by(puma) %>% summarize(ng = wsum(perwt)) %>% pull(ng)
+w  <- pull(cleaned_data, perwt) / sum(pull(cleaned_data, perwt))
+n  <- nrow(inputs_plus_index)
+g  <- length(unique(pull(inputs_plus_index, puma)))
+ng <- inputs_plus_index %>% group_by(puma) %>% summarize(ng = n()) %>% pull(ng)
 
-Xbar  <-
-  X %>%
+means_observed  <-
+  inputs %>%
   mutate(across(
       everything()
-    , ~ replace(.x, TRUE, wmean(.x, pull(test, perwt)))
+    , ~ replace(.x, TRUE, wmean(.x, w))
   ))
 
-Xbarg <-
-  cbind(puma = pull(test, puma), w = w, X) %>%
+group_means_observed <-
+  inputs_plus_index %>%
+  mutate(perwt = pull(cleaned_data, perwt)) %>%
   group_by(puma) %>%
-  mutate(across(
-      everything()
-    , ~ replace(.x, TRUE, wmean(.x, w))
+  mutate(across(where(is.numeric), ~ replace(.x, TRUE, wmean(.x, perwt))
   )) %>%
   ungroup() %>%
-  select(-c(puma, w))
+  select(-c(puma, perwt))
 
-xbar <- Xbar[1, ]
+means_vector <- means_observed %>% distinct()
+group_means_vector <- group_means_observed %>% distinct()
 
-xbarg <-
-  cbind(puma = pull(test, puma), w = w, X) %>%
-  group_by(puma) %>%
-  mutate(across(
-      everything()
-    , ~ replace(.x, TRUE, wmean(.x, w))
-  )) %>%
-  distinct() %>%
-  ungroup() %>%
-  select(-c(puma, w))
+msa <- pbyp(w^(0.5) * (group_means_observed - means_observed))
+mse <- pbyp(w^(0.5) * (group_means_observed - inputs))
 
-msa <- pbyp(w^(0.5) * (Xbarg - Xbar)) # / (g - 1)
-mse <- pbyp(w^(0.5) * (X - Xbarg)) # / (n - g)
-
-within_error  <- mse
-between_error <- n * (g - 1) * (msa - mse) / (n^2 - sum(ng^2))
-#between_error <- (msa - mse) / n
+within_error  <-  mse
+#between_error <- n * (g - 1) * (msa - msa) / (sum(ng)^2 - sum(ng^2))
+between_error <- (msa - mse) / n
 
 jimcol <- function(k, x) {
   W <- solve(between_error + within_error / k) %*% between_error
-  u <- unlist(xbar) %*% (diag(ncol(X)) - W) + unlist(x) %*% W
+  u <- unlist(means_vector) %*% (diag(ncol(inputs)) - W) + unlist(x) %*% W
   u
 }
 
 ubarg <-
-  test %>%
+  inputs_plus_index %>%
+  mutate(perwt = pull(cleaned_data, perwt)) %>%
   select(puma, perwt) %>%
   group_by(puma) %>%
   summarize(group_pop = sum(perwt)) %>%
-  cbind(xbarg) %>%
-  nest(xbarg = -c(puma, group_pop)) %>%
-  mutate(ubarg = map2(group_pop, xbarg, jimcol)) %>%
+  cbind(group_means_vector) %>%
+  nest(group_means_vector = -c(puma, group_pop)) %>%
+  mutate(ubarg = map2(group_pop, group_means_vector, jimcol)) %>%
   unnest(ubarg) %>%
   pull(ubarg) %>%
   as_tibble()
 
-names(ubarg) <- names(xbarg)
+names(ubarg) <- names(group_means_vector)
 
 unbiased_group_means <-
-  test %>%
+  inputs_plus_index %>%
+  mutate(perwt = pull(cleaned_data, perwt)) %>%
   select(puma, perwt) %>%
   group_by(puma) %>%
   summarize(group_pop = sum(perwt)) %>%
@@ -412,22 +404,6 @@ unbiased_group_means <-
   ungroup()  %>%
   janitor::clean_names()
 
-write_csv(unbiased_group_means, "./data/unbiased_group_means.csv")
-
-#lmtest::coeftest(model, vcov = sandwich::vcovHC(model, type = "HC0"))
-```
-
-
-
-```{r}
-health_data <-
-  read_csv("./data/outcome_puma.csv") %>%
-  rename(puma = puma10)
-
-myData <-
-  read_csv("./data/unbiased_group_means.csv") %>%
-  merge(health_data, by = "puma")
-
-
-
+head(unbiased_group_means) %>% knitr::kable()
+# write_csv(unbiased_group_means, "./data/unbiased_group_means.csv")
 ```
