@@ -40,7 +40,7 @@ library(sandwich)
 library(performance)
 library(olsrr)
 library(see)
-# library(kableExtra)
+library(kableExtra)
 
 # set knitr defaults
 knitr::opts_chunk$set(
