@@ -1,14 +1,31 @@
 P8105: Data Science I
 ================
-Regression<br>Jimmy Kelliher (UNI: jmk2303)
+Constructing Unbiased Group Means<br>Jimmy Kelliher (UNI: jmk2303)
 
--   [Unzipping the Census Data](#unzipping-the-census-data)
--   [Merging the Outcome Data](#merging-the-outcome-data)
--   [Cleaning the Data](#cleaning-the-data)
+-   [Overview and Setting Up the
+    Data](#overview-and-setting-up-the-data)
+    -   [Unzipping the Census Data](#unzipping-the-census-data)
+    -   [Merging the Outcome Data](#merging-the-outcome-data)
+    -   [Cleaning the Data](#cleaning-the-data)
+-   [Motivation](#motivation)
+    -   [The Threat of Overfitting](#the-threat-of-overfitting)
+    -   [The Threat of Reverse
+        Causality](#the-threat-of-reverse-causality)
+-   [Aggregating the Input Data](#aggregating-the-input-data)
+    -   [Helper Functions](#helper-functions)
+    -   [The Croon-Veldhoven Procedure](#the-croon-veldhoven-procedure)
 
 <!------------------------------------------------------------------------------
 Preamble
 ------------------------------------------------------------------------------->
+
+# Overview and Setting Up the Data
+
+In this script, we constructed adjusted PUMA-level means of our data to
+address the potential threat of bias. We begin by providing motivation
+as to why the interview-level census data should be aggregated to the
+level of PUMAs, and we conduct the aggregation in a manner that reduces
+bias in a subsequent regression.
 
 ## Unzipping the Census Data
 
@@ -198,9 +215,9 @@ cleaned_data =
   )
 ```
 
-<!------------------------------------------------------------------------------
-Overview
-------------------------------------------------------------------------------->
+# Motivation
+
+## The Threat of Overfitting
 
 When considering a regression to predict health outcomes, our primary
 limitation is that outcomes are recorded at the PUMA-level. This is
@@ -237,6 +254,8 @@ summary(example_overfit) %>%
 | r.squared | adj.r.squared | sigma |  statistic | p.value |  df | df.residual |   nobs |
 |----------:|--------------:|------:|-----------:|--------:|----:|------------:|-------:|
 |         1 |             1 |     0 | 7.4486e+25 |       0 |  54 |      356018 | 356073 |
+
+## The Threat of Reverse Causality
 
 Thus, for any independent variable *x* that we consider to predict
 health outcome *y*, we must ensure that *x* exhibits sufficient
@@ -297,6 +316,10 @@ census data before running a regression. To do this, we follow Croon and
 Veldhoven (2007) to construct adjusted group means that will reduce the
 bias in our aggregated regression.
 
+# Aggregating the Input Data
+
+## Helper Functions
+
 ``` r
 # function that computes a sum of weights
 wsum  <- function(w) {
@@ -307,31 +330,6 @@ wsum  <- function(w) {
 wmean <- function(v, w = rep(1, length(v)), remove_na = TRUE) {
   sum(w * v, na.rm = TRUE) / sum(w, na.rm = TRUE)
 }
-
-inputs_plus_index <-
-  cleaned_data %>%
-  select(-c(
-    hhwt, borough,
-    US_citizen, puma_death_rate, puma_hosp_rate, puma_vacc_rate
-  )) %>%
-  mutate(
-    personal_income = replace_na(
-        personal_income
-      , wmean(personal_income, perwt)
-    )
-    , household_income = replace_na(
-        household_income
-      , wmean(household_income, perwt)
-    )
-  )
-
-inputs <- inputs_plus_index %>% select(-c(puma, perwt))
-inputs <- as_tibble(model.matrix(~ ., inputs)[ , -1])
-
-inputs_plus_index <-
-  inputs_plus_index %>%
-  select(puma) %>%
-  bind_cols(inputs)
 
 # function that returns (possibly weighted) product of vector with its transpose
 vvt <- function(v) {
@@ -348,12 +346,57 @@ vvt_map <- function(df) {
 pbyp <- function(df) {
   Reduce("+", vvt_map(df))
 }
+```
 
-w  <- pull(cleaned_data, perwt) / sum(pull(cleaned_data, perwt))
-n  <- nrow(inputs_plus_index)
-g  <- length(unique(pull(inputs_plus_index, puma)))
-ng <- inputs_plus_index %>% group_by(puma) %>% summarize(ng = n()) %>% pull(ng)
+## The Croon-Veldhoven Procedure
 
+``` r
+# construct dataset of indices (pumas) and inputs (predictors)
+inputs_plus_index <-
+  cleaned_data %>%
+  # remove extraneous variables
+  select(-c(
+      # outputs are already observed at the group level
+      puma_death_rate, puma_hosp_rate, puma_vacc_rate
+      # miscellaneous
+    , hhwt, borough
+      # US_citizen is precisely the same as birthplace, and hence collinear
+    , US_citizen
+  )) %>%
+  # replace missing data with weighted group means
+  mutate(
+    personal_income = replace_na(
+        personal_income
+      , wmean(personal_income, perwt)
+    )
+    , household_income = replace_na(
+        household_income
+      , wmean(household_income, perwt)
+    )
+  )
+
+# extract inputs
+inputs <- inputs_plus_index %>% select(-c(puma, perwt))
+# feed inputs to model.matrix to convert factors to dummies
+inputs <- as_tibble(model.matrix(~ ., inputs)[ , -1])
+
+# redefine inputs_plus_index to include model.matrix output
+inputs_plus_index <-
+  inputs_plus_index %>%
+  select(puma) %>%
+  bind_cols(inputs)
+
+# compute relevant statistics for ANOVA
+w  <- pull(cleaned_data, perwt) / sum(pull(cleaned_data, perwt)) # normalized weights
+n  <- nrow(inputs_plus_index)                                    # NYC population
+g  <- length(unique(pull(inputs_plus_index, puma)))              # number of PUMAs
+ng <-                                                            # PUMA populations
+  inputs_plus_index %>%
+  group_by(puma) %>%
+  summarize(ng = n()) %>%
+  pull(ng)
+
+# identify citywide means
 means_observed  <-
   inputs %>%
   mutate(across(
@@ -361,32 +404,40 @@ means_observed  <-
     , ~ replace(.x, TRUE, wmean(.x, w))
   ))
 
+# identify observed puma-level means
 group_means_observed <-
   inputs_plus_index %>%
   mutate(perwt = pull(cleaned_data, perwt)) %>%
   group_by(puma) %>%
+  # use helper function to apply weighting across numeric columns
   mutate(across(where(is.numeric), ~ replace(.x, TRUE, wmean(.x, perwt))
   )) %>%
   ungroup() %>%
   select(-c(puma, perwt))
 
+# the above matrices have the same dimensionality as our inputs matrix
+# we additionally require the collapsed versions of these matrices
 means_vector <- means_observed %>% distinct()
 group_means_vector <- group_means_observed %>% distinct()
 
-msa <- pbyp(w^(0.5) * (group_means_observed - means_observed))
-mse <- pbyp(w^(0.5) * (group_means_observed - inputs))
+# compute ANOVA statistics
+msa <- pbyp(w^(0.5) * (group_means_observed - means_observed)) # between SSE (weighted)
+mse <- pbyp(w^(0.5) * (group_means_observed - inputs))         # within SSE (weighted)
+between_error <- (msa - mse) / n                               # between variation
+within_error  <-  mse                                          # within variation
 
-within_error  <-  mse
-#between_error <- n * (g - 1) * (msa - msa) / (sum(ng)^2 - sum(ng^2))
-between_error <- (msa - mse) / n
-
+# define a function that applies croon-veldhoven weighting
 jimcol <- function(k, x) {
+  # weight matrix 
   W <- solve(between_error + within_error / k) %*% between_error
+  # convex combination of citywide mean and observed mean, based on W
   u <- unlist(means_vector) %*% (diag(ncol(inputs)) - W) + unlist(x) %*% W
+  # output adjusted mean vector
   u
 }
 
-ubarg <-
+# apply weighting function to group means to consruct unbiased group means
+adj_group_means <-
   inputs_plus_index %>%
   mutate(perwt = pull(cleaned_data, perwt)) %>%
   select(puma, perwt) %>%
@@ -394,30 +445,27 @@ ubarg <-
   summarize(group_pop = sum(perwt)) %>%
   cbind(group_means_vector) %>%
   nest(group_means_vector = -c(puma, group_pop)) %>%
-  mutate(ubarg = map2(group_pop, group_means_vector, jimcol)) %>%
-  unnest(ubarg) %>%
-  pull(ubarg) %>%
+  # apply function to estimate group means for each puma
+  mutate(adj_group_means = map2(group_pop, group_means_vector, jimcol)) %>%
+  unnest(adj_group_means) %>%
+  pull(adj_group_means) %>%
   as_tibble()
-```
 
-    ## Warning: The `x` argument of `as_tibble.matrix()` must have unique column names if `.name_repair` is omitted as of tibble 2.0.0.
-    ## Using compatibility `.name_repair`.
-    ## This warning is displayed once every 8 hours.
-    ## Call `lifecycle::last_warnings()` to see where this warning was generated.
+# name matrix columns as those of observed inputs
+names(adj_group_means) <- names(group_means_vector)
 
-``` r
-names(ubarg) <- names(group_means_vector)
-
+# append indices and population weights to unbiased group mean data
 unbiased_group_means <-
   inputs_plus_index %>%
   mutate(perwt = pull(cleaned_data, perwt)) %>%
   select(puma, perwt) %>%
   group_by(puma) %>%
   summarize(group_pop = sum(perwt)) %>%
-  cbind(ubarg) %>%
+  cbind(adj_group_means) %>%
   ungroup()  %>%
   janitor::clean_names()
 
+# output result
 head(unbiased_group_means) %>% knitr::kable()
 ```
 
@@ -429,7 +477,3 @@ head(unbiased_group_means) %>% knitr::kable()
 | 3704 |     126664 |  936.1718 |          118101.9 |           0.2377836 |           0.9215612 |     3.278162 |     0.5044178 | 0.4768163 | 37.73571 |              0.0027141 |                           0.1609478 |   0.2675658 |      0.0909628 |   0.0103237 |   0.4380434 |      0.6029847 |         0.5018593 |       0.0299833 |       0.1325290 |         0.1932621 |         0.0655637 |               0.1895536 |                           0.3044901 |                         0.1235233 |                0.1606752 |          0.0388292 |                         0.4798509 |              0.0295077 |                  0.9198649 |         47951.42 |        0.2013912 |                 0.2054159 |              0.5261335 |                         0.1186382 |                        0.2766251 |                0.0495118 |                           0.0222097 |
 | 3705 |     171016 |  905.5632 |          123918.3 |           0.0927768 |           0.8778438 |     3.263593 |     0.4821918 | 0.4866007 | 40.81002 |              0.0032069 |                           0.1826325 |   0.2568923 |      0.0328278 |   0.0151186 |   0.4718517 |      0.5583668 |         0.5597872 |       0.0460307 |       0.1503090 |         0.1262995 |         0.0491624 |               0.2130535 |                           0.2417526 |                         0.1333715 |                0.1766074 |          0.0284029 |                         0.4350905 |              0.0231478 |                  0.9166286 |         47543.78 |        0.1448138 |                 0.0898442 |              0.4694772 |                         0.1540024 |                        0.3014550 |                0.0438268 |                           0.0228592 |
 | 3706 |     131986 |  816.9890 |          121248.2 |           0.1532570 |           0.9136376 |     3.123549 |     0.4802748 | 0.4742848 | 39.42301 |              0.0038065 |                           0.1636181 |   0.3138695 |      0.0115262 |   0.0091782 |   0.4636045 |      0.6443204 |         0.5771303 |       0.0286903 |       0.1576062 |         0.1046874 |         0.0574438 |               0.1906708 |                           0.2745733 |                         0.1254084 |                0.1825582 |          0.0342982 |                         0.4906344 |              0.0235905 |                  0.9300694 |         47516.12 |        0.1827171 |                 0.1603317 |              0.5291671 |                         0.1457973 |                        0.2559379 |                0.0426178 |                           0.0201182 |
-
-``` r
-# write_csv(unbiased_group_means, "./data/unbiased_group_means.csv")
-```

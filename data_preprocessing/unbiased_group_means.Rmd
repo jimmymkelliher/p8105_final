@@ -1,6 +1,6 @@
 ---
 title: "P8105: Data Science I"
-author: "Regression<br>Jimmy Kelliher (UNI: jmk2303)"
+author: "Constructing Unbiased Group Means<br>Jimmy Kelliher (UNI: jmk2303)"
 output:
   github_document:
     toc: TRUE
@@ -328,7 +328,7 @@ pbyp <- function(df) {
 }
 ```
 
-# The Croon-Veldhoven Procedure
+## The Croon-Veldhoven Procedure
 
 ```{r}
 # construct dataset of indices (pumas) and inputs (predictors)
@@ -416,7 +416,8 @@ jimcol <- function(k, x) {
   u
 }
 
-ubarg <-
+# apply weighting function to group means to consruct unbiased group means
+adj_group_means <-
   inputs_plus_index %>%
   mutate(perwt = pull(cleaned_data, perwt)) %>%
   select(puma, perwt) %>%
@@ -424,23 +425,30 @@ ubarg <-
   summarize(group_pop = sum(perwt)) %>%
   cbind(group_means_vector) %>%
   nest(group_means_vector = -c(puma, group_pop)) %>%
-  mutate(ubarg = map2(group_pop, group_means_vector, jimcol)) %>%
-  unnest(ubarg) %>%
-  pull(ubarg) %>%
+  # apply function to estimate group means for each puma
+  mutate(adj_group_means = map2(group_pop, group_means_vector, jimcol)) %>%
+  unnest(adj_group_means) %>%
+  pull(adj_group_means) %>%
   as_tibble()
 
-names(ubarg) <- names(group_means_vector)
+# name matrix columns as those of observed inputs
+names(adj_group_means) <- names(group_means_vector)
 
+# append indices and population weights to unbiased group mean data
 unbiased_group_means <-
   inputs_plus_index %>%
   mutate(perwt = pull(cleaned_data, perwt)) %>%
   select(puma, perwt) %>%
   group_by(puma) %>%
   summarize(group_pop = sum(perwt)) %>%
-  cbind(ubarg) %>%
+  cbind(adj_group_means) %>%
   ungroup()  %>%
   janitor::clean_names()
 
+# output result
 head(unbiased_group_means) %>% knitr::kable()
+```
+
+```{r, echo = FALSE}
 # write_csv(unbiased_group_means, "./data/unbiased_group_means.csv")
 ```
