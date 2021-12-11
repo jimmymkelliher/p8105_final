@@ -20,7 +20,6 @@ library(lmtest)
 library(sandwich)
 library(performance)
 library(olsrr)
-library(forecast)
 ```
 
 ```{r}
@@ -53,11 +52,9 @@ scale_fill_discrete   = scale_fill_viridis_d
 
 
 ```{r}
-
 outcome_by_year <- 
   read_csv("./modeling/outcome_puma_by_year.csv") %>%
   rename(puma = puma10)
-
 unbiased_data <- read_csv("./modeling/unbiased_group_means.csv") %>%
   merge(outcome_by_year, by = "puma")
 ```
@@ -116,7 +113,6 @@ selected_variables <-
   colnames() %>%
   as.vector() %>%
   as.list() 
-
 for (i in selected_variables) {
   plot <-
   ggplot(unbiased_data, aes_string(i,  "puma_hosp_rate_2020")) + 
@@ -139,7 +135,6 @@ best_model <- lm(puma_hosp_rate_2020  ~ language_spanish +
                    health_insurance_public:personal_income +
                    education_bachelors_degree:personal_income +
                    language_english:birthplace_us, data = unbiased_data)
-
 full_model <-  lm(puma_hosp_rate_2020  ~ 
                    (language_spanish + 
                    education_bachelors_degree +
@@ -174,7 +169,6 @@ summary(best_model) %>%
 lm_spec <- linear_reg() %>%
   set_mode("regression") %>%
   set_engine("lm")
-
 best_model_tidy <- fit(lm_spec, puma_hosp_rate_2020  ~language_spanish + 
                    education_bachelors_degree +
                    birthplace_us + health_insurance_public + language_english + 
@@ -182,23 +176,13 @@ best_model_tidy <- fit(lm_spec, puma_hosp_rate_2020  ~language_spanish +
                    health_insurance_public:personal_income +
                    education_bachelors_degree:personal_income +
                    language_english:birthplace_us,data = unbiased_data)
-
-
 check_model(best_model_tidy, 
             check = c("linearity", "qq", "normality", "outliers", "homogeneity"))
-
-
-
-
 ```
 
 ## Mallow CP
 ```{r}
 Cp <- ols_mallows_cp(best_model, full_model)
-
 names(Cp) <- c("Mallows' Cp")
-
 Cp
 ```
-
-
