@@ -870,7 +870,7 @@ borough_cat_comparisons = function(predict, outcome) {
     stack = b %>%
       ggplot(aes(
         x = borough,
-        y = num_hosp / 1000,
+        y = num_hosp,
         fill = predict
       )
       ) + 
@@ -884,7 +884,7 @@ borough_cat_comparisons = function(predict, outcome) {
         theme(axis.text.x = element_text(angle = -60, vjust = 0.5, hjust=0))
       
       vary1 = b %>%
-      ggplot(aes(x = borough, y = hosp_rate / 1000)) + 
+      ggplot(aes(x = borough, y = hosp_rate)) + 
       geom_point(aes(color = predict)) + 
         labs(
           x = "Borough",
@@ -928,7 +928,7 @@ borough_cat_comparisons = function(predict, outcome) {
     stack = b %>%
       ggplot(aes(
         x = borough,
-        y = num_death / 1000,
+        y = num_death,
         fill = predict
       )
       ) + 
@@ -942,7 +942,7 @@ borough_cat_comparisons = function(predict, outcome) {
         theme(axis.text.x = element_text(angle = -60, vjust = 0.5, hjust=0))
       
       vary1 = b %>%
-      ggplot(aes(x = borough, y = death_rate / 1000)) + 
+      ggplot(aes(x = borough, y = death_rate)) + 
       geom_point(aes(color = predict)) + 
         labs(
           x = "Borough",
